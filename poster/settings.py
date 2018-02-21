@@ -89,6 +89,7 @@ INSTALLED_APPS = [
     'apps.processing.ala',
     'apps.processing.pmo',
     'apps.processing.o2',
+    'apps.processing.rsd',
 ]
 
 MIDDLEWARE = [
