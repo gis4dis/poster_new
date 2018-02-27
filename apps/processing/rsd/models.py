@@ -1,4 +1,4 @@
-from django.db import models
+# from django.db import models
 from django.contrib.gis.db import models
 
 from apps.common.models import AbstractFeature, AbstractObservation
@@ -29,6 +29,14 @@ class EventExtent(models.Model):
     admin_units = models.ManyToManyField(AdminUnit)
 
 
+class EventCategory(models.Model):
+    """Type of an event."""
+    category = models.CharField(
+        help_text="Type of an event.",
+        max_length=255,
+        unique=True
+    )
+    
 class EventObservation(AbstractObservation):
     """The observed event"""
     feature_of_interest = models.ForeignKey(
@@ -40,9 +48,11 @@ class EventObservation(AbstractObservation):
     id_by_provider = models.TextField(
         help_text="Unique ID of an event.",
     )
-    category = models.CharField(
-        help_text="Category of a nevent.",
-        max_length=255
+    category = models.ForeignKey(
+        EventCategory,
+        help_text="Type of an event.",
+        editable=False,
+        on_delete=models.DO_NOTHING,
     )
     result = models.ForeignKey(
         EventExtent,
@@ -51,3 +61,4 @@ class EventObservation(AbstractObservation):
         editable=False,
         on_delete=models.DO_NOTHING,
     )
+
