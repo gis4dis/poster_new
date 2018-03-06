@@ -1,11 +1,11 @@
 from django.db import models
 from apps.importing.models import ProviderLog
 from datetime import datetime, date, timedelta
-import pytz
 from dateutil.parser import parse
 from dateutil import relativedelta
 from django.core.management.base import BaseCommand
 import xml.etree.ElementTree as ET
+from apps.utils.time import UTC_P0100
 
 
 class Command(BaseCommand):
@@ -27,7 +27,7 @@ class Command(BaseCommand):
             day_to = parse_date_range(arg)[1]
 
         day = day_from
-        tz = pytz.timezone('Europe/Prague')
+        tz = UTC_P0100
         day_log = ProviderLog.objects.filter()
 
         while(day < day_to):
@@ -90,7 +90,7 @@ def parse_date_range(date_str):
     if len(date_str) == 4:
         day_from = parse(date_str).replace(day=1, month=1)
         day_to = day_from + relativedelta.relativedelta(years=1)
-    elif len(date_str) == 7:
+    elif len(date_str) == 7 or len(date_str) == 6:
         day_from = parse(date_str).replace(day=1)
         day_to = day_from + relativedelta.relativedelta(months=1)
     else:

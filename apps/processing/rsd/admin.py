@@ -10,5 +10,5 @@ class EventCategoryAdmin(admin.ModelAdmin):
     )
 
 
-admin.site.register(EventCategory, EventCategoryAdmin)
+# admin.site.register(EventCategory, EventCategoryAdmin)
 # admin.site.register(Observation, ObservationAdmin)

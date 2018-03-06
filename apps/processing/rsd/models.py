@@ -26,13 +26,18 @@ class AdminUnit(AbstractFeature):
 
 class EventExtent(models.Model):
     """Extent of an event - multiple AdminUnits."""
-    admin_units = models.ManyToManyField(AdminUnit)
+    admin_units = models.ManyToManyField(AdminUnit, related_name='rsd_admin_units')
 
 
 class EventCategory(models.Model):
     """Type of an event."""
-    category = models.CharField(
+    name = models.CharField(
         help_text="Type of an event.",
+        max_length=255,
+        unique=True
+    )
+    id_by_provider = models.CharField(
+        help_text="Code of an event.",
         max_length=255,
         unique=True
     )
@@ -41,6 +46,7 @@ class EventObservation(AbstractObservation):
     """The observed event"""
     feature_of_interest = models.ForeignKey(
         EventExtent,
+        related_name='rsd_feature_of_interest',
         help_text="Admin units of Brno+Brno-venkov+D1",
         editable=False,
         on_delete=models.DO_NOTHING,
@@ -50,6 +56,7 @@ class EventObservation(AbstractObservation):
     )
     category = models.ForeignKey(
         EventCategory,
+        related_name='rsd_category',
         help_text="Type of an event.",
         editable=False,
         on_delete=models.DO_NOTHING,
@@ -57,7 +64,7 @@ class EventObservation(AbstractObservation):
     result = models.ForeignKey(
         EventExtent,
         help_text="Admin units of the event",
-        related_name="%(app_label)s_%(class)s_related",
+        related_name="rsd_result",
         editable=False,
         on_delete=models.DO_NOTHING,
     )

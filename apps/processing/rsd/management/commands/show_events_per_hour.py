@@ -1,11 +1,11 @@
 from django.db import models
 from apps.importing.models import ProviderLog
 from datetime import datetime, date, timedelta
-import pytz
 from dateutil.parser import parse
 from dateutil import relativedelta, tz
 from django.core.management.base import BaseCommand
 import xml.etree.ElementTree as ET
+from apps.utils.time import UTC_P0100
 
 class Command(BaseCommand):
     help = 'Get RSD logger info. Optionally you can pass date as a string, ' \
@@ -26,7 +26,7 @@ class Command(BaseCommand):
             day_to = parse_date_range(arg)[1]
 
         day = day_from
-        tz = pytz.timezone('Europe/Prague')
+        tz = UTC_P0100
     
         day_log = ProviderLog.objects
 
@@ -111,9 +111,13 @@ class Command(BaseCommand):
                                     hours.append(hour)
 
             print('Categories: {}'.format(categories))
+            print('---')
             print('Towns: {}'.format(towns))
+            print('---')
             print('Hours: {}'.format(hours))
-            print('Number of events for town & category & hour: {}'.format(total))
+            print('---')
+            print('Number of events for town & category & hour (same indexes in lists): {}'.format(total))
+            print('---')
             print('Total number of events: {}'.format(events))
             print('Total number of events by hour: {}'.format(sum(total)))
             print('Day: {}'.format(day))
@@ -148,7 +152,7 @@ def parse_date_range(date_str):
     if len(date_str) == 4:
         day_from = parse(date_str).replace(day=1, month=1)
         day_to = day_from + relativedelta.relativedelta(years=1)
-    elif len(date_str) == 7:
+    elif len(date_str) == 7 or len(date_str) == 6:
         day_from = parse(date_str).replace(day=1)
         day_to = day_from + relativedelta.relativedelta(months=1)
     else:
