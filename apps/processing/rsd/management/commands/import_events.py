@@ -9,19 +9,41 @@ from apps.utils.time import UTC_P0100
 from datetime import datetime, date, timedelta
 from dateutil.parser import parse
 from dateutil import relativedelta, tz
+import pytz
 
 class Command(BaseCommand):
     help = 'Create events from ProviderLog'
 
     def handle(self, *args, **options):
-        i = 0
         observed_property = "Occuring events"
         procedure = "Observation"
-        # ProviderLog.objects.all().delete()
-        for event in ProviderLog.objects.iterator():
-            i += 1
-            if(i == 30):
+
+        # EventObservation.objects.all().delete()
+
+        # get whole extent for feature_of_interest
+        admin_units = AdminUnit.objects.all().order_by('id_by_provider')
+        units_list = []
+        for admin_unit in admin_units:
+            units_list.append(admin_unit)
+            
+        event_extents = EventExtent.objects.all()
+        whole_extent = None
+        
+        for extent in event_extents:
+            extent_admin = []
+            for adm in extent.admin_units.order_by('id_by_provider').all():
+                extent_admin.append(adm)
+            if(extent_admin == units_list):
+                whole_extent = extent
                 break
+
+        # get IDs to prevent duplicates
+        ids= []
+        for event in EventObservation.objects.iterator():
+            ids.append(event.id_by_provider)
+
+        i = 0
+        for event in ProviderLog.objects.iterator():
 
             data = event.body
             tree = ET.fromstring(data)
@@ -30,6 +52,12 @@ class Command(BaseCommand):
             category = ""
             dt_range = None
             id_by_provider = ""
+
+            for tag in tree.iter('MSG'):
+                id_by_provider = tag.attrib['id']
+            if(id_by_provider in ids):
+                print('Event already in database: {}'.format(id_by_provider))
+                continue
 
             for tag in tree.iter('DEST'):
                 road = tag.find('ROAD')
@@ -48,29 +76,46 @@ class Command(BaseCommand):
                         start_time = parse(tag.text)
                     for tag in tree.iter('TSTO'):
                         end_time = parse(tag.text)
+                    
+                    
+                    start_time = start_time.astimezone(UTC_P0100) 
+                    end_time = end_time.astimezone(UTC_P0100)
+                    if(end_time < start_time):
+                        start_time, end_time = end_time, start_time
 
-                    start_time.replace(tzinfo=UTC_P0100)
-                    end_time.replace(tzinfo=UTC_P0100)
                     dt_range = DateTimeTZRange(start_time, end_time)
 
-                    for tag in tree.iter('MSG'):
-                        id_by_provider = tag.attrib['id']
+                    
+            if(len(codes) > 0):
+                admin_units = AdminUnit.objects.filter(id_by_provider__in=codes)
+                units_list = []
+                for admin_unit in admin_units:
+                    units_list.append(admin_unit)
+                    
+                event_extents = EventExtent.objects.filter(admin_units__in=admin_units).order_by('admin_units')
+                event_extent = None
+                
+                for extent in event_extents:
+                    extent_admin = []
+                    for adm in extent.admin_units.all():
+                        extent_admin.append(adm)
+                    if(extent_admin == units_list):
+                        event_extent = extent
+                        break
 
-                    admin_units = (AdminUnit.objects.filter(id_by_provider__in=codes))
-                    event_extent = EventExtent.objects.filter(admin_units__in=admin_units)
-                    # event_extent = EventExtent.admin_units
-                    event_category = EventCategory.objects.filter(name=category).get()
+                event_category = EventCategory.objects.filter(name=category).get()
+                observation = EventObservation(
+                    phenomenon_time_range= dt_range,
+                    observed_property=Property.objects.filter(name=observed_property).get(),
+                    feature_of_interest=whole_extent,
+                    procedure=Process.objects.filter(name=procedure).get(),
+                    category=event_category,
+                    id_by_provider=id_by_provider,
+                    result=event_extent)
+                observation.save()
+                i += 1
+                print('Number of new events: {}'.format(i))
 
-                    observation = EventObservation(
-                        phenomenon_time_range= dt_range,
-                        observed_property=Property.objects.filter(name=observed_property).get(),
-                        feature_of_interest=event_extent,
-                        procedure=Process.objects.filter(name=procedure).get(),
-                        category=event_category,
-                        id_by_provider=id_by_provider,
-                        result=event_extent)
-                    observation.save()
-
-            
+        print('Number of new events: {}'.format(i))
         # print('Extents in database: {}'.format(extents))
         

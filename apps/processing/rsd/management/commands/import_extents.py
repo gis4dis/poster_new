@@ -10,10 +10,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         extents = []
         i = 0
-        # EventExtent.objects.all().delete()
         for ext in EventExtent.objects.all():
             extent = list(ext.admin_units.all().order_by('id_by_provider'))
             extents.append(extent)
+
         for event in ProviderLog.objects.iterator():
             event_extent = []
             codes = []
@@ -38,8 +38,21 @@ class Command(BaseCommand):
                 for code in codes:
                     unit = AdminUnit.objects.filter(id_by_provider=code).get()
                     ext.admin_units.add(unit)
-                
-        # print('Extents in database: {}'.format(extents))
-        print('Number of extents: {}'.format(len(extents)))
-        print('Number of new extents: {}'.format(i)
         
+        # add all admin units to 1 extent
+        codes = []
+        for adm in AdminUnit.objects.all().order_by('id_by_provider'):
+            codes.append(adm.id_by_provider)
+
+        event_extent = list(AdminUnit.objects.filter(id_by_provider__in=codes).order_by('id_by_provider'))
+        if not event_extent in extents and len(event_extent) > 0:
+            extents.append(event_extent)
+            ext = EventExtent()
+            ext.save()
+            i += 1
+            for code in codes:
+                unit = AdminUnit.objects.filter(id_by_provider=code).get()
+                ext.admin_units.add(unit)
+
+        print('Number of extents: {}'.format(len(extents)))
+        print('Number of new extents: {}'.format(i))

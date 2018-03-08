@@ -49,6 +49,9 @@ class Command(BaseCommand):
                 for tag in tree.iter('TSTO'):
                     end_time = parse(tag.text)
 
+                start_time = start_time.astimezone(UTC_P0100) 
+                end_time = end_time.astimezone(UTC_P0100)
+                    
                 if(time_in_range(start_time, end_time, day_start, day_end)):
                     for tag in tree.iter('DEST'):
                         road = tag.find('ROAD')
