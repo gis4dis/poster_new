@@ -12,7 +12,7 @@ from dateutil import relativedelta, tz
 import pytz
 
 class Command(BaseCommand):
-    help = 'Create events from ProviderLog'
+    help = 'Create EventObservation from ProviderLog'
 
     def handle(self, *args, **options):
         observed_property = "Occuring events"
