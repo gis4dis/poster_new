@@ -10,11 +10,13 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         extents = []
         i = 0
+        op = 0
         for ext in EventExtent.objects.all():
             extent = list(ext.admin_units.all().order_by('id_by_provider'))
             extents.append(extent)
 
         for event in ProviderLog.objects.iterator():
+            op += 1
             event_extent = []
             codes = []
             data = event.body
@@ -26,7 +28,10 @@ class Command(BaseCommand):
                     is_d1 = True if road.attrib['RoadNumber'] == 'D1' else False
                 town_ship = tag.attrib['TownShip']
                 if((town_ship == 'Brno-venkov' or town_ship == 'Brno') or (is_d1)):
-                    code = tag.attrib['TownCode']
+                    if('TownDistrictCode' in tag.attrib):
+                        code = tag.attrib['TownDistrictCode']
+                    else:
+                        code = tag.attrib['TownCode']
                     codes.append(code)
 
             event_extent = list(AdminUnit.objects.filter(id_by_provider__in=codes).order_by('id_by_provider'))
@@ -38,7 +43,9 @@ class Command(BaseCommand):
                 for code in codes:
                     unit = AdminUnit.objects.filter(id_by_provider=code).get()
                     ext.admin_units.add(unit)
-        
+            else:
+                
+                print('Extent already in database. Event {}'.format(op))
         # add all admin units to 1 extent
         codes = []
         for adm in AdminUnit.objects.all().order_by('id_by_provider'):
@@ -50,6 +57,7 @@ class Command(BaseCommand):
             ext = EventExtent()
             ext.save()
             i += 1
+            print('New extent added: {}'.format(i))
             for code in codes:
                 unit = AdminUnit.objects.filter(id_by_provider=code).get()
                 ext.admin_units.add(unit)

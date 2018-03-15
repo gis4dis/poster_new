@@ -68,4 +68,8 @@ class EventObservation(AbstractObservation):
         editable=False,
         on_delete=models.DO_NOTHING,
     )
+    class Meta:
+        unique_together = (('phenomenon_time_range',
+                            'observed_property', 'feature_of_interest',
+                            'procedure','id_by_provider','category'),)
 

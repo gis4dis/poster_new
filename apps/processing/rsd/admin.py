@@ -1,14 +1,11 @@
 from apps.common.actions import stream_as_csv_action
 from apps.common.list_filter import DateRangeRangeFilter
-from .models import EventCategory
+from .models import EventCategory, EventObservation
 from django.contrib import admin
 
 
-class EventCategoryAdmin(admin.ModelAdmin):
-    readonly_fields = (
-        'category',
-    )
+class EventObservationAdmin(admin.ModelAdmin):
+    list_display = ['id_by_provider', 'category','result']
+    fields = ['id_by_provider', 'category','result']
 
-
-# admin.site.register(EventCategory, EventCategoryAdmin)
-# admin.site.register(Observation, ObservationAdmin)
+admin.site.register(EventObservation, EventObservationAdmin)

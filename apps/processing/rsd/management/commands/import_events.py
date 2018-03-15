@@ -19,7 +19,7 @@ class Command(BaseCommand):
         procedure = "Observation"
 
         # EventObservation.objects.all().delete()
-
+        
         # get whole extent for feature_of_interest
         admin_units = AdminUnit.objects.all().order_by('id_by_provider')
         units_list = []
@@ -66,7 +66,10 @@ class Command(BaseCommand):
                     is_d1 = True if road.attrib['RoadNumber'] == 'D1' else False
                 town_ship = tag.attrib['TownShip']
                 if((town_ship == 'Brno-venkov' or town_ship == 'Brno') or (is_d1)):
-                    code = tag.attrib['TownCode']
+                    if('TownDistrictCode' in tag.attrib):
+                        code = tag.attrib['TownDistrictCode']
+                    else:
+                        code = tag.attrib['TownCode']
                     codes.append(code)
                     for cat in tree.iter('TXUCL'):
                         category = cat.text
