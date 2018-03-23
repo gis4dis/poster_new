@@ -16,7 +16,7 @@ class Command(BaseCommand):
     help = 'Find unique events of given categories that' \
             'occur at given time range and in given spatial extent.'
 
-# ./dcmanage.sh show_events --geometry 'POINT(16.597252 49.157379)' --categories 'Nehoda, 456' --time_range_start "1 1 2018 12:00" --time_range_end "28 1 2018 20:00" --buffer 10000
+# ./dcmanage.sh show_events --geometry 'POINT(16.597252 49.157379)' --categories '201, 211' --time_range_start "1 1 2018 12:00" --time_range_end "28 1 2018 20:00" --buffer 10000
 
     def add_arguments(self, parser):
         parser.add_argument('--geometry', nargs='?', type=str,
@@ -74,23 +74,14 @@ def findEvents(geom, categories_param, time_range_start, time_range_end, buffer)
 
     i = 0
     result = []
-    for event in EventObservation.objects.iterator():
+    pt_range = DateTimeTZRange(start_range, end_range)
+    evt_obj = EventObservation.objects.filter(
+        phenomenon_time_range__overlap=pt_range,
+        category__id_by_provider__in=categories
+        )
+    
+    for event in evt_obj:
         is_geometry = False
-        is_category = False
-        is_time = False
-        
-        for category in categories:
-            if(category == event.category.id_by_provider or category == event.category.name):
-                is_category = True
-        if(not is_category):
-            continue
-
-        start_time = event.phenomenon_time_range.lower
-        end_time = event.phenomenon_time_range.upper
-
-        is_time = time_in_range(start_time, end_time, start_range, end_range)
-        if(not is_time):
-            continue
 
         for admin_unit in event.result.admin_units.iterator():
             if(admin_unit.geometry.intersects(geom_final)):
@@ -102,16 +93,5 @@ def findEvents(geom, categories_param, time_range_start, time_range_end, buffer)
             print('Number of EventObservations: {}'.format(i))
             result.append(event)
     print('Result: {}'.format(result))
-
-
-def time_in_range(start, end, day_start, day_end):
-    """Return true if event time range overlaps time range in argument"""
-    if (start <= day_start and end >= day_end):
-        return True
-    elif (start >= day_start and start <= day_end):
-        return True
-    elif (end >= day_start and end <= day_end):
-        return True
-    return False
 
             

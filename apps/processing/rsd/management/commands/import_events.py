@@ -25,10 +25,10 @@ class Command(BaseCommand):
         units_list = []
         for admin_unit in admin_units:
             units_list.append(admin_unit)
-            
+        
         event_extents = EventExtent.objects.all()
         whole_extent = None
-        
+    
         for extent in event_extents:
             extent_admin = []
             for adm in extent.admin_units.order_by('id_by_provider').all():
@@ -36,12 +36,12 @@ class Command(BaseCommand):
             if(extent_admin == units_list):
                 whole_extent = extent
                 break
-
+        
         # get IDs to prevent duplicates
         ids= []
         for event in EventObservation.objects.iterator():
             ids.append(event.id_by_provider)
-
+        
         i = 0
         for event in ProviderLog.objects.iterator():
 
@@ -55,10 +55,13 @@ class Command(BaseCommand):
 
             for tag in tree.iter('MSG'):
                 id_by_provider = tag.attrib['id']
+            
             if(id_by_provider in ids):
                 print('Event already in database: {}'.format(id_by_provider))
                 continue
 
+            ids.append(id_by_provider)
+            
             for tag in tree.iter('DEST'):
                 road = tag.find('ROAD')
                 is_d1 = False
