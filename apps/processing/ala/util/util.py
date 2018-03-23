@@ -135,8 +135,6 @@ def load(station, day):
     url = 'http://a.la-a.la/chart/data_csvcz.php?probe={}&t1={}&t2={}'.format(
         station.id_by_provider, from_s, to_s)
 
-    print ("url $s", url)
-
     logger.info('Downloading {}'.format(url))
     props = get_or_create_props()
 
