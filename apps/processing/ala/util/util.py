@@ -7,7 +7,7 @@ from contextlib import closing
 from datetime import timedelta, datetime
 from dateutil.parser import parse
 from decimal import Decimal
-
+from  importlib import import_module
 from django.db.utils import IntegrityError
 
 from apps.processing.ala.models import SamplingFeature, Observation
@@ -35,6 +35,9 @@ props_def = [
      {"name": 'ground air temperature', 'unit': '°C'}),
     ('soil_temperature', {"name": 'soil temperature', 'unit': '°C'}),
     ('power_voltage', {"name": 'power voltage', 'unit': 'V'}),
+    ('wind_speed', {"name": 'wind speed', "unit": 'm/s'}),
+    ('wind_direction', {"name": 'wind direction', "unit": '°'}),
+    ('solar_energy', {"name": 'solar energy', "unit": 'W/m2'}),
 ]
 
 props_to_provider_idx = {
@@ -77,6 +80,9 @@ props_to_provider_idx = {
         'ground_air_temperature': 2,
         'soil_temperature': 4,
         'power_voltage': 12,
+        'wind_speed': 8,
+        'wind_direction': 11,
+        'solar_energy': 9,
     },
     '11359132': {
         'precipitation': 1,
@@ -243,8 +249,17 @@ def create_avgs(station, day):
                     result = None
                     result_null_reason = 'only null values'
                 else:
-                    result = sum(values) / Decimal(len(values))
-                    result_null_reason = ''
+                    try:
+                        agg_function = prop.agg_function
+                        agg_module = import_module(prop.agg_module)
+                        result = getattr(agg_module, agg_function)(values)
+                        result_null_reason = ''
+                    except ModuleNotFoundError as e:
+                        result = None
+                        result_null_reason = 'aggregation module not found'
+                    except AttributeError as e:
+                        result = None
+                        result_null_reason = 'aggregation function not found'
 
             if result is None:
                 logger.warning(

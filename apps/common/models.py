@@ -27,6 +27,18 @@ class Property(models.Model):
         max_length=30
     )
 
+    agg_module = models.CharField(
+        help_text="Name of aggregation module",
+        max_length=100,
+        default='apps.common.aggregate'
+    )
+
+    agg_function = models.CharField(
+        help_text="Name of function used for values aggregation",
+        max_length=30,
+        default='avg'
+    )
+
     class Meta:
         ordering = ['name']
         verbose_name_plural = "properties"
