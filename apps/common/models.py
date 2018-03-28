@@ -27,16 +27,10 @@ class Property(models.Model):
         max_length=30
     )
 
-    agg_module = models.CharField(
-        help_text="Name of aggregation module",
+    default_average = models.CharField(
+        help_text="Average calculation module python path",
         max_length=100,
-        default='apps.common.aggregate'
-    )
-
-    agg_function = models.CharField(
-        help_text="Name of function used for values aggregation",
-        max_length=30,
-        default='avg'
+        default='apps.common.aggregate.avg'
     )
 
     class Meta:
