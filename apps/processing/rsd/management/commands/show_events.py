@@ -16,7 +16,7 @@ class Command(BaseCommand):
     help = 'Find unique events of given categories that' \
             'occur at given time range and in given spatial extent.'
 
-# ./dcmanage.sh show_events --geometry 'POINT(16.597252 49.157379)' --categories '201, 211' --time_range_start "1 1 2018 12:00" --time_range_end "28 1 2018 20:00" --buffer 10000
+# ./dcmanage.sh show_events --geometry 'POINT(16.597252 49.157379)' --categories '201,211' --time_range_start "1 1 2018 12:00" --time_range_end "28 1 2018 20:00" --buffer 10000
 
     def add_arguments(self, parser):
         parser.add_argument('--geometry', nargs='?', type=str,
