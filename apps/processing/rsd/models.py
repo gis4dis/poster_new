@@ -12,6 +12,11 @@ ADMIN_CHOICES = (
 
 class AdminUnit(AbstractFeature):
     """Administrative units - municipalitites, districts"""
+    id_by_provider = models.CharField(
+        help_text="ID of the station used by provider.",
+        max_length=50,
+        editable=True
+    )
     geometry = models.MultiPolygonField(
         help_text="Spatial information about feature.",
         srid=3857
@@ -31,16 +36,20 @@ class EventExtent(models.Model):
 
 class EventCategory(models.Model):
     """Type of an event."""
-    name = models.CharField(
-        help_text="Type of an event.",
-        max_length=255,
-        unique=True
+    group = models.TextField(
+        help_text="Event group.",
+        null=True
+    )
+    name = models.TextField(
+        help_text="Type of an event."
     )
     id_by_provider = models.CharField(
         help_text="Code of an event.",
         max_length=255,
         unique=True
     )
+    class Meta:
+        verbose_name_plural = "Event categories"
     
 class EventObservation(AbstractObservation):
     """The observed event"""
@@ -58,14 +67,14 @@ class EventObservation(AbstractObservation):
         EventCategory,
         related_name='rsd_category',
         help_text="Type of an event.",
-        editable=False,
+        editable=True,
         on_delete=models.DO_NOTHING,
     )
     result = models.ForeignKey(
         EventExtent,
         help_text="Admin units of the event",
         related_name="rsd_result",
-        editable=False,
+        editable=True,
         on_delete=models.DO_NOTHING,
     )
     class Meta:
