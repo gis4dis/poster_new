@@ -65,7 +65,7 @@ class Command(BaseCommand):
                             is_d1 = True if road.attrib['RoadNumber'] == 'D1' else False
 
                         town_ship = tag.attrib['TownShip']
-                        if((town_ship == 'Brno-venkov' or town_ship == 'Brno') or (is_d1)):
+                        if((town_ship == 'Brno-venkov' or town_ship == 'Brno-město') or (is_d1)):
                             hours_range = get_hours(start_time, end_time, day_start, day_end)      
                             for cat in tree.iter('TXUCL'):
                                 category = cat.text

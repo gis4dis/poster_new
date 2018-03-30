@@ -37,7 +37,8 @@ class Command(BaseCommand):
                 is_d1 = False
                 if road is not None and 'RoadNumber' in road.attrib:
                     is_d1 = True if road.attrib['RoadNumber'] == 'D1' else False
-                if(is_d1):
+                town_ship = tag.attrib['TownShip']
+                if((town_ship == 'Brno-venkov' or town_ship == 'Brno-město') or (is_d1)):
                     for tag in tree.iter('TSTA'):
                         start_time = parse(tag.text)
                     for tag in tree.iter('TSTO'):
@@ -76,5 +77,5 @@ class Command(BaseCommand):
                 continue
         print(i)
         new = json.dumps(collection)
-        with open('nehody.json', 'w') as the_file:
+        with open('var/nehody.json', 'w') as the_file:
             the_file.write(new)
