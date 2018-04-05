@@ -49,7 +49,17 @@ def findEvents(geom, categories_param, time_range_start, time_range_end, buffer)
     if categories_param is None:
         raise Exception("No event categories defined!")
     else:
-        categories = categories_param.split(",")   
+        categories = categories_param.split(",")  
+        find_by_id = False
+        find_by_group = False
+        for category in categories:
+            is_digit = category.isdigit()
+            if(not is_digit):
+                find_by_group = True
+            if(is_digit):
+                find_by_id = True
+            if(find_by_id and find_by_group):
+                raise Exception("Categories must be strings or integers only - no mix of strings and integers allowed!")
     if time_range_start is None or time_range_end is None:
         raise Exception("No time range defined!")
     else:
@@ -75,10 +85,16 @@ def findEvents(geom, categories_param, time_range_start, time_range_end, buffer)
     i = 0
     result = []
     pt_range = DateTimeTZRange(start_range, end_range)
-    evt_obj = EventObservation.objects.filter(
-        phenomenon_time_range__overlap=pt_range,
-        category__id_by_provider__in=categories
-        )
+    if(find_by_group):
+        evt_obj = EventObservation.objects.filter(
+            phenomenon_time_range__overlap=pt_range,
+            category__group__in=categories
+            )
+    else:
+        evt_obj = EventObservation.objects.filter(
+            phenomenon_time_range__overlap=pt_range,
+            category__id_by_provider__in=categories
+            )
     
     for event in evt_obj:
         is_geometry = False

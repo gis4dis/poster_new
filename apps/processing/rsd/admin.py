@@ -10,8 +10,8 @@ class EventObservationAdmin(admin.ModelAdmin):
 
 
 class EventCategoryAdmin(admin.ModelAdmin):
-    list_display = ['group','name', 'id_by_provider']
-    fields = ['group','name','id_by_provider']
+    list_display = ['name','group', 'id_by_provider']
+    fields = ['name','group','id_by_provider']
 
 
 class AdminUnitAdmin(admin.ModelAdmin):
