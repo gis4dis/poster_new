@@ -6,6 +6,28 @@ from django.contrib.postgres import fields as pgmodels
 from apps.utils.time import format_delta
 
 
+class Process(models.Model):
+    """Process used to generate the result, e.g. measurement or
+    hourly average."""
+    name_id = models.CharField(
+        help_text="Unique and computer-friendly name of the process. eg. ('measure' or 'avg_hour')",
+        max_length=100,
+        unique=True,
+        editable=False
+    )
+    name = models.CharField(
+        help_text="Human-readable name of the process.",
+        max_length=50
+    )
+
+    class Meta:
+        ordering = ['name']
+        verbose_name_plural = "processes"
+
+    def __str__(self):
+        return self.name
+
+
 class Property(models.Model):
     """Physical phenomenon related to weather, e.g. air temperature."""
 
@@ -27,37 +49,18 @@ class Property(models.Model):
         max_length=30
     )
 
-    default_mean = models.CharField(
-        help_text="Mean calculation module python path",
-        max_length=100,
-        default='apps.common.aggregate.arithmetic_mean'
+    default_mean = models.ForeignKey(
+        Process,
+        null=True,
+        help_text="Process aggregation used to calculate the result.",
+        related_name="%(app_label)s_%(class)s_related",
+        editable=False,
+        on_delete=models.DO_NOTHING,
     )
 
     class Meta:
         ordering = ['name']
         verbose_name_plural = "properties"
-
-    def __str__(self):
-        return self.name
-
-
-class Process(models.Model):
-    """Process used to generate the result, e.g. measurement or
-    hourly average."""
-    name_id = models.CharField(
-        help_text="Unique and computer-friendly name of the process. eg. ('measure' or 'avg_hour')",
-        max_length=30,
-        unique=True,
-        editable=False
-    )
-    name = models.CharField(
-        help_text="Human-readable name of the process.",
-        max_length=50
-    )
-
-    class Meta:
-        ordering = ['name']
-        verbose_name_plural = "processes"
 
     def __str__(self):
         return self.name

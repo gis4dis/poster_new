@@ -5,7 +5,8 @@ from importlib import import_module
 
 def aggregate(prop, values):
     try:
-        path = prop.default_mean.rsplit('.', 1)
+        #path = prop.default_mean.rsplit('.', 1)
+        path = prop.default_mean.name_id.rsplit('.', 1)
         agg_function_name = path[1]
         agg_module_name = path[0]
         agg_module = import_module(agg_module_name)

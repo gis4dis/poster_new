@@ -26,7 +26,7 @@ stations_def = [
     ('11359202', {'name': u'Brno, Hroznová'}),
     ('11359132', {'name': u'Brno, Mendlovo nám.'}),
 ]
-
+'''
 props_def = [
     ('precipitation', {"name": 'precipitation', 'unit': 'mm'}),
     ('air_temperature', {"name": 'air temperature', 'unit': '°C'}),
@@ -39,6 +39,68 @@ props_def = [
     ('wind_direction', {"name": 'wind direction', "unit": '°', "default_mean": "apps.common.aggregate.circle_mean"}),
     ('solar_energy', {"name": 'solar energy', "unit": 'W/m2'}),
 ]
+
+props_def = [
+    ('precipitation', {
+        "name": 'precipitation',
+        'unit': 'mm',
+        "default_mean": 38
+    }),
+    ('air_temperature', {
+        "name": 'air temperature',
+        'unit': '°C',
+        "default_mean": 38
+    }),
+    ('air_humidity', {
+        "name": 'air humidity',
+        'unit': '?',
+        "default_mean": 38
+    }),
+    ('ground_air_temperature', {
+        "name": 'ground air temperature',
+        'unit': '°C',
+        "default_mean": 38
+    }),
+    ('soil_temperature', {
+        "name": 'soil temperature',
+        'unit': '°C',
+        "default_mean": 38
+    }),
+    ('power_voltage', {
+        "name": 'power voltage',
+        'unit': 'V',
+        "default_mean": 38
+    }),
+    ('wind_speed', {
+        "name": 'wind speed',
+        "unit": 'm/s',
+        "default_mean": 38
+    }),
+    ('wind_direction', {
+        "name": 'wind direction',
+        "unit": '°',
+        "default_mean": 39
+    }),
+    ('solar_energy', {
+        "name": 'solar energy',
+        "unit": 'W/m2',
+        "default_mean": 38
+    }),
+]
+'''
+props_def = [
+    ('precipitation', {"name": 'precipitation', 'unit': 'mm'}),
+    ('air_temperature', {"name": 'air temperature', 'unit': '°C'}),
+    ('air_humidity', {"name": 'air humidity', 'unit': '?'}),
+    ('ground_air_temperature',
+     {"name": 'ground air temperature', 'unit': '°C'}),
+    ('soil_temperature', {"name": 'soil temperature', 'unit': '°C'}),
+    ('power_voltage', {"name": 'power voltage', 'unit': 'V'}),
+    ('wind_speed', {"name": 'wind speed', "unit": 'm/s'}),
+    ('wind_direction', {"name": 'wind direction', "unit": '°'}),
+    ('solar_energy', {"name": 'solar energy', "unit": 'W/m2'}),
+]
+
 
 props_to_provider_idx = {
     '11359201': {
@@ -109,8 +171,11 @@ processes_def = [
     ('measure', {'name': u'measuring'}),
     ('avg_hour', {'name': u'hourly average'}),
     ('avg_day', {'name': u'daily average'}),
+    ('apps.common.aggregate.arithmetic_mean', {'name': u'arithmetic mean'}),
+    ('apps.common.aggregate.circle_mean', {'name': u'circle mean'}),
 ]
 
+#arytmetic mean a circle mean
 
 def get_or_create_stations():
     return get_or_create_objs(SamplingFeature, stations_def, 'id_by_provider')
