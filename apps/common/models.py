@@ -27,10 +27,10 @@ class Property(models.Model):
         max_length=30
     )
 
-    default_average = models.CharField(
-        help_text="Average calculation module python path",
+    default_mean = models.CharField(
+        help_text="Mean calculation module python path",
         max_length=100,
-        default='apps.common.aggregate.avg'
+        default='apps.common.aggregate.arithmetic_mean'
     )
 
     class Meta:

@@ -36,7 +36,7 @@ props_def = [
     ('soil_temperature', {"name": 'soil temperature', 'unit': '°C'}),
     ('power_voltage', {"name": 'power voltage', 'unit': 'V'}),
     ('wind_speed', {"name": 'wind speed', "unit": 'm/s'}),
-    ('wind_direction', {"name": 'wind direction', "unit": '°', "default_average": "apps.common.aggregate.circle_mean"}),
+    ('wind_direction', {"name": 'wind direction', "unit": '°', "default_mean": "apps.common.aggregate.circle_mean"}),
     ('solar_energy', {"name": 'solar energy', "unit": 'W/m2'}),
 ]
 

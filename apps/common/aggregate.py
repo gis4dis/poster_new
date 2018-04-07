@@ -5,7 +5,7 @@ from importlib import import_module
 
 def aggregate(prop, values):
     try:
-        path = prop.default_average.rsplit('.', 1)
+        path = prop.default_mean.rsplit('.', 1)
         agg_function_name = path[1]
         agg_module_name = path[0]
         agg_module = import_module(agg_module_name)
@@ -22,7 +22,7 @@ def aggregate(prop, values):
         return result, result_null_reason
 
 
-def avg(values):
+def arithmetic_mean(values):
     return sum(values) / Decimal(len(values))
 
 
