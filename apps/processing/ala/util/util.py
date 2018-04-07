@@ -195,14 +195,23 @@ def load(station, day):
                         )
                     )
                 try:
-                    obs = Observation.objects.create(
+                    defaults = {
+                        'phenomenon_time_range': pt_range,
+                        'observed_property': prop,
+                        'feature_of_interest': station,
+                        'procedure': process,
+                        'result': result,
+                        'result_null_reason': result_null_reason
+                    }
+
+                    obs, created = Observation.objects.update_or_create(
                         phenomenon_time_range=pt_range,
                         observed_property=prop,
                         feature_of_interest=station,
                         procedure=process,
-                        result=result,
-                        result_null_reason=result_null_reason
+                        defaults=defaults
                     )
+
                 except IntegrityError as e:
                     pass
             prev_time = time
@@ -263,14 +272,23 @@ def create_avgs(station, day):
                 )
 
             try:
-                obs = Observation.objects.create(
+                defaults = {
+                    'phenomenon_time_range': pt_range,
+                    'observed_property': prop,
+                    'feature_of_interest': station,
+                    'procedure': process,
+                    'result': result,
+                    'result_null_reason': result_null_reason
+                }
+
+                obs, created = Observation.objects.update_or_create(
                     phenomenon_time_range=pt_range,
                     observed_property=prop,
                     feature_of_interest=station,
                     procedure=process,
-                    result=result,
-                    result_null_reason=result_null_reason,
+                    defaults=defaults
                 )
+
                 obs.related_observations.set(obss)
             except IntegrityError as e:
                 pass
