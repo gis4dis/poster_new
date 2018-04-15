@@ -5,18 +5,33 @@ from django.contrib import admin
 
 
 class EventObservationAdmin(admin.ModelAdmin):
-    list_display = ['id_by_provider', 'category','result']
-    fields = ['id_by_provider', 'category','result']
+    list_display = ['Event_Category_name','Event_Category_group','first_admin_unit','phenomenon_time_from','phenomenon_time_duration']
+    fields = ['Event_Category_name','Event_Category_group','first_admin_unit','phenomenon_time_from','phenomenon_time_duration']
+    readonly_fields = list_display
+    list_filter = ['category__group',DateRangeRangeFilter]
+    
+
+    def Event_Category_name(self, event):
+        return event.category.name
+    def Event_Category_group(self, event):
+        return event.category.group
+    def first_admin_unit(self, event):
+        return event.result.admin_units.first().name
 
 
 class EventCategoryAdmin(admin.ModelAdmin):
     list_display = ['name','group', 'id_by_provider']
     fields = ['name','group','id_by_provider']
+    readonly_fields = list_display
+    list_filter = ['group']
 
 
 class AdminUnitAdmin(admin.ModelAdmin):
     list_display = ['name', 'id_by_provider','level']
     fields = ['name','id_by_provider','level']
+    readonly_fields = list_display
+    list_filter = ['level']
+
 
 admin.site.register(EventObservation, EventObservationAdmin)
 admin.site.register(EventCategory, EventCategoryAdmin)
