@@ -5,8 +5,8 @@ from django.contrib import admin
 
 
 class EventObservationAdmin(admin.ModelAdmin):
-    list_display = ['Event_Category_name','Event_Category_group','first_admin_unit','phenomenon_time_from','phenomenon_time_duration']
-    fields = ['Event_Category_name','Event_Category_group','first_admin_unit','phenomenon_time_from','phenomenon_time_duration']
+    list_display = ['Event_Category_name','Event_Category_group','first_admin_unit','admin_units','phenomenon_time_from','phenomenon_time_duration']
+    fields = ['Event_Category_name','Event_Category_group','first_admin_unit','admin_units','phenomenon_time_from','phenomenon_time_duration']
     readonly_fields = list_display
     list_filter = ['category__group',DateRangeRangeFilter]
     
@@ -17,6 +17,8 @@ class EventObservationAdmin(admin.ModelAdmin):
         return event.category.group
     def first_admin_unit(self, event):
         return event.result.admin_units.first().name
+    def admin_units(self, event):
+        return len(event.result.admin_units.all())
 
 
 class EventCategoryAdmin(admin.ModelAdmin):
