@@ -9,6 +9,7 @@ import os
 import csv
 from apps.processing.pmo.models import MeteoStation
 from django.contrib.gis.geos import GEOSGeometry, Point
+import io
 
 logger = logging.getLogger(__name__)
 import re
@@ -41,9 +42,17 @@ class Command(BaseCommand):
         else:
             path = arg
 
-            with open('./var/s3storage/stanice_tok.csv', 'rt') as fff:
-                reader = csv.reader(fff, delimiter=',', quotechar='"')
-                next(reader, None)
+            folder = '/pmo/'
+            file_name = 'stanice_tok.csv'
+
+            if default_storage.exists(folder + file_name):
+                print('exists')
+
+                csv_file = default_storage.open(name=(folder + file_name), mode='rt')
+                foo = csv_file.data.decode('utf-8')
+                reader = csv.reader(io.StringIO(foo))
+
+                headers = next(reader)
                 rows = list(reader)
 
                 for rid_x, row in enumerate(rows, 1):
@@ -71,3 +80,6 @@ class Command(BaseCommand):
                         )
 
                         print(obs)
+            else:
+                print('notExists')
+
