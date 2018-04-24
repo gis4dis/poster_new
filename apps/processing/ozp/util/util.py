@@ -7,6 +7,7 @@ from contextlib import closing
 from datetime import timedelta, datetime
 from dateutil.parser import parse
 from decimal import Decimal
+
 from django.db.utils import IntegrityError
 
 from apps.processing.ala.models import SamplingFeature, Observation
@@ -14,7 +15,6 @@ from apps.common.models import Process, Property
 from apps.utils.obj import *
 from apps.utils.time import UTC_P0100
 from psycopg2.extras import DateTimeTZRange
-from apps.common.aggregate import aggregate
 
 logger = logging.getLogger(__name__)
 
@@ -25,61 +25,9 @@ stations_def = [
     ('11359192', {'name': u'Brno, Schodová'}),
     ('11359202', {'name': u'Brno, Hroznová'}),
     ('11359132', {'name': u'Brno, Mendlovo nám.'}),
-    ('Arboretum', {'name': u'Arboretum'}),
-    ('Lány', {'name': u'Lány'}),
-    ('Svatoplukova', {'name': u'Svatoplukova'}),
-    ('Výstaviště', {'name': u'Výstaviště'}),
-    ('Zvonařka', {'name': u'Zvonařka'}),
 ]
 
 props_def = [
-<<<<<<< 6ad4adcfc56c01e4ee1c9eb835428c12db0b899c
-    ('precipitation', {
-        "name": 'precipitation',
-        'unit': 'mm',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('air_temperature', {
-        "name": 'air temperature',
-        'unit': '°C',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('air_humidity', {
-        "name": 'air humidity',
-        'unit': '?',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('ground_air_temperature', {
-        "name": 'ground air temperature',
-        'unit': '°C',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('soil_temperature', {
-        "name": 'soil temperature',
-        'unit': '°C',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('power_voltage', {
-        "name": 'power voltage',
-        'unit': 'V',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('wind_speed', {
-        "name": 'wind speed',
-        "unit": 'm/s',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('wind_direction', {
-        "name": 'wind direction',
-        "unit": '°',
-        "default_mean": 'apps.common.aggregate.circle_mean'
-    }),
-    ('solar_energy', {
-        "name": 'solar energy',
-        "unit": 'W/m²',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-=======
     ('precipitation', {"name": 'precipitation', 'unit': 'mm'}),
     ('air_temperature', {"name": 'air temperature', 'unit': '°C'}),
     ('air_humidity', {"name": 'air humidity', 'unit': '?'}),
@@ -87,19 +35,6 @@ props_def = [
      {"name": 'ground air temperature', 'unit': '°C'}),
     ('soil_temperature', {"name": 'soil temperature', 'unit': '°C'}),
     ('power_voltage', {"name": 'power voltage', 'unit': 'V'}),
-    ('atmospheric_pressure', {"name": 'atmospheric pressure ', 'unit': 'hPa'}),
-    ('co_024', {"name": 'CO O24', 'unit': 'mg/m3'}),
-    ('no_024', {"name": 'NO O24', 'unit': 'µg/m3'}),
-    ('no2_024', {"name": 'NO2 O24', 'unit': 'µg/m3'}),
-    ('nox', {"name": 'NOx', 'unit': 'µg/m3'}),
-    ('o3', {"name": 'O3', 'unit': 'µg/m3'}),
-    ('pm1', {"name": 'PM1', 'unit': 'µg/m3'}),
-    ('pm2.5', {"name": 'PM2.5', 'unit': 'µg/m3'}),
-    ('pm10', {"name": 'PM10', 'unit': 'µg/m3'}),
-    ('so2', {"name": 'SO2', 'unit': 'µg/m3'}),
-    ('wind_direction', {"name": 'wind direction', 'unit': 'deg'}),
-    ('wind_speed', {"name": 'wind speed', 'unit': 'm/s'}),
->>>>>>> ozp init stations and props
 ]
 
 props_to_provider_idx = {
@@ -142,9 +77,6 @@ props_to_provider_idx = {
         'ground_air_temperature': 2,
         'soil_temperature': 4,
         'power_voltage': 12,
-        'wind_speed': 8,
-        'wind_direction': 11,
-        'solar_energy': 9,
     },
     '11359132': {
         'precipitation': 1,
@@ -171,8 +103,6 @@ processes_def = [
     ('measure', {'name': u'measuring'}),
     ('avg_hour', {'name': u'hourly average'}),
     ('avg_day', {'name': u'daily average'}),
-    ('apps.common.aggregate.arithmetic_mean', {'name': u'arithmetic mean'}),
-    ('apps.common.aggregate.circle_mean', {'name': u'circle mean'}),
 ]
 
 
@@ -181,16 +111,6 @@ def get_or_create_stations():
 
 
 def get_or_create_props():
-    for prop in props_def:
-        if 'default_mean' in prop[1]:
-            mean = prop[1]['default_mean']
-            if not isinstance(prop[1]['default_mean'], Process):
-                mean_process = Process.objects.get(name_id=mean)
-                if mean and mean_process:
-                    prop[1]['default_mean'] = mean_process
-                else:
-                    prop[1]['default_mean'] = None
-
     return get_or_create_objs(Property, props_def, 'name_id')
 
 
@@ -269,23 +189,14 @@ def load(station, day):
                         )
                     )
                 try:
-                    defaults = {
-                        'phenomenon_time_range': pt_range,
-                        'observed_property': prop,
-                        'feature_of_interest': station,
-                        'procedure': process,
-                        'result': result,
-                        'result_null_reason': result_null_reason
-                    }
-
-                    obs, created = Observation.objects.update_or_create(
+                    obs = Observation.objects.create(
                         phenomenon_time_range=pt_range,
                         observed_property=prop,
                         feature_of_interest=station,
                         procedure=process,
-                        defaults=defaults
+                        result=result,
+                        result_null_reason=result_null_reason
                     )
-
                 except IntegrityError as e:
                     pass
             prev_time = time
@@ -332,7 +243,8 @@ def create_avgs(station, day):
                     result = None
                     result_null_reason = 'only null values'
                 else:
-                    result, result_null_reason = aggregate(prop, values)
+                    result = sum(values) / Decimal(len(values))
+                    result_null_reason = ''
 
             if result is None:
                 logger.warning(
@@ -346,23 +258,14 @@ def create_avgs(station, day):
                 )
 
             try:
-                defaults = {
-                    'phenomenon_time_range': pt_range,
-                    'observed_property': prop,
-                    'feature_of_interest': station,
-                    'procedure': process,
-                    'result': result,
-                    'result_null_reason': result_null_reason
-                }
-
-                obs, created = Observation.objects.update_or_create(
+                obs = Observation.objects.create(
                     phenomenon_time_range=pt_range,
                     observed_property=prop,
                     feature_of_interest=station,
                     procedure=process,
-                    defaults=defaults
+                    result=result,
+                    result_null_reason=result_null_reason,
                 )
-
                 obs.related_observations.set(obss)
             except IntegrityError as e:
                 pass
