@@ -70,7 +70,7 @@ props_def = [
     }),
     ('solar_energy', {
         "name": 'solar energy',
-        "unit": 'W/m2',
+        "unit": 'W/m²',
         "default_mean": 'apps.common.aggregate.arithmetic_mean'
     }),
 ]
