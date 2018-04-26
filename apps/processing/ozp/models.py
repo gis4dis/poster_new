@@ -3,8 +3,10 @@ from apps.common.models import AbstractFeature, AbstractObservation
 
 
 class SamplingFeature(AbstractFeature):
-    # Ala doesn't have geometry value to the yet - to be added in future
-    geometry = None
+    geometry = models.PointField(
+        help_text="Spatial information about feature.",
+        srid=3857
+    )
 
 
 class Observation(AbstractObservation):
