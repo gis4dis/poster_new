@@ -13,5 +13,5 @@ stations_def = [
     ('Zvonařka', {'name': u'Zvonařka','geometry': GEOSGeometry('POINT (1849962.51 6306633.61)', srid=3857)}),
 ]
 
-def get_or_create_stations():
+def get_or_create_ozp_stations():
     return get_or_create_objs(SamplingFeature, stations_def, 'id_by_provider')

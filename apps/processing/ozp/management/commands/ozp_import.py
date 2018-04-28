@@ -1,51 +1,85 @@
-import logging
 from django.core.management.base import BaseCommand
-from apps.processing.ala.util import util
+from apps.processing.ala.util.util import get_or_create_processes, get_or_create_props
+from apps.processing.ozp.util.util import get_or_create_ozp_stations
+from apps.processing.ozp.models import Observation
 from dateutil.parser import parse
-from dateutil import relativedelta
-from datetime import date, timedelta
-
-logger = logging.getLogger(__name__)
-
-
-def parse_date_range(date_str):
-    if len(date_str) == 4:
-        day_from = parse(date_str).replace(day=1, month=1)
-        day_to = day_from + relativedelta.relativedelta(years=1)
-    elif len(date_str) == 7:
-        day_from = parse(date_str).replace(day=1)
-        day_to = day_from + relativedelta.relativedelta(months=1)
-    else:
-        day_from = parse(date_str)
-        day_to = day_from + timedelta(1)
-    return [day_from, day_to]
-
+from datetime import datetime, date, timedelta, timezone
+from apps.utils.time import UTC_P0100
+from psycopg2.extras import DateTimeTZRange
+import os
+import csv
 
 class Command(BaseCommand):
-    help = 'Import data from ALA stations. Optionally you can pass date, ' \
-           'otherwise it will fetch the day before yesterday data.'
+    help = 'Import data from OZP stations.'
 
     def add_arguments(self, parser):
-        parser.add_argument('date_range', nargs='?', type=parse_date_range,
-                            default=[None, None])
+        parser.add_argument('--path', nargs='?', type=str, default=None)
 
     def handle(self, *args, **options):
+        stations = get_or_create_ozp_stations()
+        properties = get_or_create_props()
+        processes = get_or_create_processes()
+        arg = options['path']
+        # Observation.objects.all().delete()
+        if arg is None:
+            raise Exception("No path to folder defined!")
+        else:
+            for process in processes:
+                if(process.name_id == 'measure'):
+                    ozp_process = process
+                    break
+            path = arg
+            for filename in os.listdir(path):
+                file_stations = []
+                file_property = None
+                for prop in properties:
+                    if(prop.name_id == filename[0:-4].lower()):
+                        file_property = prop
+                        break
+                
+                with open(os.path.join(path, filename), encoding='Windows-1250') as csv_file:
+                    csv_reader = csv.reader(csv_file, delimiter=';')
+                    i = 0
+                    for row in csv_reader:
+                        if(i == 0):
+                            for indx, data in enumerate(row):
+                                for station in stations:
+                                    if(station.id_by_provider == data):
+                                        file_stations.append(station)
+                        else:
+                            date = row[0]
+                            start_hour = str((int(row[1]) - 1)) + ':00'
+                            end_hour = str(int(row[1])) + ':00'
+                            if(end_hour == '24:00'):
+                                end_hour = '23:59'
+                            time_start = parse_time(date + ' ' + start_hour)
+                            time_end = parse_time(date + ' ' + end_hour)
+                            time_range = DateTimeTZRange(time_start, time_end)
 
-        stations = util.get_or_create_stations()
-        day_from, day_to = options['date_range']
-        if day_from is None:
-            day_from = date.today() - timedelta(2)
-            day_to = day_from + timedelta(1)
+                            for indx, data in enumerate(row):
+                                if(indx > 1):
+                                    station = file_stations[(indx - 2)]
+                                    if(data.find(',') > -1):
+                                        result = float(data.replace(',','.'))
+                                    elif(data == ''):
+                                        continue
+                                    else:
+                                        result = float(data)
+                                    print('File: {}| Row: {}'.format(file_property, i))
+                                    observation = Observation(
+                                        phenomenon_time_range= time_range,
+                                        observed_property=file_property,
+                                        feature_of_interest=station,
+                                        procedure=ozp_process,
+                                        result=result)
+                                    observation.save()
 
-        day = day_from
-        while(day < day_to):
-            logger.info(
-                'Importing observations of {} ALA stations from {}.'.format(
-                    len(stations),
-                    day
-                )
-            )
-            for station in stations:
-                util.load(station, day)
-                util.create_avgs(station, day)
-            day += timedelta(1)
+                        i += 1
+
+            return
+
+def parse_time(string):
+    time = parse(string)
+    time = time.replace(tzinfo=timezone.utc)
+    time = time.astimezone(UTC_P0100)
+    return time
