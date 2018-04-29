@@ -29,7 +29,10 @@ class Command(BaseCommand):
                     ozp_process = process
                     break
             path = arg
+            file_count = 0
+            files = len(os.listdir(path))
             for filename in os.listdir(path):
+                file_count += 1
                 file_stations = []
                 file_property = None
                 for prop in properties:
@@ -47,15 +50,19 @@ class Command(BaseCommand):
                                     if(station.id_by_provider == data):
                                         file_stations.append(station)
                         else:
+                            next_day = False
                             date = row[0]
                             start_hour = str((int(row[1]) - 1)) + ':00'
                             end_hour = str(int(row[1])) + ':00'
                             if(end_hour == '24:00'):
                                 end_hour = '23:59'
+                                next_day = True
                             time_start = parse_time(date + ' ' + start_hour)
                             time_end = parse_time(date + ' ' + end_hour)
+                            if(next_day):
+                                time_end = time_end + timedelta(0,60)
                             time_range = DateTimeTZRange(time_start, time_end)
-
+                            
                             for indx, data in enumerate(row):
                                 if(indx > 1):
                                     station = file_stations[(indx - 2)]
@@ -65,7 +72,7 @@ class Command(BaseCommand):
                                         continue
                                     else:
                                         result = float(data)
-                                    print('File: {}| Row: {}'.format(file_property, i))
+                                    print('Name: {} | File: {}/{} | Row: {}'.format(file_property, file_count, files, i))
                                     observation = Observation(
                                         phenomenon_time_range= time_range,
                                         observed_property=file_property,
