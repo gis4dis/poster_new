@@ -27,8 +27,6 @@ def parse_dms(dms):
 #   co by vsechno melo byt logovane?
 #Celery task ???? Jak?
 
-baseDir = '/pmo/stanice_tok.csv'
-
 class Command(BaseCommand):
     help = 'Import stations '
 
