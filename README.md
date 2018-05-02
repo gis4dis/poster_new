@@ -227,3 +227,10 @@ Stop docker machine on Windows - otherwise it will require to Force-stop stuff w
 ```
 docker-machine stop
 ```
+
+## Troubleshooting
+
+### Cannot run redis container (or others)
+Arch linux (and probably some others) with linux kernel version 4.15.x+ (confirmed on 4.16.5) has an issue with running some older versions of containers (redis:3.0.0 in our case, also found mentions of CentOS 6, with CentOS 7 working).
+
+* The fix is described in (https://bbs.archlinux.org/viewtopic.php?pid=1774110#p1774110), `vsyscall=emulate` needs to be added as a kernel parameter.
