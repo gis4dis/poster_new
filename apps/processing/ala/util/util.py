@@ -19,12 +19,12 @@ from apps.common.aggregate import aggregate
 logger = logging.getLogger(__name__)
 
 stations_def = [
-    ('11359201', {'name': u'Brno, botanical garden PřF MU'}),
-    ('11359196', {'name': u'Brno, Kraví Hora'}),
-    ('11359205', {'name': u'Brno, FF MU, Arne Nováka'}),
-    ('11359192', {'name': u'Brno, Schodová'}),
-    ('11359202', {'name': u'Brno, Hroznová'}),
-    ('11359132', {'name': u'Brno, Mendlovo nám.'}),
+    ('11359201', {'name': u'Brno, botanical garden PřF MU','geometry': GEOSGeometry('POINT (1847520.94 6309563.27)', srid=3857)}),
+    ('11359196', {'name': u'Brno, Kraví Hora','geometry': GEOSGeometry('POINT (1846146.81 6309747.11)', srid=3857)}),
+    ('11359205', {'name': u'Brno, FF MU, Arne Nováka','geometry': GEOSGeometry('POINT (1847675.56 6308956.40)', srid=3857)}),
+    ('11359192', {'name': u'Brno, Schodová','geometry': GEOSGeometry('POINT (1849450.89 6310106.96)', srid=3857)}),
+    ('11359202', {'name': u'Brno, Hroznová','geometry': GEOSGeometry('POINT (1844818.10 6307765.97)', srid=3857)}),
+    ('11359132', {'name': u'Brno, Mendlovo nám.','geometry': GEOSGeometry('POINT (1847158.39 6307383.04)', srid=3857)}),
 ]
 
 props_def = [
