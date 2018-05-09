@@ -10,6 +10,7 @@ from decimal import Decimal
 from django.db.utils import IntegrityError
 
 from apps.processing.ala.models import SamplingFeature, Observation
+from apps.common.util.util import processes_def, props_def
 from apps.common.models import Process, Property
 from apps.utils.obj import *
 from apps.utils.time import UTC_P0100
@@ -19,110 +20,12 @@ from apps.common.aggregate import aggregate
 logger = logging.getLogger(__name__)
 
 stations_def = [
-    ('11359201', {'name': u'Brno, botanical garden PřF MU'}),
-    ('11359196', {'name': u'Brno, Kraví Hora'}),
-    ('11359205', {'name': u'Brno, FF MU, Arne Nováka'}),
-    ('11359192', {'name': u'Brno, Schodová'}),
-    ('11359202', {'name': u'Brno, Hroznová'}),
-    ('11359132', {'name': u'Brno, Mendlovo nám.'}),
-]
-
-props_def = [
-    ('precipitation', {
-        "name": 'precipitation',
-        'unit': 'mm',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('air_temperature', {
-        "name": 'air temperature',
-        'unit': '°C',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('air_humidity', {
-        "name": 'air humidity',
-        'unit': '?',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('ground_air_temperature', {
-        "name": 'ground air temperature',
-        'unit': '°C',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('soil_temperature', {
-        "name": 'soil temperature',
-        'unit': '°C',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('power_voltage', {
-        "name": 'power voltage',
-        'unit': 'V',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('wind_speed', {
-        "name": 'wind speed',
-        "unit": 'm/s',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('wind_direction', {
-        "name": 'wind direction',
-        "unit": '°',
-        "default_mean": 'apps.common.aggregate.circle_mean'
-    }),
-    ('solar_energy', {
-        "name": 'solar energy',
-        "unit": 'W/m²',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('atmospheric_pressure', {
-        "name": 'atmospheric pressure ',
-        'unit': 'hPa',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('co', {
-        "name": 'CO',
-        'unit': 'mg/m³',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('no', {
-        "name": 'NO',
-        'unit': 'µg/m³',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('no2', {
-        "name": 'NO₂',
-        'unit': 'µg/m³',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('nox', {
-        "name": 'NOₓ',
-        'unit': 'µg/m³',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('o3', {
-        "name": 'O₃',
-        'unit': 'µg/m³',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('pm1', {
-        "name": 'PM1',
-        'unit': 'µg/m³',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('pm2.5', {
-        "name": 'PM2.5',
-        'unit': 'µg/m³',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('pm10', {
-        "name": 'PM10',
-        'unit': 'µg/m³',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
-    ('so2', {
-        "name": 'SO₂',
-        'unit': 'µg/m³',
-        "default_mean": 'apps.common.aggregate.arithmetic_mean'
-    }),
+    ('11359201', {'name': u'Brno, botanical garden PřF MU','geometry': GEOSGeometry('POINT (1847520.94 6309563.27)', srid=3857)}),
+    ('11359196', {'name': u'Brno, Kraví Hora','geometry': GEOSGeometry('POINT (1846146.81 6309747.11)', srid=3857)}),
+    ('11359205', {'name': u'Brno, FF MU, Arne Nováka','geometry': GEOSGeometry('POINT (1847675.56 6308956.40)', srid=3857)}),
+    ('11359192', {'name': u'Brno, Schodová','geometry': GEOSGeometry('POINT (1849450.89 6310106.96)', srid=3857)}),
+    ('11359202', {'name': u'Brno, Hroznová','geometry': GEOSGeometry('POINT (1844818.10 6307765.97)', srid=3857)}),
+    ('11359132', {'name': u'Brno, Mendlovo nám.','geometry': GEOSGeometry('POINT (1847158.39 6307383.04)', srid=3857)}),
 ]
 
 props_to_provider_idx = {
@@ -189,15 +92,6 @@ station_interval = {
 # 6 prop * 5 per hour * 1 st =  30
 # 4 prop * 7 per hour * 1 st =  28
 # TOTAL 226 per hour * 24 = 5424 per day
-
-processes_def = [
-    ('measure', {'name': u'measuring'}),
-    ('avg_hour', {'name': u'hourly average'}),
-    ('avg_day', {'name': u'daily average'}),
-    ('apps.common.aggregate.arithmetic_mean', {'name': u'arithmetic mean'}),
-    ('apps.common.aggregate.circle_mean', {'name': u'circle mean'}),
-]
-
 
 def get_or_create_stations():
     return get_or_create_objs(SamplingFeature, stations_def, 'id_by_provider')
