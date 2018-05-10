@@ -38,15 +38,15 @@ def get_or_create_processes():
 
 
 def load(day):
+
+    day = day.strftime("%Y%m%d")
+
     get_or_create_processes()
     get_or_create_props()
 
     process = Process.objects.get(name_id='measure')
 
-    path = basedir_def + '20180409' + '/HOD.dat'
-    #path = basedir_def + '20180409' + '/HOD_debug.dat'
-    #WatercourseObservation.objects.all().delete()
-    #all = WatercourseObservation.objects.all()
+    path = basedir_def + day + '/HOD.dat'
 
     if default_storage.exists(path):
         csv_file = default_storage.open(name=path, mode='r')
@@ -62,12 +62,28 @@ def load(day):
             measure_date = row[2]
             measure_time = row[3]
             measure_id = row[4]
-            value = float(row[5])
+            result = None
+            result_null_reason = ''
+
+            try:
+                result = float(row[5])
+            except:
+                result_null_reason = 'invalid value in CSV'
+                pass
 
             try:
                 station = WatercourseStation.objects.get(id_by_provider=station_id)
             except WatercourseStation.DoesNotExist:
-                logger.warning('WatercourseStation does not exist. Measure %s not imported ', measure_id)
+                logger.warning(
+                    "WatercourseStation does not exist. Measure with values station_id {},"
+                    "code {}, measure_date {}, measure_time {}, measure_id {} not imported".format(
+                        station_id,
+                        code,
+                        measure_date,
+                        measure_time,
+                        measure_id
+                    )
+                )
                 station = None
                 pass
 
@@ -82,34 +98,44 @@ def load(day):
                         pass
 
                     if observed_property:
-                        '''
-                        if code == '17':
-                            observed_property = Property.objects.get(name_id='water_level')
-                        elif code == '29':
-                            observed_property = Property.objects.get(name_id='stream_flow')
-                        else:
-                            logger.error('unknown measure code')
-                        '''
-
                         time_str = measure_date + ' ' + measure_time
                         time_from = datetime.strptime(time_str, "%d.%m.%Y %H:%M")
-                        time_to = time_from + timedelta(hours=1)
-                        pt_range = DateTimeTZRange(time_from, time_to)
+                        pt_range = DateTimeTZRange(time_from, time_from, '[]')
 
                         try:
-                            obs = WatercourseObservation.objects.create(
+
+                            defaults = {
+                                'phenomenon_time_range': pt_range,
+                                'observed_property': observed_property,
+                                'feature_of_interest': station,
+                                'procedure': process,
+                                'result': result,
+                                'result_null_reason': result_null_reason
+                            }
+
+                            obs, created = WatercourseObservation.objects.update_or_create(
                                 phenomenon_time_range=pt_range,
                                 observed_property=observed_property,
                                 feature_of_interest=station,
                                 procedure=process,
-                                result=value,
-                                result_null_reason=''
+                                defaults=defaults
                             )
+
                         except IntegrityError as e:
                             print(row)
-                            logger.warning('Error in creating observation from measure %s', measure_id)
+                            logger.warning(
+                                "Error in creating observation from station_id {},"
+                                "code {}, measure_date {}, measure_time {}, measure_id {}".format(
+                                    station_id,
+                                    code,
+                                    measure_date,
+                                    measure_time,
+                                    measure_id
+                                )
+                            )
+                            #logger.warning('Error in creating observation from measure %s', measure_id)
                             pass
                 else:
                     logger.error('Unknown measure code %s', code)
     else:
-        logger.warning("Error specified path: %s not found", path)
+        logger.error("Error file path: %s not found", path)
