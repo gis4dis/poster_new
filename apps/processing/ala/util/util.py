@@ -211,7 +211,7 @@ def create_avgs(station, day):
         if prop.name_id not in props_to_provider_idx[station.id_by_provider]:
             continue
 
-        process = Process.objects.get(name_id='avg_hour')
+        #process = Process.objects.get(name_id='avg_hour')
 
         for i in range(0, 24):
             to_aware = from_aware + timedelta(hours=1)
@@ -235,7 +235,7 @@ def create_avgs(station, day):
                     result = None
                     result_null_reason = 'only null values'
                 else:
-                    result, result_null_reason = aggregate(prop, values)
+                    result, result_null_reason, process = aggregate(prop, values)
 
             if result is None:
                 logger.warning(

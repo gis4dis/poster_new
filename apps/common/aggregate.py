@@ -12,15 +12,15 @@ def aggregate(prop, values):
         agg_module = import_module(agg_module_name)
         result = getattr(agg_module, agg_function_name)(values)
         result_null_reason = ''
-        return result, result_null_reason
+        return result, result_null_reason, prop.default_mean
     except ModuleNotFoundError as e:
         result = None
         result_null_reason = 'aggregation module not found'
-        return result, result_null_reason
+        return result, result_null_reason, prop.default_mean
     except AttributeError as e:
         result = None
         result_null_reason = 'aggregation function not found'
-        return result, result_null_reason
+        return result, result_null_reason, prop.default_mean
 
 
 def arithmetic_mean(values):
