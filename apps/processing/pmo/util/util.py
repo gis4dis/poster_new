@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 props_def = [
     ('water_level', {"name": 'water level', 'unit': 'm'}),
-    ('stream_flow', {"name": 'stream flow', 'unit': 'm3/s'})
+    ('stream_flow', {"name": 'stream flow', 'unit': 'm³/s'})
 ]
 
 props_data_types = {
