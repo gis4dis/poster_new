@@ -1,7 +1,6 @@
 from rest_framework import viewsets
 from apps.common.serializers import PropertySerializer
 from apps.common.models import Property
-
 from django.conf import settings
 
 

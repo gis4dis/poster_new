@@ -22,6 +22,7 @@ from apps.common import views
 
 router = routers.DefaultRouter()
 router.register(r'properties', views.PropertyViewSet)
+router.register(r'watercourse-stations', views.WaterCourseViewSet)
 
 urlpatterns = [
     url(r'^api/v1/', include(router.urls)),
