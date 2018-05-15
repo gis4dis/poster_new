@@ -9,7 +9,9 @@ celery==4.2.0rc4
 certifi==2017.11.5
 chardet==3.0.4
 Django==2.0.3
-#django-celery==3.2.2
+djangorestframework==3.8.2
+djangorestframework-gis==0.13
+django-celery==3.2.2
 django-celery-beat==1.1.0
 django-celery-results==1.0.1
 django-environ==0.4.4
