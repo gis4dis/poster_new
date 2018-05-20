@@ -21,17 +21,10 @@ from rest_framework import routers
 from apps.common import views
 
 router = routers.DefaultRouter()
-router.register(r'processes', views.ProcessViewSet)
 router.register(r'properties', views.PropertyViewSet)
-router.register(r'watercourse-stations', views.WaterCourseViewSet)
 
 urlpatterns = [
-    url('processes-custom', views.processes_list),
-    url('watercourse-stations', views.watercourse_stations_list),
-
-    url(r'^api/', include(router.urls)),
-    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-
+    url(r'^api/v1/', include(router.urls)),
     path('admin/', admin.site.urls),
     path('import/', include('apps.importing.urls')),
 ]
