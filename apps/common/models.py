@@ -66,6 +66,31 @@ class Property(models.Model):
         return self.name
 
 
+class TimeSeriesFeature(models.Model):
+    """Place where the observation were collected - mostly point feature like weather station."""
+
+    id_by_provider = models.CharField(
+        help_text="ID of the station used by provider.",
+        max_length=50,
+        editable=False
+    )
+
+    name = models.CharField(
+        help_text="Human-readable name of the station.",
+        max_length=50
+    )
+
+    geometry = models.PointField(
+        help_text="Spatial information about feature."
+    )
+
+    class Meta:
+        managed = False
+
+    def __str__(self):
+        return self.name
+
+
 class AbstractFeature(models.Model):
     """Place where the observation were collected - mostly point feature like weather station."""
 
