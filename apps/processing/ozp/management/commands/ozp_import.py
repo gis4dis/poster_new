@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from apps.processing.ala.util.util import get_or_create_processes, get_or_create_props
+from apps.common.util.util import get_or_create_processes, get_or_create_props
 from apps.processing.ozp.util.util import get_or_create_ozp_stations
 from apps.processing.ozp.models import Observation
 from dateutil.parser import parse
