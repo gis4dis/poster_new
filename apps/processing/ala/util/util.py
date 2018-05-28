@@ -19,6 +19,8 @@ from apps.utils.time import UTC_P0100
 from psycopg2.extras import DateTimeTZRange
 from apps.common.aggregate import aggregate
 
+from django.contrib.gis.geos import GEOSGeometry, Point
+
 logger = logging.getLogger(__name__)
 
 stations_def = [
