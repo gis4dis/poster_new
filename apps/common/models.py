@@ -2,9 +2,9 @@
 # from django.utils.timezone import localtime
 from django.contrib.gis.db import models
 from django.contrib.postgres import fields as pgmodels
-
 from apps.utils.time import format_delta
-
+from django.db.models.fields import DecimalField
+from django.contrib.postgres.fields import ArrayField
 
 class Process(models.Model):
     """Process used to generate the result, e.g. measurement or
@@ -83,6 +83,10 @@ class TimeSeriesFeature(models.Model):
     geometry = models.PointField(
         help_text="Spatial information about feature."
     )
+
+    property_values = ArrayField(DecimalField(decimal_places=5, max_digits=15), null=True, blank=True)
+
+    property_anomaly_rates = ArrayField(DecimalField(decimal_places=5, max_digits=15), null=True, blank=True)
 
     class Meta:
         managed = False

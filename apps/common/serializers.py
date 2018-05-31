@@ -7,3 +7,4 @@ class PropertySerializer(serializers.ModelSerializer):
         model = Property
         fields = ('name_id', 'name', 'unit')
 
+
