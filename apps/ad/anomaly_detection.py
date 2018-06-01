@@ -1,28 +1,26 @@
 from django.conf import settings
 from apps.common.models import Process
+from datetime import datetime
 from psycopg2.extras import DateTimeTZRange
 
 from luminol.anomaly_detector import AnomalyDetector
 
-stations_def = ('11359201', '11359196', '11359205',
-                '11359192', '11359202', '11359132')
-
-
-def get_timeseries(observed_property, observation_provider_model, feature_of_interest, phenomenon_time_range=DateTimeTZRange("2018-01-01 00:00:00+01", "2019-01-01 00:00:00+01")):
+def get_timeseries(observed_property, observation_provider_model, feature_of_interest, phenomenon_time_range):
     frequency = settings.APPLICATION_MC.PROPERTIES[observed_property.name_id]["value_frequency"]
     process = Process.objects.get(
         name_id=settings.APPLICATION_MC.PROPERTIES[observed_property.name_id]["process"])
     observation_model_name = f"{observation_provider_model.__module__}.{observation_provider_model.__name__}"
-    
-    print(observed_property, process, feature_of_interest)
+    timezone = phenomenon_time_range.lower.tzinfo
 
     obss = observation_provider_model.objects.raw('''SELECT * FROM ala_observation WHERE
-        lower(phenomenon_time_range) BETWEEN %s AND %s AND
+        %s @> phenomenon_time_range AND
         mod(cast(extract(epoch from lower(phenomenon_time_range)) as int), %s)=0 AND
-        mod(cast(extract(epoch from upper(phenomenon_time_range)) as int) - cast(extract(epoch from lower(phenomenon_time_range)) as int), %s)=0 AND
+        cast(extract(epoch from upper(phenomenon_time_range)) as int) - cast(extract(epoch from lower(phenomenon_time_range)) as int)=%s AND
         observed_property_id=%s AND
         procedure_id=%s AND
-        feature_of_interest_id=%s''', [phenomenon_time_range.lower, phenomenon_time_range.upper, frequency, frequency, observed_property.id, process.id, feature_of_interest.id])
+        feature_of_interest_id=%s''', [f'[{phenomenon_time_range.lower},{phenomenon_time_range.upper})', frequency, frequency, observed_property.id, process.id, feature_of_interest.id])
+
+    debug = {x.phenomenon_time_range.lower: [x.result, x.phenomenon_time_range] for x in obss}
 
     obs_reduced = {x.phenomenon_time_range.lower.timestamp(): x.result for x in obss}
 
@@ -75,15 +73,12 @@ def get_timeseries(observed_property, observation_provider_model, feature_of_int
             obs_reduced[t] = None
             anomalyScore.insert(i, None)
 
-    result = {
-        'phenomenon_time_range': phenomenon_time_range,
+    return {
+        'phenomenon_time_range': DateTimeTZRange(datetime.fromtimestamp(result_time_range.lower).replace(tzinfo=timezone), datetime.fromtimestamp(result_time_range.upper).replace(tzinfo=timezone)),
         'value_frequency': frequency,
-        'property_values': obs_reduced.values(),
+        'property_values': list(obs_reduced.values()),
         'property_anomaly_rates': anomalyScore,
     }
-
-    return result
-
 
 def anomaly_detect(observations, detector_method='bitmap_detector'):
     time_period = None
