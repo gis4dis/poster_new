@@ -1,10 +1,6 @@
 from django.conf import settings
 from apps.common.models import Process
-
-import pytz
-import time
 from psycopg2.extras import DateTimeTZRange
-from dateutil.parser import parse
 
 from luminol.anomaly_detector import AnomalyDetector
 
@@ -28,26 +24,73 @@ def get_timeseries(observed_property, observation_provider_model, feature_of_int
         procedure_id=%s AND
         feature_of_interest_id=%s''', [phenomenon_time_range.lower, phenomenon_time_range.upper, frequency, frequency, observed_property.id, process.id, feature_of_interest.id])
 
-    anomalyScore = anomaly_detect(obss)
+    obs_reduced = {x.phenomenon_time_range.lower.timestamp(): x.result for x in obss}
+
+    if len(obs_reduced.keys()) == 0:
+        return {
+            'phenomenon_time_range': DateTimeTZRange(),
+            'value_frequency': None,
+            'property_values': [],
+            'property_anomaly_rates': [],
+        }
+
+    result_time_range = DateTimeTZRange(
+        min(list(obs_reduced.keys())),
+        max(list(obs_reduced.keys()))
+    )
+
+    while obs_reduced and obs_reduced[result_time_range.lower] is None:
+        del obs_reduced[result_time_range.lower]
+        if obs_reduced:
+            result_time_range = DateTimeTZRange(
+                min(list(obs_reduced.keys())),
+                result_time_range.upper
+            )
+    while obs_reduced and obs_reduced[result_time_range.upper] is None:
+        del obs_reduced[result_time_range.upper]
+        if obs_reduced:
+            result_time_range = DateTimeTZRange(
+                result_time_range.lower,
+                max(list(obs_reduced.keys()))
+            )
+    
+    if len(obs_reduced.keys()) == 0:
+        return {
+            'phenomenon_time_range': DateTimeTZRange(),
+            'value_frequency': None,
+            'property_values': [],
+            'property_anomaly_rates': [],
+        }
+
+    (anomalyScore, anomalyPeriod) = anomaly_detect(obs_reduced)
+
+    dt = result_time_range.upper - result_time_range.lower
+
+    print(dt, frequency, dt/frequency, range(1, int(dt/frequency)))
+
+    for i in range(1, int(dt/frequency)):
+        t = result_time_range.lower + i * frequency
+        if t not in obs_reduced or obs_reduced[t] is None:
+            print(i, t)
+            obs_reduced[t] = None
+            anomalyScore.insert(i, None)
 
     result = {
         'phenomenon_time_range': phenomenon_time_range,
         'value_frequency': frequency,
-        'property_values': obss,
+        'property_values': obs_reduced.values(),
         'property_anomaly_rates': anomalyScore,
     }
 
     return result
 
-def anomaly_detect(list_obss, detector_method='default_detector'):
-    results_dic = dict()
-    for line in list_obss:
-        results_dic[time.mktime(line.phenomenon_time_range.lower.astimezone(
-            pytz.utc).timetuple())] = None if line.result == None else float(line.result)
 
-    my_detector = AnomalyDetector(
-        results_dic, None, False, None, None, detector_method, None, None, None)
+def anomaly_detect(observations, detector_method='bitmap_detector'):
+    time_period = None
+
+    my_detector = AnomalyDetector(observations, algorithm_name=detector_method)
     anomalies = my_detector.get_anomalies()
+
     if anomalies:
         time_period = anomalies[0].get_time_window()
 
@@ -55,4 +98,4 @@ def anomaly_detect(list_obss, detector_method='default_detector'):
 
     score = my_detector.get_all_scores()
 
-    return list(score.itervalues())
+    return (list(score.itervalues()), time_period)
