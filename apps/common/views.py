@@ -14,6 +14,8 @@ from psycopg2.extras import DateTimeTZRange
 from apps.common.serializers import PropertySerializer, TimeSeriesSerializer
 from apps.common.models import Property, TimeSeriesFeature
 
+from  apps.ad.anomaly_detection import get_timeseries
+
 
 def import_models(path):
     provider_module = None
@@ -100,6 +102,8 @@ class PropertyViewSet(viewsets.ReadOnlyModelViewSet):
 #TODO kontrola vstupu - timeFrom < timeTo, ...
 # http://localhost:8000/api/v1/timeseries?name_id=water_level&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27&bbox=1826997.8501,6306589.8927,1846565.7293,6521189.3651
 # http://localhost:8000/api/v1/timeseries?name_id=water_level&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27
+# http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27&bbox=1826997.8501,6306589.8927,1846565.7293,6521189.3651
+# http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27
 
 @api_view(['GET'])
 def time_series_list(request):
@@ -158,13 +162,21 @@ def time_series_list(request):
                 all_features = feature_of_interest_model.objects.all()
 
             for item in all_features:
+                ts_dict = get_timeseries(
+                        observed_property=Property.objects.get(name_id=name_id),
+                        observation_provider_model=provider_model,
+                        feature_of_interest=item,
+                        phenomenon_time_range=pt_range)
+
+                print('ts_dict', ts_dict)
+
                 f = TimeSeriesFeature(
                     id=item.id,
                     id_by_provider=item.id_by_provider,
                     name=item.name,
                     geometry=item.geometry,
-                    property_values=[1, 2, 3],
-                    property_anomaly_rates=[10, 11, 12]
+                    property_values=ts_dict['property_values'], #[1, 2, 3],
+                    property_anomaly_rates=ts_dict['property_anomaly_rates'] #[10, 11, 12]
                 )
                 time_series_list.append(f)
 
