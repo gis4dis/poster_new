@@ -3,7 +3,7 @@
 from django.contrib.gis.db import models
 from django.contrib.postgres import fields as pgmodels
 from apps.utils.time import format_delta
-from django.db.models.fields import DecimalField
+from django.db.models.fields import DecimalField, DateField, DateTimeField
 from django.contrib.postgres.fields import ArrayField
 
 class Process(models.Model):
@@ -88,11 +88,34 @@ class TimeSeriesFeature(models.Model):
 
     property_anomaly_rates = ArrayField(DecimalField(decimal_places=5, max_digits=15), null=True, blank=True)
 
+
     class Meta:
         managed = False
 
     def __str__(self):
         return self.name
+
+
+class TimeSeriesData(models.Model):
+
+    name = models.CharField(
+        help_text="Human-readable name of the station.",
+        max_length=50
+    )
+
+    #features = ArrayField(TimeSeriesFeature)
+    #features = models.ManyToManyField(TimeSeriesFeature)
+
+    phenomenon_time_from = models.DateTimeField()
+    phenomenon_time_to = models.DateTimeField()
+
+    class Meta:
+        managed = False
+
+
+    def __str__(self):
+        return self.name
+
 
 
 class AbstractFeature(models.Model):
