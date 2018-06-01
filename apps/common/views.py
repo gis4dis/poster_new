@@ -1,7 +1,9 @@
+
 from rest_framework import viewsets
+from django.conf import settings
+
 from apps.common.serializers import PropertySerializer
 from apps.common.models import Property
-from django.conf import settings
 
 
 class PropertyViewSet(viewsets.ReadOnlyModelViewSet):
