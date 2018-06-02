@@ -10,6 +10,7 @@ from datetime import datetime, date, timedelta
 from dateutil.parser import parse
 from dateutil import relativedelta, tz
 import pytz
+from django.contrib.gis.geos import GEOSGeometry, Point
 
 class Command(BaseCommand):
     help = 'Create EventObservation from ProviderLog'
@@ -86,8 +87,7 @@ class Command(BaseCommand):
                     start_time = parse(tag.text)
                 for tag in msg.iter('TSTO'):
                     end_time = parse(tag.text)
-                
-                
+
                 start_time = start_time.astimezone(UTC_P0100) 
                 end_time = end_time.astimezone(UTC_P0100)
                 if(end_time < start_time):
@@ -95,6 +95,14 @@ class Command(BaseCommand):
 
                 dt_range = DateTimeTZRange(start_time, end_time)
 
+                for tag in msg.iter('COORD'):
+                    coord_x = tag.attrib['x']
+                    coord_y = tag.attrib['y']
+                
+                geom = Point(float(coord_y), float(coord_x))
+                if geom is not None:
+                    geom = GEOSGeometry(geom, srid=4326)
+                    geom = geom.transform(3857, clone=True)
                 
                 if(len(codes) > 0):
                     admin_units = AdminUnit.objects.filter(id_by_provider__in=codes)
@@ -121,7 +129,9 @@ class Command(BaseCommand):
                         procedure=Process.objects.filter(name_id=procedure).get(),
                         category=event_category,
                         id_by_provider=id_by_provider,
-                        result=event_extent)
+                        result=event_extent,
+                        point_geometry=geom,
+                    )
                     observation.save()
                     i += 1
                     print('Number of new events: {}'.format(i))

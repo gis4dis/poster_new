@@ -77,6 +77,11 @@ class EventObservation(AbstractObservation):
         editable=True,
         on_delete=models.DO_NOTHING,
     )
+    point_geometry = models.PointField(
+        help_text="Spatial information about event observation.",
+        srid=3857,
+        null=True,
+    )
     class Meta:
         unique_together = (('phenomenon_time_range',
                             'observed_property', 'feature_of_interest',
