@@ -2,6 +2,7 @@ from django.db import models
 from apps.importing.models import ProviderLog
 from apps.common.models import Property, Process
 from apps.processing.rsd.models import EventExtent, AdminUnit, EventObservation, EventCategory
+from apps.processing.rsd.management.commands.import_categories import parse_date
 from django.core.management.base import BaseCommand
 import xml.etree.ElementTree as ET
 from psycopg2.extras import DateTimeTZRange
@@ -12,14 +13,35 @@ from dateutil import relativedelta, tz
 import pytz
 
 class Command(BaseCommand):
-    help = 'Create EventObservation from ProviderLog'
+    help = 'Create EventObservation from ProviderLog. If no arguments - takes data from yesterday ' \
+    './dcmanage.sh import_events --date_from=2018-01-01 --date_to=2018-01-01'
+
+    def add_arguments(self, parser):
+        parser.add_argument('--date_from', nargs='?', type=str,
+                            default=None)
+        parser.add_argument('--date_to', nargs='?', type=str,
+                            default=None)
 
     def handle(self, *args, **options):
+        
+        # EventObservation.objects.all().delete()
+
+        arg_from = options['date_from']
+        arg_to = options['date_to']
+        if arg_from is None and arg_to is None:
+            day_from = date.today() - timedelta(1)
+            day_to = day_from
+            day_from = datetime.combine(day_from, datetime.min.time())
+            day_to = datetime.combine(day_to, datetime.max.time())
+        else:
+            day_from = parse_date(arg_from, 1)
+            day_to = parse_date(arg_to, 2)
+        
+        day_from = day_from.astimezone(UTC_P0100) 
+        day_to = day_to.astimezone(UTC_P0100)
+
         observed_property = "occuring_events"
         procedure = "observation"
-
-        # EventObservation.objects.all().delete()
-        # raise Exception('DONE')
         
         # get whole extent for feature_of_interest
         admin_units = AdminUnit.objects.all().order_by('id_by_provider')
@@ -44,7 +66,7 @@ class Command(BaseCommand):
             ids.append(event.id_by_provider)
         
         i = 0
-        for event in ProviderLog.objects.iterator():
+        for event in ProviderLog.objects.filter(received_time__range=(day_from, day_to)).iterator():
 
             data = event.body
             tree = ET.fromstring(data)
