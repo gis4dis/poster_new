@@ -1,20 +1,17 @@
 from importlib import import_module
-
 from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.gis.geos import Polygon
 from rest_framework.exceptions import APIException
 from django.conf import settings
-
 from dateutil.parser import parse
 from dateutil import relativedelta
 from psycopg2.extras import DateTimeTZRange
 
 from apps.common.serializers import PropertySerializer, TimeSeriesSerializer
 from apps.common.models import Property, TimeSeriesFeature
-
-from  apps.ad.anomaly_detection import get_timeseries
+from apps.ad.anomaly_detection import get_timeseries
 
 
 def import_models(path):
@@ -34,7 +31,6 @@ def import_models(path):
         return provider_model, provider_module, error_message
 
 
-#TODO prehodit do nejakych timeutil, ktere uz nekde jsou apps.utils.time asi
 def parse_date_range(from_string, to_string):
     if from_string:
         try:
@@ -98,34 +94,30 @@ def parse_bbox(bbox_string):
 
 
 def validate_time_series_feature(item, time_series_from, time_series_to, value_frequency):
-    time_series_from_s = int(round(time_series_from.timestamp() * 1000))
-    time_series_to_s = int(round(time_series_to.timestamp() * 1000))
+    if time_series_from and time_series_to:
+        time_series_from_s = int(round(time_series_from.timestamp() * 1000))
+        time_series_to_s = int(round(time_series_to.timestamp() * 1000))
 
-    # assurance tests
-    if len(item.property_values) != len(item.property_anomaly_rates):
-        raise APIException(
-            "Error: feature.property_values.length !== feature.property_anomaly_rates.length")
+        if len(item.property_values) != len(item.property_anomaly_rates):
+            raise APIException(
+                "Error: feature.property_values.length !== feature.property_anomaly_rates.length")
 
-    if time_series_from_s % value_frequency != 0:
-        raise APIException(
-            "Error: OUT.phenomenon_time_from::seconds % OUT.value_frequency !== 0")
+        if time_series_from_s % value_frequency != 0:
+            raise APIException(
+                "Error: OUT.phenomenon_time_from::seconds % OUT.value_frequency !== 0")
 
-    if (time_series_to_s - time_series_from_s) % value_frequency != 0:
-        raise APIException(
-            "Error: (OUT.phenomenon_time_to::seconds - OUT.phenomenon_time_from::seconds) % OUT.value_frequency != 0")
+        if (time_series_to_s - time_series_from_s) % value_frequency != 0:
+            raise APIException(
+                "Error: (OUT.phenomenon_time_to::seconds - OUT.phenomenon_time_from::seconds) % OUT.value_frequency != 0")
 
-    values_max_count = (time_series_to - time_series_from).total_seconds() / value_frequency
-
-    if (len(item.property_values) + item.value_index_shift) > values_max_count:
+        #TODO vyresit problem se spravnym poctem vracenych hodnot a potom odkomentovat
         '''
-        #debug
-        print('len(item.property_values): ', len(item.property_values))
-        print('item.value_index_shift: ', item.value_index_shift)
-        print('HMMMMM: ', (len(item.property_values) + item.value_index_shift))
-        print('values_max_count: ', values_max_count)
+        values_max_count = (time_series_to - time_series_from).total_seconds() / value_frequency
+
+        if (len(item.property_values) + item.value_index_shift) > values_max_count:
+            raise APIException(
+                "Error: feature.property_values.length + feature.value_index_shift > (phenomenon_time_to::seconds - phenomenon_time_from::seconds) / value_frequency")
         '''
-        raise APIException(
-            "Error: feature.property_values.length + feature.value_index_shift > (phenomenon_time_to::seconds - phenomenon_time_from::seconds) / value_frequency")
 
 
 class PropertyViewSet(viewsets.ReadOnlyModelViewSet):
@@ -134,18 +126,14 @@ class PropertyViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PropertySerializer
 
 
-#TODO valueFrequency - zjistit odkud ziskat hodnotu do response (config nebo timeseries operace)
-#TODO refactoring
+#TODO popresunovat veci do mc slozky
 #TODO otestovat vice provideru v ramci jedne charakteristiky v configu
 #TODO class based view
 # http://localhost:8000/api/v1/timeseries?name_id=water_level&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27&bbox=1826997.8501,6306589.8927,1846565.7293,6521189.3651
 # http://localhost:8000/api/v1/timeseries?name_id=water_level&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27
 # http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27&bbox=1826997.8501,6306589.8927,1846565.7293,6521189.3651
 # http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27
-
 #http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2019-01-02&phenomenon_date_to=2018-09-27
-
-
 @api_view(['GET'])
 def time_series_list(request):
 
@@ -196,8 +184,8 @@ def time_series_list(request):
             else:
                 all_features = feature_of_interest_model.objects.all()
 
-            time_series_from = None
-            time_series_to = None
+            phenomenon_time_from = None
+            phenomenon_time_to = None
             value_frequency = None
 
             for item in all_features:
@@ -207,23 +195,14 @@ def time_series_list(request):
                         feature_of_interest=item,
                         phenomenon_time_range=pt_range)
 
-                if not time_series_from or time_series_from > ts['phenomenon_time_range'].lower:
-                    time_series_from = ts['phenomenon_time_range'].lower
+                if not phenomenon_time_from or phenomenon_time_from > ts['phenomenon_time_range'].lower:
+                    phenomenon_time_from = ts['phenomenon_time_range'].lower
 
-                if not time_series_to or time_series_to > ts['phenomenon_time_range'].upper:
-                    time_series_to = ts['phenomenon_time_range'].upper
+                if not phenomenon_time_to or phenomenon_time_to > ts['phenomenon_time_range'].upper:
+                    phenomenon_time_to = ts['phenomenon_time_range'].upper
 
                 if not value_frequency:
                     value_frequency = ts['value_frequency']
-
-                '''
-                print('----------------------------------------------------------')
-                print('time_series_from: ', time_series_from)
-                print('time_series_to: ', time_series_to)
-                print('value_frequency: ', value_frequency)
-                print('len property_values: ', len(ts['property_values']))
-                print('----------------------------------------------------------')
-                '''
 
                 f = TimeSeriesFeature(
                     id=item.id,
@@ -239,18 +218,18 @@ def time_series_list(request):
                 time_series_list.append(f)
 
             for item in time_series_list:
-                if time_series_from and item.phenomenon_time_from:
-                    diff = time_series_from - item.phenomenon_time_from
+                if phenomenon_time_from and item.phenomenon_time_from:
+                    diff = phenomenon_time_from - item.phenomenon_time_from
                     value_index_shift = round(abs(diff.total_seconds()) / value_frequency)
                     item.value_index_shift = value_index_shift
 
-                validate_time_series_feature(item, time_series_from, time_series_to, value_frequency)
+                validate_time_series_feature(item, phenomenon_time_from, phenomenon_time_to, value_frequency)
 
             response_data = {
-                'phenomenon_time_from': time_series_from,
-                'phenomenon_time_to': time_series_to,
+                'phenomenon_time_from': phenomenon_time_from,
+                'phenomenon_time_to': phenomenon_time_to,
                 'value_frequency': value_frequency,
-                'data':  time_series_list
+                'feature_collection':  time_series_list
             }
 
         results = TimeSeriesSerializer(response_data).data
