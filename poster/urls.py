@@ -7,9 +7,9 @@ from apps.mc import views
 
 router = routers.DefaultRouter()
 router.register(r'properties', views.PropertyViewSet)
+router.register(r'timeseries', views.TimeSeriesViewSet, base_name='timeseries')
 
 urlpatterns = [
-    path('api/v1/timeseries/', views.TimeSeriesList.as_view()),
     url(r'^api/v1/', include(router.urls)),
     path('admin/', admin.site.urls),
     path('import/', include('apps.importing.urls')),

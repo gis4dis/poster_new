@@ -132,10 +132,10 @@ class PropertyViewSet(viewsets.ReadOnlyModelViewSet):
 # http://localhost:8000/api/v1/timeseries?name_id=water_level&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27
 # http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27&bbox=1826997.8501,6306589.8927,1846565.7293,6521189.3651
 # http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27
-#http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2019-01-02&phenomenon_date_to=2018-09-27
 
-class TimeSeriesList(APIView):
-    def get(self, request, format=None):
+class TimeSeriesViewSet(viewsets.ViewSet):
+
+    def list(self, request):
         if 'name_id' in request.GET:
             name_id = request.GET['name_id']
         else:
