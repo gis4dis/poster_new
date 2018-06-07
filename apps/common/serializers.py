@@ -17,8 +17,7 @@ class TimeSeriesFeatureSerializer(GeoFeatureModelSerializer):
             'id',
             'id_by_provider',
             'name',
-            'phenomenon_time_from',
-            'phenomenon_time_to',
+            'value_index_shift',
             'property_values',
             'property_anomaly_rates'
         )

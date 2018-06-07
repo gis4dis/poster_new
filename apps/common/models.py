@@ -88,6 +88,7 @@ class TimeSeriesFeature(models.Model):
     property_anomaly_rates = ArrayField(DecimalField(decimal_places=5, max_digits=15), null=True, blank=True)
     phenomenon_time_from = models.DateTimeField()
     phenomenon_time_to = models.DateTimeField()
+    value_index_shift = models.IntegerField()
 
     class Meta:
         managed = False

@@ -35,14 +35,22 @@ def import_models(path):
 
 
 #TODO prehodit do nejakych timeutil, ktere uz nekde jsou apps.utils.time asi
-#TODO kontrola dat, zachytavani erroru
 def parse_date_range(from_string, to_string):
     if from_string:
-        day_from = parse(from_string)
+        try:
+            day_from = parse(from_string)
+        except ValueError as e:
+            raise APIException("Phenomenon_date_from is not valid")
 
     if to_string:
-        day_to = parse(to_string)
-        day_to = day_to + relativedelta.relativedelta(days=1)
+        try:
+            day_to = parse(to_string)
+            day_to = day_to + relativedelta.relativedelta(days=1)
+        except ValueError as e:
+            raise APIException("Phenomenon_date_to is not valid")
+
+    if day_from > day_to:
+        raise APIException("Phenomenon_date_from bound must be less than or equal phenomenon_date_to")
 
     time_range_boundary = '[]' if day_from == day_to else '[)'
 
@@ -60,7 +68,6 @@ def float_bbox_param(value):
         raise APIException("BBOX param float conversion error: %s" % value)
 
 
-#TODO ovalidovat, kontroly, ze min < max (opravit error messages)
 def validate_bbox_values(bbox_array):
     if bbox_array[0] >= bbox_array[2]:
         raise APIException("BBOX minx is not < maxx")
@@ -69,7 +76,6 @@ def validate_bbox_values(bbox_array):
         raise APIException("BBOX miny is not < maxy")
 
 
-#TODO zachytavani - tvorba polygonu, float()
 def parse_bbox(bbox_string):
     bbox_parts = bbox_string.rsplit(',')
 
@@ -91,27 +97,57 @@ def parse_bbox(bbox_string):
     return geom_bbox
 
 
+def validate_time_series_feature(item, time_series_from, time_series_to, value_frequency):
+    time_series_from_s = int(round(time_series_from.timestamp() * 1000))
+    time_series_to_s = int(round(time_series_to.timestamp() * 1000))
+
+    # assurance tests
+    if len(item.property_values) != len(item.property_anomaly_rates):
+        raise APIException(
+            "Error: feature.property_values.length !== feature.property_anomaly_rates.length")
+
+    if time_series_from_s % value_frequency != 0:
+        raise APIException(
+            "Error: OUT.phenomenon_time_from::seconds % OUT.value_frequency !== 0")
+
+    if (time_series_to_s - time_series_from_s) % value_frequency != 0:
+        raise APIException(
+            "Error: (OUT.phenomenon_time_to::seconds - OUT.phenomenon_time_from::seconds) % OUT.value_frequency != 0")
+
+    values_max_count = (time_series_to - time_series_from).total_seconds() / value_frequency
+
+    if (len(item.property_values) + item.value_index_shift) > values_max_count:
+        '''
+        #debug
+        print('len(item.property_values): ', len(item.property_values))
+        print('item.value_index_shift: ', item.value_index_shift)
+        print('HMMMMM: ', (len(item.property_values) + item.value_index_shift))
+        print('values_max_count: ', values_max_count)
+        '''
+        raise APIException(
+            "Error: feature.property_values.length + feature.value_index_shift > (phenomenon_time_to::seconds - phenomenon_time_from::seconds) / value_frequency")
+
+
 class PropertyViewSet(viewsets.ReadOnlyModelViewSet):
     prop_names = settings.APPLICATION_MC.PROPERTIES.keys()
     queryset = Property.objects.filter(name_id__in=prop_names)
     serializer_class = PropertySerializer
 
 
+#TODO valueFrequency - zjistit odkud ziskat hodnotu do response (config nebo timeseries operace)
 #TODO refactoring
 #TODO otestovat vice provideru v ramci jedne charakteristiky v configu
-#TODO kontrola vstupu - timeFrom < timeTo, ...
+#TODO class based view
 # http://localhost:8000/api/v1/timeseries?name_id=water_level&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27&bbox=1826997.8501,6306589.8927,1846565.7293,6521189.3651
 # http://localhost:8000/api/v1/timeseries?name_id=water_level&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27
 # http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27&bbox=1826997.8501,6306589.8927,1846565.7293,6521189.3651
 # http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27
 
+#http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2019-01-02&phenomenon_date_to=2018-09-27
+
+
 @api_view(['GET'])
 def time_series_list(request):
-    '''
-    #SELECT *
-    #FROM pmo_watercoursestation AS a
-    #WHERE ST_Intersects(geometry, ST_MakeEnvelope(1826997.8501,6306589.8927,1846565.7293,6521189.3651, 3857))
-    '''
 
     if request.method == 'GET':
 
@@ -142,7 +178,6 @@ def time_series_list(request):
 
         config_prop = settings.APPLICATION_MC.PROPERTIES[name_id]
         config_observation_providers = config_prop['observation_providers']
-        value_frequency = config_prop['value_frequency']
 
         for key in config_observation_providers:
             time_series_list = []
@@ -161,28 +196,59 @@ def time_series_list(request):
             else:
                 all_features = feature_of_interest_model.objects.all()
 
+            time_series_from = None
+            time_series_to = None
+            value_frequency = None
+
             for item in all_features:
-                ts_dict = get_timeseries(
+                ts = get_timeseries(
                         observed_property=Property.objects.get(name_id=name_id),
                         observation_provider_model=provider_model,
                         feature_of_interest=item,
                         phenomenon_time_range=pt_range)
 
-                print('ts_dict', ts_dict)
+                if not time_series_from or time_series_from > ts['phenomenon_time_range'].lower:
+                    time_series_from = ts['phenomenon_time_range'].lower
+
+                if not time_series_to or time_series_to > ts['phenomenon_time_range'].upper:
+                    time_series_to = ts['phenomenon_time_range'].upper
+
+                if not value_frequency:
+                    value_frequency = ts['value_frequency']
+
+                '''
+                print('----------------------------------------------------------')
+                print('time_series_from: ', time_series_from)
+                print('time_series_to: ', time_series_to)
+                print('value_frequency: ', value_frequency)
+                print('len property_values: ', len(ts['property_values']))
+                print('----------------------------------------------------------')
+                '''
 
                 f = TimeSeriesFeature(
                     id=item.id,
                     id_by_provider=item.id_by_provider,
                     name=item.name,
                     geometry=item.geometry,
-                    property_values=ts_dict['property_values'], #[1, 2, 3],
-                    property_anomaly_rates=ts_dict['property_anomaly_rates'] #[10, 11, 12]
+                    property_values=ts['property_values'],
+                    property_anomaly_rates=ts['property_anomaly_rates'],
+                    value_index_shift=None,
+                    phenomenon_time_from=ts['phenomenon_time_range'].lower,
+                    phenomenon_time_to = ts['phenomenon_time_range'].upper
                 )
                 time_series_list.append(f)
 
+            for item in time_series_list:
+                if time_series_from and item.phenomenon_time_from:
+                    diff = time_series_from - item.phenomenon_time_from
+                    value_index_shift = round(abs(diff.total_seconds()) / value_frequency)
+                    item.value_index_shift = value_index_shift
+
+                validate_time_series_feature(item, time_series_from, time_series_to, value_frequency)
+
             response_data = {
-                'phenomenon_time_from': day_from,
-                'phenomenon_time_to': day_to,
+                'phenomenon_time_from': time_series_from,
+                'phenomenon_time_to': time_series_to,
                 'value_frequency': value_frequency,
                 'data':  time_series_list
             }
@@ -195,3 +261,6 @@ class PropertyViewSet(viewsets.ReadOnlyModelViewSet):
     prop_names = settings.APPLICATION_MC.PROPERTIES.keys()
     queryset = Property.objects.filter(name_id__in=prop_names)
     serializer_class = PropertySerializer
+
+
+

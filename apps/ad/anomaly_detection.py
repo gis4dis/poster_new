@@ -64,12 +64,12 @@ def get_timeseries(observed_property, observation_provider_model, feature_of_int
 
     dt = result_time_range.upper - result_time_range.lower
 
-    print(dt, frequency, dt/frequency, range(1, int(dt/frequency)))
+    #print(dt, frequency, dt/frequency, range(1, int(dt/frequency)))
 
     for i in range(1, int(dt/frequency)):
         t = result_time_range.lower + i * frequency
         if t not in obs_reduced or obs_reduced[t] is None:
-            print(i, t)
+            #print(i, t)
             obs_reduced[t] = None
             anomalyScore.insert(i, None)
 
