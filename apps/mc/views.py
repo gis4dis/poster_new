@@ -1,13 +1,13 @@
 from importlib import import_module
 from rest_framework import viewsets
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
 from django.contrib.gis.geos import Polygon
 from rest_framework.exceptions import APIException
 from django.conf import settings
 from dateutil.parser import parse
 from dateutil import relativedelta
 from psycopg2.extras import DateTimeTZRange
+from rest_framework.views import APIView
+from rest_framework.response import Response
 
 from apps.mc.serializers import PropertySerializer, TimeSeriesSerializer
 from apps.common.models import Property
@@ -128,17 +128,14 @@ class PropertyViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 #TODO otestovat vice provideru v ramci jedne charakteristiky v configu
-#TODO class based view
 # http://localhost:8000/api/v1/timeseries?name_id=water_level&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27&bbox=1826997.8501,6306589.8927,1846565.7293,6521189.3651
 # http://localhost:8000/api/v1/timeseries?name_id=water_level&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27
 # http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27&bbox=1826997.8501,6306589.8927,1846565.7293,6521189.3651
 # http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27
 #http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2019-01-02&phenomenon_date_to=2018-09-27
-@api_view(['GET'])
-def time_series_list(request):
 
-    if request.method == 'GET':
-
+class TimeSeriesList(APIView):
+    def get(self, request, format=None):
         if 'name_id' in request.GET:
             name_id = request.GET['name_id']
         else:
@@ -190,10 +187,10 @@ def time_series_list(request):
 
             for item in all_features:
                 ts = get_timeseries(
-                        observed_property=Property.objects.get(name_id=name_id),
-                        observation_provider_model=provider_model,
-                        feature_of_interest=item,
-                        phenomenon_time_range=pt_range)
+                    observed_property=Property.objects.get(name_id=name_id),
+                    observation_provider_model=provider_model,
+                    feature_of_interest=item,
+                    phenomenon_time_range=pt_range)
 
                 if not phenomenon_time_from or phenomenon_time_from > ts['phenomenon_time_range'].lower:
                     phenomenon_time_from = ts['phenomenon_time_range'].lower
@@ -213,7 +210,7 @@ def time_series_list(request):
                     property_anomaly_rates=ts['property_anomaly_rates'],
                     value_index_shift=None,
                     phenomenon_time_from=ts['phenomenon_time_range'].lower,
-                    phenomenon_time_to = ts['phenomenon_time_range'].upper
+                    phenomenon_time_to=ts['phenomenon_time_range'].upper
                 )
                 time_series_list.append(f)
 
@@ -229,7 +226,7 @@ def time_series_list(request):
                 'phenomenon_time_from': phenomenon_time_from,
                 'phenomenon_time_to': phenomenon_time_to,
                 'value_frequency': value_frequency,
-                'feature_collection':  time_series_list
+                'feature_collection': time_series_list
             }
 
         results = TimeSeriesSerializer(response_data).data
