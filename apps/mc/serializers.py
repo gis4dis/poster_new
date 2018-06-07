@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from apps.common.models import Property, TimeSeriesFeature
+from apps.common.models import Property
+from apps.mc.models import TimeSeriesFeature
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 

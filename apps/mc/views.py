@@ -9,8 +9,9 @@ from dateutil.parser import parse
 from dateutil import relativedelta
 from psycopg2.extras import DateTimeTZRange
 
-from apps.common.serializers import PropertySerializer, TimeSeriesSerializer
-from apps.common.models import Property, TimeSeriesFeature
+from apps.mc.serializers import PropertySerializer, TimeSeriesSerializer
+from apps.common.models import Property
+from apps.mc.models import TimeSeriesFeature
 from apps.ad.anomaly_detection import get_timeseries
 
 
@@ -126,7 +127,6 @@ class PropertyViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PropertySerializer
 
 
-#TODO popresunovat veci do mc slozky
 #TODO otestovat vice provideru v ramci jedne charakteristiky v configu
 #TODO class based view
 # http://localhost:8000/api/v1/timeseries?name_id=water_level&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27&bbox=1826997.8501,6306589.8927,1846565.7293,6521189.3651

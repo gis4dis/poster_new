@@ -69,7 +69,6 @@ STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'  # Whit
 LOG_LEVEL = env('DJANGO_LOG_LEVEL', default='ERROR')
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -89,6 +88,7 @@ INSTALLED_APPS = [
 
     'apps.common',
     'apps.utils',
+    'apps.mc',
 
     'apps.importing',
 
@@ -98,6 +98,7 @@ INSTALLED_APPS = [
     'apps.processing.rsd',
     'apps.processing.ozp',
 ]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
