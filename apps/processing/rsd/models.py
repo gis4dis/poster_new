@@ -33,6 +33,17 @@ class EventExtent(models.Model):
     """Extent of an event - multiple AdminUnits."""
     admin_units = models.ManyToManyField(AdminUnit, related_name='rsd_admin_units')
 
+class CategoryCustomGroup(models.Model):
+    """Custom category of an event."""
+    name_id = models.CharField(
+        help_text="ID of custom category",
+        max_length=255,
+        unique=True
+    )
+    name = models.CharField(
+        help_text="Name of custom category",
+        max_length=255,
+    )
 
 class EventCategory(models.Model):
     """Type of an event."""
@@ -47,6 +58,13 @@ class EventCategory(models.Model):
         help_text="Code of an event.",
         max_length=255,
         unique=True
+    )
+    custom_group = models.ForeignKey(
+        CategoryCustomGroup,
+        related_name='rsd_custom_group',
+        help_text="Custom category of an event.",
+        on_delete=models.DO_NOTHING,
+        null=True,
     )
     class Meta:
         verbose_name_plural = "Event categories"
