@@ -1,6 +1,6 @@
 # from django.db import models
 from django.contrib.gis.db import models
-
+from apps.importing.models import ProviderLog
 from apps.common.models import AbstractFeature, AbstractObservation
 
 UNIT_MUNICIPALITY = "0"
@@ -81,6 +81,13 @@ class EventObservation(AbstractObservation):
         help_text="Spatial information about event observation.",
         srid=3857,
         null=True,
+    )
+    provider_log = models.ForeignKey(
+        ProviderLog,
+        null=True,
+        help_text="Reference to original provider log",
+        related_name="rsd_provider_log",
+        on_delete=models.DO_NOTHING,
     )
     class Meta:
         unique_together = (('phenomenon_time_range',

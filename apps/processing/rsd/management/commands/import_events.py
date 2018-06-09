@@ -71,7 +71,7 @@ class Command(BaseCommand):
 
             data = event.body
             tree = ET.fromstring(data)
-
+            
             for msg in tree.iter('MSG'):
                 codes = []
                 category = ""
@@ -153,6 +153,7 @@ class Command(BaseCommand):
                         id_by_provider=id_by_provider,
                         result=event_extent,
                         point_geometry=geom,
+                        provider_log=event,
                     )
                     observation.save()
                     i += 1
