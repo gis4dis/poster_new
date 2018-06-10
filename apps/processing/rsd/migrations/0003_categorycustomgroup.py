@@ -22,6 +22,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='eventcategory',
             name='custom_group',
-            field=models.ForeignKey(help_text='Custom category of an event.', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='rsd_custom_group', to='rsd.CategoryCustomGroup'),
+            field=models.ForeignKey(help_text='Custom category of an event.', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='rsd_category', to='rsd.CategoryCustomGroup'),
         ),
     ]

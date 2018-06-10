@@ -61,7 +61,7 @@ class EventCategory(models.Model):
     )
     custom_group = models.ForeignKey(
         CategoryCustomGroup,
-        related_name='rsd_custom_group',
+        related_name='rsd_category',
         help_text="Custom category of an event.",
         on_delete=models.DO_NOTHING,
         null=True,
