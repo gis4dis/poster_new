@@ -86,7 +86,7 @@ class EventObservation(AbstractObservation):
         ProviderLog,
         null=True,
         help_text="Reference to original provider log",
-        related_name="rsd_provider_log",
+        related_name="rsd_event_observation",
         on_delete=models.DO_NOTHING,
     )
     class Meta:

@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='eventobservation',
             name='provider_log',
-            field=models.ForeignKey(help_text='Reference to original provider log', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='rsd_provider_log', to='importing.ProviderLog'),
+            field=models.ForeignKey(help_text='Reference to original provider log', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='rsd_event_observation', to='importing.ProviderLog'),
         ),
     ]

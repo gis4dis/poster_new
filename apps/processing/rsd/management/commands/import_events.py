@@ -67,9 +67,9 @@ class Command(BaseCommand):
             ids.append(event.id_by_provider)
         
         i = 0
-        for event in ProviderLog.objects.filter(received_time__range=(day_from, day_to)).iterator():
+        for provider_log in ProviderLog.objects.filter(received_time__range=(day_from, day_to)).iterator():
 
-            data = event.body
+            data = provider_log.body
             tree = ET.fromstring(data)
             
             for msg in tree.iter('MSG'):
@@ -153,7 +153,7 @@ class Command(BaseCommand):
                         id_by_provider=id_by_provider,
                         result=event_extent,
                         point_geometry=geom,
-                        provider_log=event,
+                        provider_log=provider_log,
                     )
                     observation.save()
                     i += 1
