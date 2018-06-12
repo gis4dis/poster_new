@@ -18,9 +18,6 @@ PROPERTIES = {
 
         # mandatory, number of seconds
         'value_frequency': 3600,
-
-        # mandatory, name_id of common.Process
-        'process': 'avg_hour',
     },
 
     'ground_air_temperature': {
@@ -30,7 +27,6 @@ PROPERTIES = {
             },
         },
         'value_frequency': 3600,
-        'process': 'avg_hour',
     },
 
 }

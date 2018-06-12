@@ -8,7 +8,7 @@ from luminol.anomaly_detector import AnomalyDetector
 def get_timeseries(observed_property, observation_provider_model, feature_of_interest, phenomenon_time_range):
     frequency = settings.APPLICATION_MC.PROPERTIES[observed_property.name_id]["value_frequency"]
     process = Process.objects.get(
-        name_id=settings.APPLICATION_MC.PROPERTIES[observed_property.name_id]["process"])
+        name_id=settings.APPLICATION_MC.PROPERTIES[observed_property.name_id][observation_provider_model]["process"])
     observation_model_name = f"{observation_provider_model.__module__}.{observation_provider_model.__name__}"
     timezone = phenomenon_time_range.lower.tzinfo
 
