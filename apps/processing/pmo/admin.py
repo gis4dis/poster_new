@@ -6,8 +6,9 @@ from django.contrib import admin
 
 
 class MeteoStationAdmin(admin.ModelAdmin):
-    list_display = ['name', 'id_by_provider']
-    fields = ['name','id_by_provider']
+    readonly_fields = (
+        'id_by_provider',
+    )
 
 
 class WatercourseObservationAdmin(admin.ModelAdmin):
