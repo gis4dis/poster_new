@@ -10,6 +10,7 @@ ADMIN_CHOICES = (
     (UNIT_DISTRICT, 'District'),
 )
 
+
 class AdminUnit(AbstractFeature):
     """Administrative units - municipalitites, districts"""
     id_by_provider = models.CharField(
@@ -31,7 +32,18 @@ class AdminUnit(AbstractFeature):
 
 class EventExtent(models.Model):
     """Extent of an event - multiple AdminUnits."""
-    admin_units = models.ManyToManyField(AdminUnit, related_name='rsd_admin_units')
+    admin_units = models.ManyToManyField(
+        AdminUnit, related_name='rsd_admin_units'
+    )
+    name_id = models.CharField(
+        help_text="Unique and computer-friendly name of the extent",
+        max_length=30,
+        unique=True,
+        blank=True,
+        null=True,
+        editable=False
+    )
+
 
 class CategoryCustomGroup(models.Model):
     """Custom category of an event."""
@@ -44,6 +56,7 @@ class CategoryCustomGroup(models.Model):
         help_text="Name of custom category",
         max_length=255,
     )
+
 
 class EventCategory(models.Model):
     """Type of an event."""
@@ -66,9 +79,11 @@ class EventCategory(models.Model):
         on_delete=models.DO_NOTHING,
         null=True,
     )
+
     class Meta:
         verbose_name_plural = "Event categories"
-    
+
+
 class EventObservation(AbstractObservation):
     """The observed event"""
     feature_of_interest = models.ForeignKey(
@@ -107,8 +122,30 @@ class EventObservation(AbstractObservation):
         related_name="rsd_event_observation",
         on_delete=models.DO_NOTHING,
     )
+
     class Meta:
         unique_together = (('phenomenon_time_range',
                             'observed_property', 'feature_of_interest',
-                            'procedure','id_by_provider','category'),)
+                            'procedure', 'id_by_provider', 'category'),)
 
+class NumberOfEventsObservation(AbstractObservation):
+    """ Represents number of events of single "category custom group" 
+    that emerged in phenomenon time rage within AdminUnit. """
+    feature_of_interest = models.ForeignKey(
+        AdminUnit,
+        help_text="Admin unit of number of event observation",
+        related_name="rsd_number_of_events_observation",
+        null=False,
+        on_delete=models.DO_NOTHING,
+    )
+    category_custom_group = models.ForeignKey(
+        CategoryCustomGroup,
+        help_text="Custom category of number of event observation",
+        related_name="rsd_number_of_events_observation",
+        null=False,
+        on_delete=models.DO_NOTHING,
+    )
+    class Meta:
+        unique_together = (('phenomenon_time_range',
+                            'observed_property', 'feature_of_interest',
+                            'procedure','category_custom_group'),)

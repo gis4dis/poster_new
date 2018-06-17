@@ -101,6 +101,10 @@ props_def = [
         "name": 'occuring events',
         'unit': ''
     }),
+    ('number_of_emerged_events', {
+        "name": 'number of emerged events',
+        'unit': ''
+    }),
 ]
 
 processes_def = [

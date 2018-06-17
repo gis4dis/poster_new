@@ -51,15 +51,10 @@ class Command(BaseCommand):
             units_list.append(admin_unit)
         
         event_extents = EventExtent.objects.all()
-        whole_extent = None
-    
-        for extent in event_extents:
-            extent_admin = []
-            for adm in extent.admin_units.order_by('id_by_provider').all():
-                extent_admin.append(adm)
-            if(extent_admin == units_list):
-                whole_extent = extent
-                break
+        
+        # extent of d1, brno, brno venkov admin units
+        whole_extent = get_special_extent()
+        whole_extent_units = list(whole_extent.admin_units.all())
         
         # get IDs to prevent duplicates
         ids= []
@@ -131,6 +126,9 @@ class Command(BaseCommand):
                     units_list = []
                     for admin_unit in admin_units:
                         units_list.append(admin_unit)
+                        if(not admin_unit in whole_extent_units):
+                            whole_extent.admin_units.add(admin_unit)
+                            whole_extent_units.append(admin_unit)
                         
                     event_extents = EventExtent.objects.filter(admin_units__in=admin_units).order_by('admin_units')
                     event_extent = None
@@ -158,7 +156,16 @@ class Command(BaseCommand):
                     observation.save()
                     i += 1
                     print('Number of new events: {}'.format(i))
-
+    
         print('Number of new events: {}'.format(i))
         # print('Extents in database: {}'.format(extents))
         
+
+def get_special_extent():
+    ext = EventExtent.objects.get(name_id="brno_brno_venkov_d1")
+    if ext:
+        return ext
+    else:
+        ext = EventExtent(name_id="brno_brno_venkov_d1")
+        ext.save()
+        return ext

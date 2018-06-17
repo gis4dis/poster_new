@@ -1,6 +1,6 @@
 from apps.common.actions import stream_as_csv_action
 from apps.common.list_filter import DateRangeRangeFilter
-from .models import EventCategory, EventObservation, AdminUnit
+from .models import EventCategory, EventObservation, AdminUnit, CategoryCustomGroup, NumberOfEventsObservation
 from django.contrib import admin
 
 
@@ -35,6 +35,18 @@ class AdminUnitAdmin(admin.ModelAdmin):
     list_filter = ['level']
 
 
+class CategoryCustomGroupAdmin(admin.ModelAdmin):
+    list_display = ['name_id', 'name']
+    fields = ['name_id','name']
+
+
+class NumberOfEventsObservationAdmin(admin.ModelAdmin):
+    list_display = ['feature_of_interest', 'category_custom_group']
+    fields = ['feature_of_interest','category_custom_group']
+    readonly_fields = list_display
+
 admin.site.register(EventObservation, EventObservationAdmin)
 admin.site.register(EventCategory, EventCategoryAdmin)
 admin.site.register(AdminUnit, AdminUnitAdmin)
+admin.site.register(CategoryCustomGroup, CategoryCustomGroupAdmin)
+admin.site.register(NumberOfEventsObservation, NumberOfEventsObservationAdmin)
