@@ -64,19 +64,19 @@ def get_timeseries(observed_property, observation_provider_model, feature_of_int
 
     dt = result_time_range.upper - result_time_range.lower
 
-    #print(dt, frequency, dt/frequency, range(1, int(dt/frequency)))
+    property_values = []
 
-    for i in range(1, int(dt/frequency)):
+    for i in range(0, int(dt/frequency) + 1):
         t = result_time_range.lower + i * frequency
         if t not in obs_reduced or obs_reduced[t] is None:
-            #print(i, t)
             obs_reduced[t] = None
             anomalyScore.insert(i, None)
+        property_values.insert(i, obs_reduced[t])
 
     return {
-        'phenomenon_time_range': DateTimeTZRange(datetime.fromtimestamp(result_time_range.lower).replace(tzinfo=timezone), datetime.fromtimestamp(result_time_range.upper).replace(tzinfo=timezone)),
+        'phenomenon_time_range': DateTimeTZRange(datetime.fromtimestamp(result_time_range.lower).replace(tzinfo=timezone), datetime.fromtimestamp(result_time_range.upper + frequency).replace(tzinfo=timezone)),
         'value_frequency': frequency,
-        'property_values': list(obs_reduced.values()),
+        'property_values': property_values,
         'property_anomaly_rates': anomalyScore,
     }
 
