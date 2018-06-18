@@ -4,6 +4,7 @@ from datetime import datetime
 from psycopg2.extras import DateTimeTZRange
 
 from luminol.anomaly_detector import AnomalyDetector
+import apps.common.lookups
 
 def get_timeseries(observed_property, observation_provider_model, feature_of_interest, phenomenon_time_range):
     frequency = settings.APPLICATION_MC.PROPERTIES[observed_property.name_id]["value_frequency"]
@@ -15,17 +16,16 @@ def get_timeseries(observed_property, observation_provider_model, feature_of_int
     observation_model_name = f"{observation_provider_model.__module__}.{observation_provider_model.__name__}"
     timezone = phenomenon_time_range.lower.tzinfo
 
-    obss = observation_provider_model.objects.raw('''SELECT * FROM ala_observation WHERE
-        %s @> phenomenon_time_range AND
-        mod(cast(extract(epoch from lower(phenomenon_time_range)) as int), %s)=0 AND
-        cast(extract(epoch from upper(phenomenon_time_range)) as int) - cast(extract(epoch from lower(phenomenon_time_range)) as int)=%s AND
-        observed_property_id=%s AND
-        procedure_id=%s AND
-        feature_of_interest_id=%s''', [f'[{phenomenon_time_range.lower},{phenomenon_time_range.upper})', frequency, frequency, observed_property.id, process.id, feature_of_interest.id])
+    obss = observation_provider_model.objects.filter(
+        phenomenon_time_range__contained_by=phenomenon_time_range,
+        phenomenon_time_range__duration=frequency,
+        phenomenon_time_range__matches=frequency,
+        observed_property=observed_property,
+        procedure=process,
+        feature_of_interest=feature_of_interest
+    )
 
-    debug = {x.phenomenon_time_range.lower: [x.result, x.phenomenon_time_range] for x in obss}
-
-    obs_reduced = {x.phenomenon_time_range.lower.timestamp(): x.result for x in obss}
+    obs_reduced = {obs.phenomenon_time_range.lower.timestamp(): obs.result for obs in obss}
 
     if len(obs_reduced.keys()) == 0:
         return {
