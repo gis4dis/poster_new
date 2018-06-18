@@ -77,5 +77,6 @@ def parse_date(date_str, times):
         day = parse(date_str)
         return day
     if(times == 2):
-        day = datetime.combine(day, datetime.max.time())
+        day = datetime.combine(day, datetime.min.time())
+        day = day + timedelta(hours=24)
     return day

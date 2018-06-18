@@ -22,9 +22,9 @@ class EventObservationAdmin(admin.ModelAdmin):
 
 
 class EventCategoryAdmin(admin.ModelAdmin):
-    list_display = ['name','group', 'id_by_provider']
-    fields = ['name','group','id_by_provider']
-    readonly_fields = list_display
+    list_display = ['name','group', 'id_by_provider','custom_group']
+    fields = ['name','group','id_by_provider','custom_group']
+    readonly_fields = ['name','group','id_by_provider']
     list_filter = ['group']
 
 
@@ -41,9 +41,13 @@ class CategoryCustomGroupAdmin(admin.ModelAdmin):
 
 
 class NumberOfEventsObservationAdmin(admin.ModelAdmin):
-    list_display = ['feature_of_interest', 'category_custom_group']
-    fields = ['feature_of_interest','category_custom_group']
+    list_display = ['feature_of_interest', 'category_custom_group_name','phenomenon_time_from','phenomenon_time_duration','result']
+    fields = ['feature_of_interest','category_custom_group','phenomenon_time_from','phenomenon_time_duration','result']
     readonly_fields = list_display
+
+    def category_custom_group_name(self, event):
+        return event.category_custom_group.name
+
 
 admin.site.register(EventObservation, EventObservationAdmin)
 admin.site.register(EventCategory, EventCategoryAdmin)
