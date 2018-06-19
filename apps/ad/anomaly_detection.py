@@ -8,12 +8,9 @@ import apps.common.lookups
 
 def get_timeseries(observed_property, observation_provider_model, feature_of_interest, phenomenon_time_range):
     frequency = settings.APPLICATION_MC.PROPERTIES[observed_property.name_id]["value_frequency"]
-    observation_provider_model_name = observation_provider_model.__module__ \
-                                      + '.' \
-                                      + observation_provider_model.__name__
+    observation_provider_model_name = f"{observation_provider_model.__module__}.{observation_provider_model.__name__}"
     process = Process.objects.get(
         name_id=settings.APPLICATION_MC.PROPERTIES[observed_property.name_id]['observation_providers'][observation_provider_model_name]["process"])
-    observation_model_name = f"{observation_provider_model.__module__}.{observation_provider_model.__name__}"
     timezone = phenomenon_time_range.lower.tzinfo
 
     obss = observation_provider_model.objects.filter(
