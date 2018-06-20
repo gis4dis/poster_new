@@ -56,6 +56,8 @@ class CategoryCustomGroup(models.Model):
         help_text="Name of custom category",
         max_length=255,
     )
+    def __str__(self):
+        return self.name
 
 
 class EventCategory(models.Model):
