@@ -1,17 +1,48 @@
 # implement it for phenomenon time
 # https://docs.djangoproject.com/en/2.0/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_filter
 
-
-from datetime import date
-
 from django.contrib import admin
 from django.utils.encoding import force_text
 from django.utils.translation import ugettext_lazy as _
 from datetime import datetime, date, timedelta
 from dateutil.parser import parse
 from psycopg2.extras import DateTimeTZRange
-
 from apps.utils.time import UTC_P0100
+from psycopg2.extras import NumericRange
+
+
+class DateRangeDurationFilter(admin.SimpleListFilter):
+    title = 'phenomenon duration'
+    parameter_name = 'phenomenon_time_range__duration'
+
+    def lookups(self, request, model_admin):
+        lt = str(0) + '--' + str(3600)
+        gt = str(3600) + '--' + str(99999)
+
+        return (
+            (0, 'istant'),
+            (600, '10 minutes'),
+            (900, '15 minutes'),
+            (3600, 'hour'),
+            (lt, 'Less than hour'),
+            (gt, 'More than hour')
+        )
+
+    def queryset(self, request, queryset):
+        v = self.value()
+        if v == None:
+            return queryset
+
+        if isinstance(v, str):
+            values = v.split('--')
+            if len(values) == 2:
+                v = NumericRange(int(values[0]), int(values[1]))
+            else:
+                v = self.value()
+
+        return queryset.filter(
+            phenomenon_time_range__duration=v
+        )
 
 
 class DateRangeRangeFilter(admin.SimpleListFilter):
