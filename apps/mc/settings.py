@@ -12,7 +12,7 @@ PROPERTIES = {
             'apps.processing.ala.models.Observation': {
 
                 # mandatory, name_id of common.Process
-                'process': 'avg_hour',
+                'process': 'apps.common.aggregate.arithmetic_mean',
             },
         },
 
@@ -41,7 +41,7 @@ PROPERTIES = {
     'water_level': {
         'observation_providers': {
             'apps.processing.pmo.models.WatercourseObservation': {
-                'process': 'avg_hour',
+                'process': 'apps.common.aggregate.arithmetic_mean',
             },
         },
         'value_frequency': 3600,
