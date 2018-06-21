@@ -111,14 +111,12 @@ def validate_time_series_feature(item, time_series_from, time_series_to, value_f
             raise APIException(
                 "Error: (OUT.phenomenon_time_to::seconds - OUT.phenomenon_time_from::seconds) % OUT.value_frequency != 0")
 
-        #TODO vyresit problem se spravnym poctem vracenych hodnot a potom odkomentovat
-        '''
         values_max_count = (time_series_to - time_series_from).total_seconds() / value_frequency
 
         if (len(item.property_values) + item.value_index_shift) > values_max_count:
             raise APIException(
                 "Error: feature.property_values.length + feature.value_index_shift > (phenomenon_time_to::seconds - phenomenon_time_from::seconds) / value_frequency")
-        '''
+
 
 
 class PropertyViewSet(viewsets.ReadOnlyModelViewSet):
