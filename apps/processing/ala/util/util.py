@@ -211,8 +211,6 @@ def create_avgs(station, day):
         if prop.name_id not in props_to_provider_idx[station.id_by_provider]:
             continue
 
-        #process = Process.objects.get(name_id='avg_hour')
-
         for i in range(0, 24):
             to_aware = from_aware + timedelta(hours=1)
             pt_range = DateTimeTZRange(from_aware, to_aware)
