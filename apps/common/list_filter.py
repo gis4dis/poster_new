@@ -20,12 +20,12 @@ class DateRangeDurationFilter(admin.SimpleListFilter):
         gt = str(3600) + '--' + str(99999)
 
         return (
-            (0, 'istant'),
+            (0, 'instant'),
             (600, '10 minutes'),
             (900, '15 minutes'),
             (3600, 'hour'),
             (lt, 'Less than hour'),
-            (gt, 'More than hour')
+            (gt, 'Hour and longer')
         )
 
     def queryset(self, request, queryset):
