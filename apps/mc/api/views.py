@@ -54,7 +54,7 @@ def parse_date_range(from_string, to_string):
     pt_range = DateTimeTZRange(
         day_from, day_to, time_range_boundary)
 
-    return  pt_range, day_from, day_to
+    return pt_range, day_from, day_to
 
 
 def float_bbox_param(value):
