@@ -135,6 +135,12 @@ class SamplingFeatureTestCase(TestCase):
         )
 
 
+    #TODO otestovat ruzne vstupy a spravne vystupy - i mezni pripady (prazdna data)
+    #TODO empty if no observations were found, None if no observations were found, missing result
+    #  is represented by None in the list, empty list if no observations were found
+
+    #TODO otherwise it's [ beginning of the first observation, beginning of the last observation + value frequency )
+
     def test_create_process(self):
         process = Process.objects.all()
         self.assertGreater(len(process), 0)
@@ -220,6 +226,12 @@ class SamplingFeatureTestCase(TestCase):
         f = ts['value_frequency']
         estimated_length = (upper.timestamp() - lower.timestamp()) / f
         self.assertEquals(property_values_length, estimated_length)
+
+    def test_todo(self):
+        self.assertEquals(True, False)
+        #otestovat time range, ze output odpovida zacatku v predpokladanych datech a konec je za
+        # poslednim merenim + value frequency
+
 
     '''    
     TODO

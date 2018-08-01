@@ -12,13 +12,32 @@ from apps.mc.models import TimeSeriesFeature
 from apps.ad.anomaly_detection import get_timeseries
 from rest_framework import status
 from rest_framework.test import APITestCase
-import json
+import dateutil.parser
+import pytz
 
-from django.test import Client
+utc=pytz.UTC
 
-from django.contrib.auth.models import AnonymousUser, User
 
-URL_TIMESERIES = '/api/v1/timeseries/?name_id=air_temperature&phenomenon_date_from=2018-06-15&phenomenon_date_to=2018-06-15'
+NAME_ID = 'name_id=air_temperature'
+DATE_FROM = '&phenomenon_date_from=2018-06-15'
+DATE_TO = '&phenomenon_date_to=2018-06-15'
+
+URL_TIMESERIES = '/api/v1/timeseries/?' + NAME_ID + DATE_FROM + DATE_TO
+
+DATE_FROM_ERROR = '&phenomenon_date_from=00000-06-15'
+DATE_TO_ERROR = '&phenomenon_date_to=XXX'
+URL_TIMESERIES_WRONG_DATE_FROM = '/api/v1/timeseries/?' + NAME_ID + DATE_FROM_ERROR + DATE_TO
+URL_TIMESERIES_WRONG_DATE_TO = '/api/v1/timeseries/?' + NAME_ID + DATE_FROM + DATE_TO_ERROR
+
+NAME_ID_NOT_EXISTS = 'name_id=xxxx'
+URL_TIMESERIES_NAME_ID_NOT_EXISTS = '/api/v1/timeseries/?' + NAME_ID_NOT_EXISTS + DATE_FROM + \
+                                    DATE_TO
+
+URL_TIMESERIES_BBOX = URL_TIMESERIES + '&bbox=1826997.8501,6306589.8927,1856565.7293,6521189.3651'
+URL_TIMESERIES_BBOX_NO_DATA = URL_TIMESERIES + '&bbox=1826997.8501,6306589.8927,1836565.7293,6521189.3651'
+URL_TIMESERIES_BBOX_WRONG_VALUES = URL_TIMESERIES + '&bbox=1856997.8501,6306589.8927,1836565.7293,6521189.3651'
+URL_TIMESERIES_BBOX_MISSING_VALUES = URL_TIMESERIES + '&bbox=1856997.8501,6306589.8927,1836565.7293'
+
 
 time_range_boundary = '[)'
 time_from = datetime(2018, 6, 15, 00, 00, 00)
@@ -42,7 +61,7 @@ def get_time_series_test():
     )
 
 
-class SamplingFeatureTestCase(APITestCase):
+class TimeSeriesTestCase(APITestCase):
     def setUp(self):
 
         am_process = Process.objects.create(
@@ -174,6 +193,14 @@ class SamplingFeatureTestCase(APITestCase):
 
        '''
 
+    # TODO - pridat asi jeste nejakou dalsi stanici s merenim (otestovat ze pojede dobre bbox)
+    # TODO otestovat, ze to zvladne spravne vice nez jednu stanici
+    # TODO readme - jak se pousti testy
+    # ./dcmanage.sh test
+    # ./dcmanage.sh test apps.mc
+    # ./dcmanage.sh test apps.mc.tests.TimeSeriesTestCase
+    # ./dcmanage.sh test apps.mc.tests.TimeSeriesTestCase.test_bbox_wrong_params
+
     def test_response_status(self) :
         response = self.client.get(URL_TIMESERIES)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -193,57 +220,70 @@ class SamplingFeatureTestCase(APITestCase):
     def test_feature_output(self):
         response = self.client.get(URL_TIMESERIES, format='json')
         data = response.data
-        print('data: ', data)
-
         fc = data['feature_collection']
         features = fc['features']
 
         for f in features:
             properties = f.get('properties', None)
 
-            geom = f.get('geometry', None)
-            type = geom.get('type', None)
-            coordinates = geom.get('coordinates', None)
             id_by_provider = properties.get('id_by_provider', None)
+            geom = f.get('geometry', None)
+            coordinates = geom.get('coordinates', None)
+            geom_type = geom.get('type', None)
 
             self.assertEquals(id_by_provider, '11359201')
-            self.assertEquals(type, 'Point')
+            self.assertEquals(geom_type, 'Point')
             self.assertEquals(len(coordinates), 2)
             self.assertEquals(coordinates[0], 1847520.94)
             self.assertEquals(coordinates[1], 6309563.27)
 
-    '''
+    def test_time_range_output(self):
+        response = self.client.get(URL_TIMESERIES, format='json')
+        data = response.data
+
+        phenomenon_time_from = dateutil.parser.parse(data['phenomenon_time_from'])
+        phenomenon_time_to = dateutil.parser.parse(data['phenomenon_time_to'])
+
+        date_time_range_from_utc = date_time_range.lower.replace(tzinfo=utc)
+        date_time_range_to_utc = date_time_range.upper.replace(tzinfo=utc)
+
+        self.assertGreaterEqual(phenomenon_time_from, date_time_range_from_utc)
+        self.assertLessEqual(phenomenon_time_to, date_time_range_to_utc)
+
     def test_bbox_param_data(self):
-        self.assertEquals(True, False)
+        response = self.client.get(URL_TIMESERIES_BBOX, format='json')
+        data = response.data
+        fc = data['feature_collection']
+        features = fc['features']
+        self.assertNotEquals(len(features), 0)
 
     def test_bbox_param_no_data_in_area(self):
-        self.assertEquals(True, False)
-    '''
+        response = self.client.get(URL_TIMESERIES_BBOX_NO_DATA, format='json')
+        data = response.data
+        phenomenon_time_from = data['phenomenon_time_from']
+        phenomenon_time_to = data['phenomenon_time_to']
+        fc = data['feature_collection']
+        features = fc['features']
+        self.assertEquals(len(features), 0)
+        self.assertEquals(phenomenon_time_from, None)
+        self.assertEquals(phenomenon_time_to, None)
 
+    def test_bbox_wrong_params(self):
+        response = self.client.get(URL_TIMESERIES_BBOX_WRONG_VALUES, format='json')
+        self.assertEquals(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    def test_bbox_missing_param(self):
+        response = self.client.get(URL_TIMESERIES_BBOX_MISSING_VALUES, format='json')
+        self.assertEquals(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    def test_phenomenon_date_from_wrong_param(self):
+        response = self.client.get(URL_TIMESERIES_WRONG_DATE_FROM, format='json')
+        self.assertEquals(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    '''
-    def test_create_process(self):
-        c = Client()
-        response = c.get('/api/v1/properties/')
-        print('response.status_code: ', response.status_code)
-        print('response.content: ', response.content)
-        self.assertEqual(True, False)
-    '''
+    def test_phenomenon_date_to_wrong_param(self):
+        response = self.client.get(URL_TIMESERIES_WRONG_DATE_TO, format='json')
+        self.assertEquals(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-    '''    
-    TODO
-    
-    for feature of OUT.feature_collection
-        # feature.property_values.length === feature.property_anomaly_rates.length
-        # feature.property_values.length + feature.value_index_shift <= (
-            phenomenon_time_to::seconds - phenomenon_time_from::seconds) / value_frequency
-    
-    # OUT.phenomenon_time_from::seconds % OUT.value_frequency === 0
-    
-    # (OUT.phenomenon_time_to::seconds - OUT.phenomenon_time_from::seconds) % OUT.value_frequency 
-    === 0
-
-    '''
+    def test_phenomenon_name_id_not_exists(self):
+        response = self.client.get(URL_TIMESERIES_NAME_ID_NOT_EXISTS, format='json')
+        self.assertEquals(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
