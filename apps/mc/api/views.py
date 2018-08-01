@@ -190,11 +190,13 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                     feature_of_interest=item,
                     phenomenon_time_range=pt_range)
 
-                if not phenomenon_time_from or phenomenon_time_from > ts['phenomenon_time_range'].lower:
-                    phenomenon_time_from = ts['phenomenon_time_range'].lower
+                if ts['phenomenon_time_range'].lower is not None:
+                    if not phenomenon_time_from or phenomenon_time_from > ts['phenomenon_time_range'].lower:
+                        phenomenon_time_from = ts['phenomenon_time_range'].lower
 
-                if not phenomenon_time_to or phenomenon_time_to > ts['phenomenon_time_range'].upper:
-                    phenomenon_time_to = ts['phenomenon_time_range'].upper
+                if ts['phenomenon_time_range'].upper is not None:
+                    if not phenomenon_time_to or phenomenon_time_to > ts['phenomenon_time_range'].upper:
+                        phenomenon_time_to = ts['phenomenon_time_range'].upper
 
                 if not value_frequency:
                     value_frequency = ts['value_frequency']
