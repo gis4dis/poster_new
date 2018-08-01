@@ -147,6 +147,31 @@ class SamplingFeatureTestCase(APITestCase):
                0.9625824050649426
            ]
        }
+       
+       {
+       'phenomenon_time_from': '2018-06-15T11:00:00+01:00', 
+       'phenomenon_time_to': '2018-06-15T14:00:00+01:00', 
+       'value_frequency': 3600, 
+       'feature_collection': 
+        OrderedDict([
+            ('type', 'FeatureCollection'), 
+            ('features', [OrderedDict([
+                ('id', 4), ('type', 'Feature'), 
+                ('geometry', GeoJsonDict([
+                    ('type', 'Point'), 
+                    ('coordinates', [1847520.94, 6309563.27])
+                ])), 
+                ('properties', OrderedDict([
+                    ('id_by_provider', '11359201'), 
+                    ('name', 'Brno'), 
+                    ('value_index_shift', 0), 
+                    ('property_values', [Decimal('1.00000'), Decimal('1000.00000'), Decimal('1.50000')]), 
+                    ('property_anomaly_rates', [Decimal('0.00000'), Decimal('1.69748'), Decimal('0.96258')])
+                ])
+            )]
+            ])
+        ])}
+
        '''
 
     def test_response_status(self) :
@@ -160,33 +185,40 @@ class SamplingFeatureTestCase(APITestCase):
         features = fc['features']
 
         for f in features:
-            print('FEATURE')
-            property_values = None
-            property_anomaly_rates = None
-
-            for attr, value in f.items():
-                if attr == 'properties':
-                    properties = value
-                    for keyProp, prop in properties.items():
-                        if keyProp == 'property_values':
-                            property_values = prop
-                        if keyProp == 'property_anomaly_rates':
-                            property_anomaly_rates = prop
-
-            #print('property_values: ', property_values)
-            #print('property_anomaly_rates: ', property_anomaly_rates)
-
+            properties = f.get('properties', None)
+            property_values = properties.get('property_values', None)
+            property_anomaly_rates = properties.get('property_anomaly_rates', None)
             self.assertEquals(len(property_values), len(property_anomaly_rates))
 
-    def test_geom_output(self):
-        self.assertEquals(True, False)
+    def test_feature_output(self):
+        response = self.client.get(URL_TIMESERIES, format='json')
+        data = response.data
+        print('data: ', data)
 
+        fc = data['feature_collection']
+        features = fc['features']
+
+        for f in features:
+            properties = f.get('properties', None)
+
+            geom = f.get('geometry', None)
+            type = geom.get('type', None)
+            coordinates = geom.get('coordinates', None)
+            id_by_provider = properties.get('id_by_provider', None)
+
+            self.assertEquals(id_by_provider, '11359201')
+            self.assertEquals(type, 'Point')
+            self.assertEquals(len(coordinates), 2)
+            self.assertEquals(coordinates[0], 1847520.94)
+            self.assertEquals(coordinates[1], 6309563.27)
+
+    '''
     def test_bbox_param_data(self):
         self.assertEquals(True, False)
 
     def test_bbox_param_no_data_in_area(self):
         self.assertEquals(True, False)
-
+    '''
 
 
 
