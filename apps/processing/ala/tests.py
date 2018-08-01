@@ -36,7 +36,7 @@ date_time_range = DateTimeTZRange(
 
 
 def get_time_series_test():
-    station = SamplingFeature.objects.get(name="Brno")
+    station = SamplingFeature.objects.get(name="Brno2")
     prop = Property.objects.get(name_id='air_temperature')
     time_range = date_time_range
 
@@ -48,9 +48,15 @@ def get_time_series_test():
     )
 
 
-class SamplingFeatureTestCase(TestCase):
-    def setUp(self):
+# TODO create ticket - describe problem, ask for a fix (test with this TimeSeriesTestCase), hangout
+# TODO readme - jak se pousti testy
+# ./dcmanage.sh test
+# ./dcmanage.sh test apps.mc
+# ./dcmanage.sh test apps.mc.tests.TimeSeriesTestCase
+# ./dcmanage.sh test apps.mc.tests.TimeSeriesTestCase.test_properties_response_status
 
+class TimeSeriesTestCase(TestCase):
+    def setUp(self):
         am_process = Process.objects.create(
             name_id='apps.common.aggregate.arithmetic_mean',
             name='arithmetic mean'
@@ -62,11 +68,43 @@ class SamplingFeatureTestCase(TestCase):
             geometry=GEOSGeometry('POINT (1847520.94 6309563.27)', srid=3857)
         )
 
+        station_2 = SamplingFeature.objects.create(
+            id_by_provider="brno2_id_by_provider",
+            name="Brno2",
+            geometry=GEOSGeometry('POINT (1847520.94 6309563.27)', srid=3857)
+        )
+
         at_prop = Property.objects.create(
             name_id='air_temperature',
             name='air temperature',
             unit='°C',
             default_mean=am_process
+        )
+
+        time_from = datetime(2018, 6, 15, 11, 00, 00)
+        Observation.objects.create(
+            observed_property=at_prop,
+            feature_of_interest=station_2,
+            procedure=am_process,
+            result=1.5,
+            phenomenon_time_range=DateTimeTZRange(
+                time_from,
+                time_from + timedelta(hours=1),
+                time_range_boundary
+            )
+        )
+
+        time_from = datetime(2018, 6, 15, 12, 00, 00)
+        Observation.objects.create(
+            observed_property=at_prop,
+            feature_of_interest=station_2,
+            procedure=am_process,
+            result=1.5,
+            phenomenon_time_range=DateTimeTZRange(
+                time_from,
+                time_from + timedelta(hours=1),
+                time_range_boundary
+            )
         )
 
         time_from = datetime(2018, 6, 14, 13, 00, 00)
@@ -138,7 +176,6 @@ class SamplingFeatureTestCase(TestCase):
     #TODO otestovat ruzne vstupy a spravne vystupy - i mezni pripady (prazdna data)
     #TODO empty if no observations were found, None if no observations were found, missing result
     #  is represented by None in the list, empty list if no observations were found
-
     #TODO otherwise it's [ beginning of the first observation, beginning of the last observation + value frequency )
 
     def test_create_process(self):
@@ -231,12 +268,3 @@ class SamplingFeatureTestCase(TestCase):
         self.assertEquals(True, False)
         #otestovat time range, ze output odpovida zacatku v predpokladanych datech a konec je za
         # poslednim merenim + value frequency
-
-
-    '''    
-    TODO
-    observation.phenomenon_time_range.lower.timestamp() % value_frequency == 0
-
-    TODO
-    (observation.phenomenon_time_range.upper.timestamp() - observation.phenomenon_time_range.lower.timestamp()) == value_frequency
-    '''

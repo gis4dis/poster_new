@@ -1,14 +1,10 @@
-from django.test import TestCase
 from apps.processing.ala.models import SamplingFeature, Observation
-from django.contrib.gis.geos import GEOSGeometry, Point
-from apps.common.models import Process, Property
+from django.contrib.gis.geos import GEOSGeometry
+from apps.common.models import Process
 from psycopg2.extras import DateTimeTZRange
 from datetime import timedelta, datetime
-from apps.ad.anomaly_detection import get_timeseries
 
-from apps.mc.serializers import PropertySerializer, TimeSeriesSerializer
 from apps.common.models import Property
-from apps.mc.models import TimeSeriesFeature
 from apps.ad.anomaly_detection import get_timeseries
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -16,7 +12,6 @@ import dateutil.parser
 import pytz
 
 utc=pytz.UTC
-
 
 NAME_ID = 'name_id=air_temperature'
 DATE_FROM = '&phenomenon_date_from=2018-06-15'
@@ -38,6 +33,23 @@ URL_TIMESERIES_BBOX_NO_DATA = URL_TIMESERIES + '&bbox=1826997.8501,6306589.8927,
 URL_TIMESERIES_BBOX_WRONG_VALUES = URL_TIMESERIES + '&bbox=1856997.8501,6306589.8927,1836565.7293,6521189.3651'
 URL_TIMESERIES_BBOX_MISSING_VALUES = URL_TIMESERIES + '&bbox=1856997.8501,6306589.8927,1836565.7293'
 
+URL_PROPERTIES = '/api/v1/properties/'
+
+STATION_PROPS = {
+    '11359201': {
+        'id_by_provider': '11359201',
+        'geom_type': 'Point',
+        'name': 'Brno',
+        'coordinates': [1847520.94, 6309563.27]
+    },
+    'brno2_id_by_provider': {
+        'id_by_provider': 'brno2_id_by_provider',
+        'geom_type': 'Point',
+        'name': 'Brno2',
+        'coordinates': [1847520.94, 6309563.27]
+    }
+
+}
 
 time_range_boundary = '[)'
 time_from = datetime(2018, 6, 15, 00, 00, 00)
@@ -46,6 +58,20 @@ date_time_range = DateTimeTZRange(
     time_from + timedelta(hours=24),
     time_range_boundary
 )
+
+
+def create_station(key):
+    station_key = key
+    props = STATION_PROPS[station_key]
+    coordinates = props['coordinates']
+    return SamplingFeature.objects.create(
+        id_by_provider=props['id_by_provider'],
+        name=props['name'],
+        geometry=GEOSGeometry(
+            props['geom_type'] + ' (' + str(coordinates[0]) + ' ' + str(coordinates[1]) + ')',
+            srid=3857
+        )
+    )
 
 
 def get_time_series_test():
@@ -61,7 +87,7 @@ def get_time_series_test():
     )
 
 
-class TimeSeriesTestCase(APITestCase):
+class RestApiTestCase(APITestCase):
     def setUp(self):
 
         am_process = Process.objects.create(
@@ -69,17 +95,51 @@ class TimeSeriesTestCase(APITestCase):
             name='arithmetic mean'
         )
 
-        station = SamplingFeature.objects.create(
-            id_by_provider="11359201",
-            name="Brno",
-            geometry=GEOSGeometry('POINT (1847520.94 6309563.27)', srid=3857)
-        )
+        station_key = '11359201'
+        station = create_station(station_key)
+
+        station_key = 'brno2_id_by_provider'
+        station_2 = create_station(station_key)
 
         at_prop = Property.objects.create(
             name_id='air_temperature',
             name='air temperature',
             unit='°C',
             default_mean=am_process
+        )
+
+        Property.objects.create(
+            name_id='water_level',
+            name='water level',
+            unit='cm',
+            default_mean=am_process
+        )
+
+
+        time_from = datetime(2018, 6, 15, 11, 00, 00)
+        Observation.objects.create(
+            observed_property=at_prop,
+            feature_of_interest=station_2,
+            procedure=am_process,
+            result=1.5,
+            phenomenon_time_range=DateTimeTZRange(
+                time_from,
+                time_from + timedelta(hours=1),
+                time_range_boundary
+            )
+        )
+
+        time_from = datetime(2018, 6, 15, 12, 00, 00)
+        Observation.objects.create(
+            observed_property=at_prop,
+            feature_of_interest=station_2,
+            procedure=am_process,
+            result=1.5,
+            phenomenon_time_range=DateTimeTZRange(
+                time_from,
+                time_from + timedelta(hours=1),
+                time_range_boundary
+            )
         )
 
         time_from = datetime(2018, 6, 14, 13, 00, 00)
@@ -147,65 +207,23 @@ class TimeSeriesTestCase(APITestCase):
             )
         )
 
-    # Output for database created by test setup
-    '''
-       {
-           'phenomenon_time_range': DateTimeTZRange(
-               datetime.datetime(2018, 6, 15, 11, 0), //od konce mereni - konec je start +1h
-               datetime.datetime(2018, 6, 15, 14, 0), //od konce posledniho mereni +1h - protoze posledni interval uz tam nespada ')'
-               '[)' //zacatek spada, konec ne
-           ), 
-           'value_frequency': 3600,  //1h
-           'property_values': [
-               Decimal('1.000'), 
-               Decimal('1000.000'), 
-               Decimal('1.500')], 
-           'property_anomaly_rates': [
-               0.0, 
-               1.697480910372832, 
-               0.9625824050649426
-           ]
-       }
-       
-       {
-       'phenomenon_time_from': '2018-06-15T11:00:00+01:00', 
-       'phenomenon_time_to': '2018-06-15T14:00:00+01:00', 
-       'value_frequency': 3600, 
-       'feature_collection': 
-        OrderedDict([
-            ('type', 'FeatureCollection'), 
-            ('features', [OrderedDict([
-                ('id', 4), ('type', 'Feature'), 
-                ('geometry', GeoJsonDict([
-                    ('type', 'Point'), 
-                    ('coordinates', [1847520.94, 6309563.27])
-                ])), 
-                ('properties', OrderedDict([
-                    ('id_by_provider', '11359201'), 
-                    ('name', 'Brno'), 
-                    ('value_index_shift', 0), 
-                    ('property_values', [Decimal('1.00000'), Decimal('1000.00000'), Decimal('1.50000')]), 
-                    ('property_anomaly_rates', [Decimal('0.00000'), Decimal('1.69748'), Decimal('0.96258')])
-                ])
-            )]
-            ])
-        ])}
+    def test_properties_response_status(self):
+        response = self.client.get(URL_PROPERTIES)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-       '''
+    def test_properties_response_content(self):
+        response = self.client.get(URL_PROPERTIES)
+        expected_response = [
+            {"name_id": "air_temperature", "name": "air temperature", "unit": "°C" },
+            {"name_id": "water_level", "name": "water level", "unit": "cm"}
+        ]
+        self.assertEquals(response.data, expected_response)
 
-    # TODO - pridat asi jeste nejakou dalsi stanici s merenim (otestovat ze pojede dobre bbox)
-    # TODO otestovat, ze to zvladne spravne vice nez jednu stanici
-    # TODO readme - jak se pousti testy
-    # ./dcmanage.sh test
-    # ./dcmanage.sh test apps.mc
-    # ./dcmanage.sh test apps.mc.tests.TimeSeriesTestCase
-    # ./dcmanage.sh test apps.mc.tests.TimeSeriesTestCase.test_bbox_wrong_params
-
-    def test_response_status(self) :
+    def test_timeseries_response_status(self) :
         response = self.client.get(URL_TIMESERIES)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_property_values_length_equals_anomaly_rates(self):
+    def test_timeseries_property_values_length_equals_anomaly_rates(self):
         response = self.client.get(URL_TIMESERIES)
         data = response.data
         fc = data['feature_collection']
@@ -217,7 +235,7 @@ class TimeSeriesTestCase(APITestCase):
             property_anomaly_rates = properties.get('property_anomaly_rates', None)
             self.assertEquals(len(property_values), len(property_anomaly_rates))
 
-    def test_feature_output(self):
+    def test_timeseries_feature_output(self):
         response = self.client.get(URL_TIMESERIES, format='json')
         data = response.data
         fc = data['feature_collection']
@@ -225,19 +243,21 @@ class TimeSeriesTestCase(APITestCase):
 
         for f in features:
             properties = f.get('properties', None)
-
             id_by_provider = properties.get('id_by_provider', None)
+
             geom = f.get('geometry', None)
             coordinates = geom.get('coordinates', None)
             geom_type = geom.get('type', None)
 
-            self.assertEquals(id_by_provider, '11359201')
+            props = STATION_PROPS[id_by_provider]
+            self.assertEquals(id_by_provider, props['id_by_provider'])
             self.assertEquals(geom_type, 'Point')
-            self.assertEquals(len(coordinates), 2)
-            self.assertEquals(coordinates[0], 1847520.94)
-            self.assertEquals(coordinates[1], 6309563.27)
+            self.assertEquals(len(coordinates),  len(props['coordinates']))
+            self.assertEquals(coordinates[0], props['coordinates'][0])
+            self.assertEquals(coordinates[1], props['coordinates'][1])
 
-    def test_time_range_output(self):
+
+    def test_timeseries_time_range_output(self):
         response = self.client.get(URL_TIMESERIES, format='json')
         data = response.data
 
@@ -250,14 +270,14 @@ class TimeSeriesTestCase(APITestCase):
         self.assertGreaterEqual(phenomenon_time_from, date_time_range_from_utc)
         self.assertLessEqual(phenomenon_time_to, date_time_range_to_utc)
 
-    def test_bbox_param_data(self):
+    def test_timeseries_bbox_param_data(self):
         response = self.client.get(URL_TIMESERIES_BBOX, format='json')
         data = response.data
         fc = data['feature_collection']
         features = fc['features']
         self.assertNotEquals(len(features), 0)
 
-    def test_bbox_param_no_data_in_area(self):
+    def test_timeseries_bbox_param_no_data_in_area(self):
         response = self.client.get(URL_TIMESERIES_BBOX_NO_DATA, format='json')
         data = response.data
         phenomenon_time_from = data['phenomenon_time_from']
@@ -268,22 +288,22 @@ class TimeSeriesTestCase(APITestCase):
         self.assertEquals(phenomenon_time_from, None)
         self.assertEquals(phenomenon_time_to, None)
 
-    def test_bbox_wrong_params(self):
+    def test_timeseries_bbox_wrong_params(self):
         response = self.client.get(URL_TIMESERIES_BBOX_WRONG_VALUES, format='json')
         self.assertEquals(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def test_bbox_missing_param(self):
+    def test_timeseries_bbox_missing_param(self):
         response = self.client.get(URL_TIMESERIES_BBOX_MISSING_VALUES, format='json')
         self.assertEquals(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def test_phenomenon_date_from_wrong_param(self):
+    def test_timeseries_phenomenon_date_from_wrong_param(self):
         response = self.client.get(URL_TIMESERIES_WRONG_DATE_FROM, format='json')
         self.assertEquals(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def test_phenomenon_date_to_wrong_param(self):
+    def test_timeseries_phenomenon_date_to_wrong_param(self):
         response = self.client.get(URL_TIMESERIES_WRONG_DATE_TO, format='json')
         self.assertEquals(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def test_phenomenon_name_id_not_exists(self):
+    def test_timeseries_phenomenon_name_id_not_exists(self):
         response = self.client.get(URL_TIMESERIES_NAME_ID_NOT_EXISTS, format='json')
         self.assertEquals(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
