@@ -40,125 +40,129 @@ class Command(BaseCommand):
         
         day_from = day_from.astimezone(UTC_P0100) 
         day_to = day_to.astimezone(UTC_P0100)
+        import_events(ProviderLog.objects.all(), day_from, day_to)
 
-        observed_property = "occuring_events"
-        procedure = "observation"
-        
-        # get whole extent for feature_of_interest
-        admin_units = AdminUnit.objects.all().order_by('id_by_provider')
-        units_list = []
-        for admin_unit in admin_units:
-            units_list.append(admin_unit)
-        
-        event_extents = EventExtent.objects.all()
-        
-        # extent of d1, brno, brno venkov admin units
-        whole_extent = get_special_extent()
-        whole_extent_units = list(whole_extent.admin_units.all())
-        
-        # get IDs to prevent duplicates
-        ids= []
-        for event in EventObservation.objects.iterator():
-            ids.append(event.id_by_provider)
-        
-        i = 0
-        for provider_log in ProviderLog.objects.filter(received_time__range=(day_from, day_to)).iterator():
-
-            data = provider_log.body
-            tree = ET.fromstring(data)
-            
-            for msg in tree.iter('MSG'):
-                codes = []
-                category = ""
-                dt_range = None
-                id_by_provider = ""
-
-                id_by_provider = msg.attrib['id']
-
-                if(id_by_provider in ids):
-                    print('Event already in database: {}'.format(id_by_provider))
-                    continue
-            
-                ids.append(id_by_provider)
-                
-                for tag in msg.iter('DEST'):
-                    road = tag.find('ROAD')
-                    is_d1 = False
-                    if road is not None and 'RoadNumber' in road.attrib:
-                        is_d1 = True if road.attrib['RoadNumber'] == 'D1' else False
-                    town_ship = tag.attrib['TownShip']
-                    if((town_ship == 'Brno-venkov' or town_ship == 'Brno-město') or (is_d1)):
-                        if('TownDistrictCode' in tag.attrib):
-                            code = tag.attrib['TownDistrictCode']
-                        else:
-                            code = tag.attrib['TownCode']
-                        codes.append(code)
-                        
-                if(len(codes) == 0):
-                    continue
-
-                for cat in msg.iter('EVI'):
-                    category = cat.attrib["eventcode"]  
-                    break
-                for tag in msg.iter('TSTA'):
-                    start_time = parse(tag.text)
-                for tag in msg.iter('TSTO'):
-                    end_time = parse(tag.text)
-
-                start_time = start_time.astimezone(UTC_P0100) 
-                end_time = end_time.astimezone(UTC_P0100)
-                if(end_time < start_time):
-                    start_time, end_time = end_time, start_time
-
-                dt_range = DateTimeTZRange(start_time, end_time)
-
-                for tag in msg.iter('COORD'):
-                    coord_x = tag.attrib['x']
-                    coord_y = tag.attrib['y']
-                
-                geom = Point(float(coord_y), float(coord_x))
-                if geom is not None:
-                    geom = GEOSGeometry(geom, srid=4326)
-                    geom = geom.transform(3857, clone=True)
-                
-                if(len(codes) > 0):
-                    admin_units = AdminUnit.objects.filter(id_by_provider__in=codes)
-                    units_list = []
-                    for admin_unit in admin_units:
-                        units_list.append(admin_unit)
-                        if(not admin_unit in whole_extent_units):
-                            whole_extent.admin_units.add(admin_unit)
-                            whole_extent_units.append(admin_unit)
-                        
-                    event_extents = EventExtent.objects.filter(admin_units__in=admin_units).order_by('admin_units')
-                    event_extent = None
-                    
-                    for extent in event_extents:
-                        extent_admin = []
-                        for adm in extent.admin_units.all():
-                            extent_admin.append(adm)
-                        if(extent_admin == units_list):
-                            event_extent = extent
-                            break
-
-                    event_category = EventCategory.objects.filter(id_by_provider=category).get()
-                    observation = EventObservation(
-                        phenomenon_time_range= dt_range,
-                        observed_property=Property.objects.filter(name_id=observed_property).get(),
-                        feature_of_interest=whole_extent,
-                        procedure=Process.objects.filter(name_id=procedure).get(),
-                        category=event_category,
-                        id_by_provider=id_by_provider,
-                        result=event_extent,
-                        point_geometry=geom,
-                        provider_log=provider_log,
-                    )
-                    observation.save()
-                    i += 1
-                    print('Number of new events: {}'.format(i))
+def import_events(provider_logs, day_from, day_to):
+    observed_property = "occuring_events"
+    procedure = "observation"
+    new_observations = []
+    # get whole extent for feature_of_interest
+    admin_units = AdminUnit.objects.all().order_by('id_by_provider')
+    units_list = []
+    for admin_unit in admin_units:
+        units_list.append(admin_unit)
     
-        print('Number of new events: {}'.format(i))
-        # print('Extents in database: {}'.format(extents))
+    event_extents = EventExtent.objects.all()
+    
+    # extent of d1, brno, brno venkov admin units
+    whole_extent = get_special_extent()
+    whole_extent_units = list(whole_extent.admin_units.all())
+    
+    # get IDs to prevent duplicates
+    ids= []
+    for event in EventObservation.objects.iterator():
+        ids.append(event.id_by_provider)
+    
+    i = 0
+    for provider_log in provider_logs.filter(received_time__range=(day_from, day_to)).iterator():
+
+        data = provider_log.body
+        tree = ET.fromstring(data)
+        
+        for msg in tree.iter('MSG'):
+            codes = []
+            category = ""
+            dt_range = None
+            id_by_provider = ""
+
+            id_by_provider = msg.attrib['id']
+
+            if(id_by_provider in ids):
+                print('Event already in database: {}'.format(id_by_provider))
+                continue
+        
+            ids.append(id_by_provider)
+            
+            for tag in msg.iter('DEST'):
+                road = tag.find('ROAD')
+                is_d1 = False
+                if road is not None and 'RoadNumber' in road.attrib:
+                    is_d1 = True if road.attrib['RoadNumber'] == 'D1' else False
+                town_ship = tag.attrib['TownShip']
+                if((town_ship == 'Brno-venkov' or town_ship == 'Brno-město') or (is_d1)):
+                    if('TownDistrictCode' in tag.attrib):
+                        code = tag.attrib['TownDistrictCode']
+                    else:
+                        code = tag.attrib['TownCode']
+                    codes.append(code)
+                    
+            if(len(codes) == 0):
+                continue
+
+            for cat in msg.iter('EVI'):
+                category = cat.attrib["eventcode"]  
+                break
+            for tag in msg.iter('TSTA'):
+                start_time = parse(tag.text)
+            for tag in msg.iter('TSTO'):
+                end_time = parse(tag.text)
+
+            start_time = start_time.astimezone(UTC_P0100) 
+            end_time = end_time.astimezone(UTC_P0100)
+            if(end_time < start_time):
+                start_time, end_time = end_time, start_time
+
+            dt_range = DateTimeTZRange(start_time, end_time)
+
+            for tag in msg.iter('COORD'):
+                coord_x = tag.attrib['x']
+                coord_y = tag.attrib['y']
+            
+            geom = Point(float(coord_y), float(coord_x))
+            if geom is not None:
+                geom = GEOSGeometry(geom, srid=4326)
+                geom = geom.transform(3857, clone=True)
+            
+            if(len(codes) > 0):
+                admin_units = AdminUnit.objects.filter(id_by_provider__in=codes)
+                units_list = []
+                for admin_unit in admin_units:
+                    units_list.append(admin_unit)
+                    if(not admin_unit in whole_extent_units):
+                        whole_extent.admin_units.add(admin_unit)
+                        whole_extent_units.append(admin_unit)
+                    
+                event_extents = EventExtent.objects.filter(admin_units__in=admin_units).order_by('admin_units')
+                event_extent = None
+                
+                for extent in event_extents:
+                    extent_admin = []
+                    for adm in extent.admin_units.all():
+                        extent_admin.append(adm)
+                    if(extent_admin == units_list):
+                        event_extent = extent
+                        break
+
+                event_category = EventCategory.objects.filter(id_by_provider=category).get()
+                observation = EventObservation(
+                    phenomenon_time_range= dt_range,
+                    observed_property=Property.objects.filter(name_id=observed_property).get(),
+                    feature_of_interest=whole_extent,
+                    procedure=Process.objects.filter(name_id=procedure).get(),
+                    category=event_category,
+                    id_by_provider=id_by_provider,
+                    result=event_extent,
+                    point_geometry=geom,
+                    provider_log=provider_log,
+                )
+                observation.save()
+                new_observations.append(observation)
+                i += 1
+                print('Number of new events: {}'.format(i))
+
+    print('Number of new events: {}'.format(i))
+    # print('Extents in database: {}'.format(extents))
+    return new_observations
         
 
 def get_special_extent():

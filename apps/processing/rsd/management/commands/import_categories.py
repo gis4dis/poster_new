@@ -20,9 +20,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         
-        # EventObservation.objects.all().delete()
-        # EventCategory.objects.all().delete()
-        
         arg_from = options['date_from']
         arg_to = options['date_to']
         if arg_from is None and arg_to is None:
@@ -36,34 +33,36 @@ class Command(BaseCommand):
         
         day_from = day_from.astimezone(UTC_P0100) 
         day_to = day_to.astimezone(UTC_P0100)
+        import_categories(day_from, day_to)
 
-        categories = []
-        for cat in EventCategory.objects.all():
-            category = cat.id_by_provider
-            if not category in categories:
-                    categories.append(category)
+def import_categories(day_from, day_to):
+    categories = []
+    for cat in EventCategory.objects.all():
+        category = cat.id_by_provider
+        if not category in categories:
+                categories.append(category)
 
-        for event in ProviderLog.objects.filter(received_time__range=(day_from, day_to)).iterator():
-            data = event.body
-            tree = ET.fromstring(data)
-            for msg in tree.iter('MSG'):
-                for tag in msg.iter('EVI'):
-                    code = tag.attrib["eventcode"]
-                    category = ""
-                    for text in tag.iter('TXUCL'):
-                        group = text.text
-                        break
-                    for name in tag.iter('TXEVC'):
-                        code_name = name.text
-                        break
-                            
-                    if not code in categories:
-                        categories.append(code)
-                        cat = EventCategory(group=group, name=code_name,id_by_provider=code)
-                        cat.save()
-        print('Categories in database: {}'.format(categories))
-        print('////////////////////')
-        print('Number of categories: {}'.format(len(categories)))
+    for event in ProviderLog.objects.filter(received_time__range=(day_from, day_to)).iterator():
+        data = event.body
+        tree = ET.fromstring(data)
+        for msg in tree.iter('MSG'):
+            for tag in msg.iter('EVI'):
+                code = tag.attrib["eventcode"]
+                category = ""
+                for text in tag.iter('TXUCL'):
+                    group = text.text
+                    break
+                for name in tag.iter('TXEVC'):
+                    code_name = name.text
+                    break
+                        
+                if not code in categories:
+                    categories.append(code)
+                    cat = EventCategory(group=group, name=code_name,id_by_provider=code)
+                    cat.save()
+    print('Categories in database: {}'.format(categories))
+    print('=====================')
+    print('Number of categories: {}'.format(len(categories)))
 
         
 def parse_date(date_str, times):
