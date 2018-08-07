@@ -11,7 +11,7 @@ from apps.processing.rsd.management.commands.import_towns import import_towns
 from apps.processing.rsd.management.commands.import_categories import import_categories
 from apps.processing.rsd.testing.provider_logs import import_provider_logs
 
-# ./dcmanage.sh test rsd
+# ./dcmanage.sh test
 
 day_from = date(2018, 3, 23)
 day_to = date(2018, 3, 24)
@@ -59,4 +59,5 @@ class ImportEventsTestCase(TestCase):
 
     def test_get_import_events_count(self):
         ts = import_events_test()
-        self.assertEqual(len(ts['property_values']), 3)
+        self.assertEqual(len(ts), 1)
+        self.assertEqual(ts[0].category.name, "uzavřeno")

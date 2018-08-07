@@ -80,6 +80,7 @@ def import_extents(day_from, day_to):
                     ext.admin_units.add(unit)
 
     # add all admin units to 1 extent
+    print('Creating whole extent...')
     codes = []
     for adm in AdminUnit.objects.all().order_by('id_by_provider'):
         codes.append(adm.id_by_provider)
