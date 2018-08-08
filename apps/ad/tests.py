@@ -1,31 +1,11 @@
 from django.test import TestCase
 from apps.processing.ala.models import SamplingFeature, Observation
-from apps.processing.o2.models import MobilityObservation
-from django.contrib.gis.geos import GEOSGeometry, Point
+from django.contrib.gis.geos import GEOSGeometry
 from apps.common.models import Process, Property
 from psycopg2.extras import DateTimeTZRange
 from datetime import timedelta, datetime
 from apps.ad.anomaly_detection import get_timeseries
 from apps.utils.time import UTC_P0100
-
-'''
-    Example result of get_timeseries:
-    {
-        'phenomenon_time_range': DateTimeTZRange(datetime.datetime(2018, 6, 15, 11, 0), datetime.datetime(2018, 6, 15, 14, 0), '[)'), 
-        'value_frequency': 3600, 
-        'property_values': [
-            Decimal('1.000'), 
-            Decimal('1000.000'), 
-            Decimal('1.500')
-        ], 
-        'property_anomaly_rates': [
-            0.0, 
-            1.697480910372832, 
-            0.9625824050649426
-        ]
-    }
-
-'''
 
 time_range_boundary = '[)'
 time_from = datetime(2018, 6, 15, 00, 00, 00)
@@ -76,12 +56,12 @@ def get_time_series_test(
         phenomenon_time_range=time_range
     )
 
-# TODO udelat nejak inteligentni zakladani setup
-# TODO readme - jak se pousti testy
-# ./dcmanage.sh test
-# ./dcmanage.sh test apps.mc
-# ./dcmanage.sh test apps.mc.tests.TimeSeriesTestCase
-# ./dcmanage.sh test apps.mc.tests.TimeSeriesTestCase.test_properties_response_status
+
+# Running tests and examples
+# all tests - ./dcmanage.sh test
+# run tests in app- ./dcmanage.sh test apps.mc
+# run single TestCase - ./dcmanage.sh test apps.mc.tests.TimeSeriesTestCase
+# run single test - ./dcmanage.sh test apps.mc.tests.TimeSeriesTestCase.test_properties_response_status
 
 
 class TimeSeriesTestCase(TestCase):
@@ -118,20 +98,6 @@ class TimeSeriesTestCase(TestCase):
         )
 
         time_from = datetime(2018, 6, 15, 11, 00, 00)
-        time_from = time_from.replace(tzinfo=UTC_P0100)
-        Observation.objects.create(
-            observed_property=at_prop,
-            feature_of_interest=station_2,
-            procedure=am_process,
-            result=1.5,
-            phenomenon_time_range=DateTimeTZRange(
-                time_from,
-                time_from + timedelta(hours=1),
-                time_range_boundary
-            )
-        )
-
-        time_from = datetime(2018, 6, 15, 12, 00, 00)
         time_from = time_from.replace(tzinfo=UTC_P0100)
         Observation.objects.create(
             observed_property=at_prop,
@@ -309,41 +275,21 @@ class TimeSeriesTestCase(TestCase):
         estimated_length = (upper.timestamp() - lower.timestamp()) / f
         self.assertEquals(property_values_length, estimated_length)
 
-    # TODO time range - beginning of the first observation, beginning of the last observation + value frequency )
     def test_time_range_result_values(self):
         ts = get_time_series_test('Brno', date_time_range)
+
         expected_lower = first_output_observation_time_range.lower
-        expected_upper = last_output_observation_time_range.upper
+        expected_upper = last_output_observation_time_range.lower
+        expected_upper_timestamp = expected_upper.timestamp()
+        f = ts['value_frequency']
+
         result_lower = ts['phenomenon_time_range'].lower
         result_upper = ts['phenomenon_time_range'].upper
-        # TODO vyresit problemy s casovou zonou - budto udelat konverzi +1 z resultu nebo upravit gettimeseries metodu asi
-        print('result_lower: ', result_lower)
-        print('expected_lower: ', expected_lower)
-        # self.assertEquals(result_lower, expected_lower)
-        # self.assertEquals(result_upper, expected_upper)
-        #konec je za poslednim merenim + value frequency
+        result_upper_timestamp = result_upper.timestamp()
 
-    def test_time_range_no_data(self):
-        print('TODO')
+        self.assertEquals(result_lower, expected_lower)
+        self.assertEquals(result_upper_timestamp, expected_upper_timestamp + f)
 
-    # TODO test ruznych feature_of_interest
     def test_alternative_feature(self):
-        print('TODO')
-
-
-
-
-
-
-
-        '''
-        print('INPUT OBSERVATION LOWER: ', first_output_observation_time_range.lower)
-        print('OUTPUT LOWER: ',   ts['phenomenon_time_range'].lower)        
-        {'phenomenon_time_range': DateTimeTZRange(datetime.datetime(2018, 6, 15, 11, 0),
-                                                  datetime.datetime(2018, 6, 15, 14, 0), '[)'),
-         'value_frequency': 3600,
-         'property_values': [Decimal('1.000'), Decimal('1000.000'), Decimal('1.500')],
-         'property_anomaly_rates': [0.0, 1.697480910372832, 0.9625824050649426]}
-        '''
-        #otestovat time range, ze output odpovida zacatku v predpokladanych datech a konec je za
-        # poslednim merenim + value frequency
+        ts = get_time_series_test('Brno2', date_time_range)
+        self.assertEqual(ts['property_values'], [1.500])

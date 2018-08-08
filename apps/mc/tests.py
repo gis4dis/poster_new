@@ -11,7 +11,7 @@ from rest_framework.test import APITestCase
 import dateutil.parser
 import pytz
 
-utc=pytz.UTC
+utc = pytz.UTC
 
 NAME_ID = 'name_id=air_temperature'
 DATE_FROM = '&phenomenon_date_from=2018-06-15'
