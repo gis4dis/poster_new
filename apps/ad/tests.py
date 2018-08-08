@@ -91,9 +91,9 @@ class TimeSeriesTestCase(TestCase):
         )
 
         Property.objects.create(
-            name_id='water_level',
-            name='water level',
-            unit='cm',
+            name_id='ground_air_temperature',
+            name='ground air temperature',
+            unit='°C',
             default_mean=am_process
         )
 
@@ -190,7 +190,7 @@ class TimeSeriesTestCase(TestCase):
 
     def test_property_not_exists(self):
         ts = get_timeseries(
-            observed_property=Property.objects.get(name_id='water_level'),
+            observed_property=Property.objects.get(name_id='ground_air_temperature'),
             observation_provider_model=Observation,
             feature_of_interest=SamplingFeature.objects.get(name='Brno'),
             phenomenon_time_range=date_time_range
