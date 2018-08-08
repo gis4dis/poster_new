@@ -171,6 +171,10 @@ class AbstractObservation(models.Model):
         editable=False,
     )
 
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
     @property
     def result_for_human(self):
         if self.result is not None:
