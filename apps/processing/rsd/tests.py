@@ -28,8 +28,8 @@ def import_events_test():
 class ImportEventsTestCase(TestCase):
     def setUp(self):
 
-        import_towns('var/s3storage/media/rsd/obce_4326.shp')
-        import_towns('var/s3storage/media/rsd/momc_4326.shp')
+        import_towns('shapefiles/rsd/obce_4326.shp')
+        import_towns('shapefiles/rsd/momc_4326.shp')
 
         process = Process.objects.create(
             name_id='observation',

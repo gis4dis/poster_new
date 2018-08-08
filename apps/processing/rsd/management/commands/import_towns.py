@@ -29,17 +29,16 @@ def import_towns(path):
     basedir += os.sep
     basename, _ = os.path.splitext(path)
 
-    # local_dir = os.path.join('/tmp/gis4dis', basedir)
-    local_dir = basedir
+    local_dir = os.path.join('/tmp/gis4dis', basedir)
     os.makedirs(local_dir, mode=0o770, exist_ok=True)
 
-    # for f in default_storage.listdir(basedir):
-    #     f_basename, _ = os.path.splitext(f.object_name)
-    #     if f_basename != basename:
-    #         continue
+    for f in default_storage.listdir(basedir):
+        f_basename, _ = os.path.splitext(f.object_name)
+        if f_basename != basename:
+            continue
 
-    #     with default_storage.open(f.object_name, mode='rb') as f2, open(os.path.join('/tmp/gis4dis', f.object_name), mode='wb') as g:
-    #         g.write(f2.read())
+        with default_storage.open(f.object_name, mode='rb') as f2, open(os.path.join('/tmp/gis4dis', f.object_name), mode='wb') as g:
+            g.write(f2.read())
 
     mapping = {
         'id_by_provider' : 'Kod_char',
@@ -47,6 +46,5 @@ def import_towns(path):
         'geometry' : 'POLYGON', # For geometry fields use OGC name.
         'level': 'level',
             }
-    # lm = LayerMapping(AdminUnit, os.path.join('/tmp/gis4dis', path), mapping)
-    lm = LayerMapping(AdminUnit, path, mapping)
+    lm = LayerMapping(AdminUnit, os.path.join('/tmp/gis4dis', path), mapping)
     lm.save(verbose=False)
