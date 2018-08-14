@@ -160,7 +160,7 @@ def import_events(provider_logs, day_from, day_to):
                 i += 1
                 print('Number of new events: {}'.format(i))
 
-    print('Number of new events: {}'.format(i))
+    # print('Number of new events: {}'.format(i))
     # print('Extents in database: {}'.format(extents))
     return new_observations
         

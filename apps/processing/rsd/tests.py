@@ -58,6 +58,17 @@ class ImportEventsTestCase(TestCase):
         import_extents(day_from, day_to)
 
     def test_get_import_events_count(self):
-        ts = import_events_test()
-        self.assertEqual(len(ts), 1)
-        self.assertEqual(ts[0].category.name, "uzavřeno")
+        event_observations = import_events_test()
+        # categories from log_1 exists
+        self.assertEqual(EventCategory.objects.filter(id_by_provider="401").exists(), True)
+        self.assertEqual(EventCategory.objects.filter(id_by_provider="704").exists(), True)
+        # log_outside_extent not imported 
+        self.assertEqual(EventExtent.objects.filter(admin_units__name__in=["Znojmo"]).exists(), False)
+        self.assertEqual(EventObservation.objects.filter(id_by_provider="6f17839b-9ffe-4cfd-9b56-87346778841e").exists(), False)
+
+
+        # number of imported events
+        self.assertEqual(len(event_observations), 2)
+        # special extent has all admin units from imported events
+        self.assertEqual(EventExtent.objects.filter(name_id="brno_brno_venkov_d1",
+         admin_units__id_by_provider__in=['583600']).exists(), True)
