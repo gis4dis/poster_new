@@ -79,23 +79,6 @@ def import_extents(day_from, day_to):
                     unit = AdminUnit.objects.filter(id_by_provider=code).get()
                     ext.admin_units.add(unit)
 
-    # add all admin units to 1 extent
-    print('Creating whole extent...')
-    codes = []
-    for adm in AdminUnit.objects.all().order_by('id_by_provider'):
-        codes.append(adm.id_by_provider)
-
-    event_extent = list(AdminUnit.objects.filter(id_by_provider__in=codes).order_by('id_by_provider'))
-    if not event_extent in extents and len(event_extent) > 0:
-        extents.append(event_extent)
-        ext = EventExtent()
-        ext.save()
-        i += 1
-        print('New extent added: {}'.format(i))
-        for code in codes:
-            unit = AdminUnit.objects.filter(id_by_provider=code).get()
-            ext.admin_units.add(unit)
-
     print('Number of extents: {}'.format(len(extents)))
     print('Number of new extents: {}'.format(i))
 
