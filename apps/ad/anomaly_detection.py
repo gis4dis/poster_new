@@ -37,6 +37,14 @@ def get_timeseries(observed_property, observation_provider_model, feature_of_int
         max(list(obs_reduced.keys()))
     )
 
+    if len(obs_reduced.keys()) == 1:
+        return {
+            'phenomenon_time_range': DateTimeTZRange(datetime.fromtimestamp(result_time_range.lower).replace(tzinfo=timezone), datetime.fromtimestamp(result_time_range.upper + frequency).replace(tzinfo=timezone)),
+            'value_frequency': frequency,
+            'property_values': [list(obs_reduced.values())[0]],
+            'property_anomaly_rates': [0],
+        }
+
     while obs_reduced and obs_reduced[result_time_range.lower] is None:
         del obs_reduced[result_time_range.lower]
         if obs_reduced:
@@ -58,6 +66,14 @@ def get_timeseries(observed_property, observation_provider_model, feature_of_int
             'value_frequency': None,
             'property_values': [],
             'property_anomaly_rates': [],
+        }
+    
+    if len(obs_reduced.keys()) == 1:
+        return {
+            'phenomenon_time_range': DateTimeTZRange(datetime.fromtimestamp(result_time_range.lower).replace(tzinfo=timezone), datetime.fromtimestamp(result_time_range.upper + frequency).replace(tzinfo=timezone)),
+            'value_frequency': frequency,
+            'property_values': [list(obs_reduced.values())[0]],
+            'property_anomaly_rates': [0],
         }
 
     (anomalyScore, anomalyPeriod) = anomaly_detect(obs_reduced)
