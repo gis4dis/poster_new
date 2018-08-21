@@ -38,7 +38,7 @@ def import_provider_logs(provider):
         last_processed=None,
     )
 
-    body = xml_to_str('logs/log_1_changed_category.xml')
+    body = xml_to_str('logs/log_1_changed_category_town.xml')
 
     ProviderLog.objects.create(
         provider=provider,

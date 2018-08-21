@@ -62,6 +62,8 @@ class ImportEventsTestCase(TestCase):
         # categories from log_1 exists
         self.assertEqual(EventCategory.objects.filter(id_by_provider="401").exists(), True)
         self.assertEqual(EventCategory.objects.filter(id_by_provider="704").exists(), True)
+        self.assertEqual(EventCategory.objects.all().count(), 2)
+        
         # log_outside_extent not imported 
         self.assertEqual(EventExtent.objects.filter(admin_units__name__in=["Znojmo"]).exists(), False)
         self.assertEqual(EventObservation.objects.filter(id_by_provider="6f17839b-9ffe-4cfd-9b56-87346778841e").exists(), False)
@@ -71,4 +73,8 @@ class ImportEventsTestCase(TestCase):
         self.assertEqual(len(event_observations), 2)
         # special extent has all admin units from imported events
         self.assertEqual(EventExtent.objects.filter(name_id="brno_brno_venkov_d1",
-         admin_units__id_by_provider__in=['583600']).exists(), True)
+         admin_units__id_by_provider__in=['583600','583251']).exists(), True)
+
+        # check time transform to utc + 1
+        print(EventObservation.objects.filter(id_by_provider="6f17839b-9ffe-4cfd-9b56-87346778841d").values('phenomenon_time_range'))
+        

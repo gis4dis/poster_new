@@ -39,7 +39,7 @@ Dále se jedná o částečnou uzavírku provozu na silnici č. II/386 Lipůvka-
             </SNTL>
         </MLOC>
         <MDST>
-            <DEST CountryName="Česká republika" RegionCode="116" RegionName="Jihomoravský kraj" TownShipCode="3703" TownShip="Brno-venkov" TownCode="583600" TownName="Ostrovačice">
+            <DEST CountryName="Česká republika" RegionCode="116" RegionName="Jihomoravský kraj" TownShipCode="3703" TownShip="Brno-venkov" TownCode="583251" TownName="Kuřim">
             <STRE StreetCode="41955" StreetName="Veveří" />
             <ROAD RoadNumber="386" RoadClass="2" />
             </DEST>
