@@ -55,7 +55,7 @@ class MobilityObservationAdmin(admin.ModelAdmin):
         'uniques_type',
         ('result_null_reason', ResultNullReasonFilter),
     )
-    fields = list_display
+    fields = list_display + ('created_at', 'updated_at')
     readonly_fields = fields
 
 
@@ -95,7 +95,7 @@ class SocioDemoObservationAdmin(admin.ModelAdmin):
         'occurrence_type',
         ('result_null_reason', ResultNullReasonFilter),
     )
-    fields = list_display
+    fields = list_display + ('created_at', 'updated_at')
     readonly_fields = fields
 
 

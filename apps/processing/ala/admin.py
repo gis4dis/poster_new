@@ -38,7 +38,7 @@ class ObservationAdmin(admin.ModelAdmin):
         ('procedure', admin.RelatedOnlyFieldListFilter),
         ('result_null_reason', ResultNullReasonFilter),
     )
-    fields = list_display
+    fields = list_display + ('created_at', 'updated_at')
     readonly_fields = fields
 
 
