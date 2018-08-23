@@ -24,8 +24,7 @@ greenlet==0.4.13
 gunicorn==19.7.1
 idna==2.5
 kombu==4.2.1
--e ../luminol
-# git+git://github.com/gis4dis/luminol#egg=luminol
+luminol==0.4
 minio==2.2.1
 psycopg2-binary==2.7.4
 python-dateutil==2.6.1

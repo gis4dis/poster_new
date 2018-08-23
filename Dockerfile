@@ -10,7 +10,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libgdal-dev \
     && rm -rf /var/lib/apt/lists/*
 
-ADD /luminol /luminol
 ADD requirements.txt /code/
 RUN pip install -r requirements.txt
 ADD . /code/
