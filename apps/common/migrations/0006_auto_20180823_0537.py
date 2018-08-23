@@ -22,10 +22,5 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': 'topics',
                 'ordering': ['name'],
             },
-        ),
-        migrations.AddField(
-            model_name='property',
-            name='topic',
-            field=models.ForeignKey(help_text='Property topic', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='common_property_related', to='common.Topic'),
-        ),
+        )
     ]
