@@ -13,21 +13,21 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='eventobservation',
             name='created_at',
-            field=models.DateTimeField(auto_now_add=True, null=True),
+            field=models.DateTimeField(auto_now_add=True, null=False),
         ),
         migrations.AlterField(
             model_name='numberofeventsobservation',
             name='created_at',
-            field=models.DateTimeField(auto_now_add=True, null=True),
+            field=models.DateTimeField(auto_now_add=True, null=False),
         ),
         migrations.AlterField(
             model_name='eventobservation',
             name='updated_at',
-            field=models.DateTimeField(auto_now=True, null=True),
+            field=models.DateTimeField(auto_now=True, null=False),
         ),
         migrations.AlterField(
             model_name='numberofeventsobservation',
             name='updated_at',
-            field=models.DateTimeField(auto_now=True, null=True),
+            field=models.DateTimeField(auto_now=True, null=False),
         )
     ]
