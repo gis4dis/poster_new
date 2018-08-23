@@ -123,7 +123,9 @@ def validate_time_series_feature(item, time_series_from, time_series_to, value_f
 
 
 class PropertyViewSet(viewsets.ReadOnlyModelViewSet):
-    prop_names = settings.APPLICATION_MC.PROPERTIES.keys()
+    #prop_names = settings.APPLICATION_MC.PROPERTIES.keys()
+    #prop_names = settings.APPLICATION_MC.TOPICS.drought
+    prop_names = settings_v2.TOPICS['drought']['properties'].keys()
     queryset = Property.objects.filter(name_id__in=prop_names)
     serializer_class = PropertySerializer
 
@@ -165,10 +167,13 @@ class TimeSeriesViewSet(viewsets.ViewSet):
             bbox = request.GET['bbox']
             geom_bbox = parse_bbox(bbox)
 
-        if not (name_id in settings.APPLICATION_MC.PROPERTIES):
+        #properties = settings.APPLICATION_MC.PROPERTIES
+        properties = settings_v2.TOPICS['drought']['properties']
+
+        if not (name_id in properties):
             raise APIException("name_id not found in config")
 
-        config_prop = settings.APPLICATION_MC.PROPERTIES[name_id]
+        config_prop = properties[name_id]
         config_observation_providers = config_prop['observation_providers']
 
         for key in config_observation_providers:
@@ -194,6 +199,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
             for item in all_features:
                 ts = get_timeseries(
+                    topic='drought',
                     observed_property=Property.objects.get(name_id=name_id),
                     observation_provider_model=provider_model,
                     feature_of_interest=item,
@@ -249,7 +255,8 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
 
 class PropertyViewSet(viewsets.ReadOnlyModelViewSet):
-    prop_names = settings.APPLICATION_MC.PROPERTIES.keys()
+    #prop_names = settings.APPLICATION_MC.PROPERTIES.keys()
+    prop_names = settings_v2.TOPICS['drought']['properties'].keys()
     queryset = Property.objects.filter(name_id__in=prop_names)
     serializer_class = PropertySerializer
 

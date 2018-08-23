@@ -23,13 +23,6 @@ TOPICS = {
                         'process': 'apps.common.aggregate.arithmetic_mean'
                     },
                 },
-            },
-            'ground_air_temperature': {
-                'observation_providers': {
-                    'apps.processing.ala.models.Observation': {
-                        'process': 'apps.common.aggregate.arithmetic_mean',
-                    },
-                }
             }
         },
 

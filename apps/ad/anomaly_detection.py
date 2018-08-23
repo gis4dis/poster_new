@@ -5,12 +5,21 @@ from psycopg2.extras import DateTimeTZRange
 
 from luminol.anomaly_detector import AnomalyDetector
 import apps.common.lookups
+from apps.mc import settings_v2
 
-def get_timeseries(observed_property, observation_provider_model, feature_of_interest, phenomenon_time_range):
-    frequency = settings.APPLICATION_MC.PROPERTIES[observed_property.name_id]["value_frequency"]
+
+def get_timeseries(topic, observed_property, observation_provider_model, feature_of_interest, phenomenon_time_range):
+    topic_config = settings_v2.TOPICS[topic]
+    if not topic_config:
+        raise Exception
+
+    properties = topic_config['properties']
+
+    frequency = topic_config["value_frequency"]
+
     observation_provider_model_name = f"{observation_provider_model.__module__}.{observation_provider_model.__name__}"
     process = Process.objects.get(
-        name_id=settings.APPLICATION_MC.PROPERTIES[observed_property.name_id]['observation_providers'][observation_provider_model_name]["process"])
+        name_id=properties[observed_property.name_id]['observation_providers'][observation_provider_model_name]["process"])
     timezone = phenomenon_time_range.lower.tzinfo
 
     obss = observation_provider_model.objects.filter(
@@ -76,6 +85,7 @@ def get_timeseries(observed_property, observation_provider_model, feature_of_int
             'property_anomaly_rates': [0],
         }
 
+    print(obs_reduced)
     (anomalyScore, anomalyPeriod) = anomaly_detect(obs_reduced)
 
     dt = result_time_range.upper - result_time_range.lower

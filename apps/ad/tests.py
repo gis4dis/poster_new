@@ -42,14 +42,15 @@ last_output_observation_time_range = DateTimeTZRange(
 
 
 def get_time_series_test(
-        stationName,
+        station_name,
         time_range,
         observed_property="air_temperature",
         observation_provider_model=Observation):
 
-    station = SamplingFeature.objects.get(name=stationName)
+    station = SamplingFeature.objects.get(name=station_name)
     prop = Property.objects.get(name_id=observed_property)
     return get_timeseries(
+        topic='drought',
         observed_property=prop,
         observation_provider_model=observation_provider_model,
         feature_of_interest=station,
@@ -190,6 +191,7 @@ class TimeSeriesTestCase(TestCase):
 
     def test_property_not_exists(self):
         ts = get_timeseries(
+            topic='drought',
             observed_property=Property.objects.get(name_id='ground_air_temperature'),
             observation_provider_model=Observation,
             feature_of_interest=SamplingFeature.objects.get(name='Brno'),
