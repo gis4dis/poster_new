@@ -8,7 +8,7 @@ app_name = 'api-mc'
 
 # Create a router and register our viewsets with it.
 router = DefaultRouter()
-router.register(r'properties', PropertyViewSet)
+router.register(r'properties', PropertyViewSet, base_name='properties')
 router.register(r'topics', TopicViewSet)
 router.register(r'timeseries', TimeSeriesViewSet, base_name='timeseries')
 

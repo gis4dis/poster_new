@@ -1,5 +1,5 @@
 from apps.utils.obj import *
-from apps.common.models import Property, Process, Topic
+from apps.common.models import Property, Process
 
 props_def = [
     ('precipitation', {

@@ -1,4 +1,4 @@
-from .models import Property, Process
+from .models import Property, Process, Topic
 from django.contrib import admin
 
 
@@ -25,5 +25,11 @@ class ProcessAdmin(admin.ModelAdmin):
     )
 
 
+class TopicAdmin(admin.ModelAdmin):
+    readonly_fields = (
+        'name_id',
+     )
+
 admin.site.register(Property, PropertyAdmin)
 admin.site.register(Process, ProcessAdmin)
+admin.site.register(Topic, TopicAdmin)

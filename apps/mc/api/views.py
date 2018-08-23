@@ -121,18 +121,28 @@ def validate_time_series_feature(item, time_series_from, time_series_to, value_f
                 "Error: feature.property_values.length + feature.value_index_shift > (phenomenon_time_to::seconds - phenomenon_time_from::seconds) / value_frequency")
 
 
+class PropertyViewSet(viewsets.ViewSet):
 
-class PropertyViewSet(viewsets.ReadOnlyModelViewSet):
-    #prop_names = settings.APPLICATION_MC.PROPERTIES.keys()
-    #prop_names = settings.APPLICATION_MC.TOPICS.drought
-    prop_names = settings_v2.TOPICS['drought']['properties'].keys()
-    queryset = Property.objects.filter(name_id__in=prop_names)
-    serializer_class = PropertySerializer
+    def list(self, request):
+        if 'topic' in request.GET:
+            topic_param = request.GET['topic']
+            topic = settings.APPLICATION_MC.TOPICS.get(topic_param)
+
+            if topic:
+                prop_names = list(topic['properties'].keys())
+            else:
+                prop_names = []
+
+            queryset = Property.objects.filter(name_id__in=prop_names)
+            serializer = PropertySerializer(queryset, many=True)
+            return Response(serializer.data)
+        else:
+            raise APIException("Parameter topic is required")
 
 
 class TopicViewSet(viewsets.ReadOnlyModelViewSet):
-    prop_names = settings_v2.TOPICS.keys()
-    queryset = Topic.objects.filter(name_id__in=prop_names)
+    topics = settings.APPLICATION_MC.TOPICS.keys()
+    queryset = Topic.objects.filter(name_id__in=list(topics))
     serializer_class = TopicSerializer
 
 
@@ -252,13 +262,3 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
         results = TimeSeriesSerializer(response_data).data
         return Response(results)
-
-
-class PropertyViewSet(viewsets.ReadOnlyModelViewSet):
-    #prop_names = settings.APPLICATION_MC.PROPERTIES.keys()
-    prop_names = settings_v2.TOPICS['drought']['properties'].keys()
-    queryset = Property.objects.filter(name_id__in=prop_names)
-    serializer_class = PropertySerializer
-
-
-
