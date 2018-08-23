@@ -13,11 +13,11 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='observation',
             name='created_at',
-            field=models.DateTimeField(auto_now_add=True, null=False),
+            field=models.DateTimeField(auto_now_add=True, null=True),
         ),
         migrations.AlterField(
             model_name='observation',
             name='updated_at',
-            field=models.DateTimeField(auto_now=True, null=False),
+            field=models.DateTimeField(auto_now=True, null=True),
         )
     ]
