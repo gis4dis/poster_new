@@ -239,18 +239,16 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
         #TODO VYMYSLET PREDELANI NA FOR CYCLE
 
-        prop_config = topic_config['properties'][name_id]
-
         if not (name_id in properties):
             raise APIException("name_id not found in config")
 
-        config_prop = properties[name_id]
-        config_observation_providers = config_prop['observation_providers']
-
-
+        time_series_list = []
+        phenomenon_time_from = None
+        phenomenon_time_to = None
+        value_frequency = topic_config['value_frequency']
 
         for key in model_props:
-            time_series_list = []
+
             provider_module, provider_model, error_message = import_models(key)
             if error_message:
                 raise APIException("Importing error - %s : %s" % (key, error_message))
@@ -266,42 +264,59 @@ class TimeSeriesViewSet(viewsets.ViewSet):
             else:
                 all_features = feature_of_interest_model.objects.all()
 
-            phenomenon_time_from = None
-            phenomenon_time_to = None
-            value_frequency = None
-
             observation_provider_model_name = f"{provider_model.__module__}.{provider_model.__name__}"
-
-            frequency = topic_config['value_frequency']
 
             for item in all_features:
                 metadata = {}
 
+                f_phenomenon_time_from = None
+                f_phenomenon_time_to = None
 
+                for prop in model_props[key]:
+                    prop_config = topic_config['properties'][prop]
 
-                process = Process.objects.get(
-                    name_id=prop_config['observation_providers'][
-                        observation_provider_model_name]["process"])
+                    process = Process.objects.get(
+                        name_id=prop_config['observation_providers'][
+                            observation_provider_model_name]["process"])
 
-                ts = get_timeseries(
-                    observed_property=Property.objects.get(name_id=name_id),
-                    observation_provider_model=provider_model,
-                    feature_of_interest=item,
-                    phenomenon_time_range=pt_range,
-                    process=process,
-                    frequency=frequency
-                )
+                    ts = get_timeseries(
+                        observed_property=Property.objects.get(name_id=prop),
+                        observation_provider_model=provider_model,
+                        feature_of_interest=item,
+                        phenomenon_time_range=pt_range,
+                        process=process,
+                        frequency=value_frequency
+                    )
 
-                if ts['phenomenon_time_range'].lower is not None:
-                    if not phenomenon_time_from or phenomenon_time_from > ts['phenomenon_time_range'].lower:
-                        phenomenon_time_from = ts['phenomenon_time_range'].lower
+                    if ts['phenomenon_time_range'].lower is not None:
+                        if not phenomenon_time_from or phenomenon_time_from > ts['phenomenon_time_range'].lower:
+                            phenomenon_time_from = ts['phenomenon_time_range'].lower
 
-                if ts['phenomenon_time_range'].upper is not None:
-                    if not phenomenon_time_to or phenomenon_time_to > ts['phenomenon_time_range'].upper:
-                        phenomenon_time_to = ts['phenomenon_time_range'].upper
+                    if ts['phenomenon_time_range'].upper is not None:
+                        if not phenomenon_time_to or phenomenon_time_to > ts['phenomenon_time_range'].upper:
+                            phenomenon_time_to = ts['phenomenon_time_range'].upper
 
-                if not value_frequency:
-                    value_frequency = ts['value_frequency']
+                    if ts['phenomenon_time_range'].lower is not None:
+                        if not f_phenomenon_time_from or f_phenomenon_time_from > ts['phenomenon_time_range'].lower:
+                            f_phenomenon_time_from = ts['phenomenon_time_range'].lower
+
+                    if ts['phenomenon_time_range'].upper is not None:
+                        if not f_phenomenon_time_to or f_phenomenon_time_to > ts['phenomenon_time_range'].upper:
+                            f_phenomenon_time_to = ts['phenomenon_time_range'].upper
+
+                    if not value_frequency:
+                        value_frequency = ts['value_frequency']
+
+                    feature_prop_dict = {
+                        'values': ts['property_values'],
+                        'anomaly_rates': ts['property_anomaly_rates'],
+                        'phenomenon_time_from': ts['phenomenon_time_range'].lower,
+                        'phenomenon_time_to': ts['phenomenon_time_range'].upper,
+                        'value_index_shift': 'TODO'
+                    }
+
+                    metadata[prop] = feature_prop_dict
+
 
                 feature_id = path[0] +\
                              "." +\
@@ -309,51 +324,38 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                              ":" +\
                              str(item.id_by_provider)
 
-                feature_prop_dict = {
-                        'values': ts['property_values'],
-                        'anomaly_rates': ts['property_anomaly_rates'],
-                        'value_index_shift': 'TODO'
-                }
-
-                metadata[name_id] = feature_prop_dict
-
                 f = TimeSeriesFeature(
                     id=feature_id,
                     id_by_provider=item.id_by_provider,
                     name=item.name,
                     geometry=item.geometry,
-                    #property_values=ts['property_values'],
-                    #property_anomaly_rates=ts['property_anomaly_rates'],
-                    #value_index_shift=None,
-                    phenomenon_time_from=ts['phenomenon_time_range'].lower,
-                    phenomenon_time_to=ts['phenomenon_time_range'].upper,
+                    phenomenon_time_from=f_phenomenon_time_from,
+                    phenomenon_time_to=f_phenomenon_time_to,
                     metadata=metadata
+                    #phenomenon_time_from=ts['phenomenon_time_range'].lower,
+                    #phenomenon_time_to=ts['phenomenon_time_range'].upper,
                 )
                 time_series_list.append(f)
 
-            for item in time_series_list:
-                if phenomenon_time_from and item.phenomenon_time_from:
-                    diff = phenomenon_time_from - item.phenomenon_time_from
-                    value_index_shift = round(abs(diff.total_seconds()) / value_frequency)
-                    item.value_index_shift = value_index_shift
-
-
+        for item in time_series_list:
+            if phenomenon_time_from and item.phenomenon_time_from:
+                diff = phenomenon_time_from - item.phenomenon_time_from
+                value_index_shift = round(abs(diff.total_seconds()) / value_frequency)
+                item.value_index_shift = value_index_shift
                 #TODO
                 print('TODO')
                 print('TODO')
                 print('TODO')
                 print('TODO')
                 print('TODO')
-                #validate_time_series_feature(item, phenomenon_time_from, phenomenon_time_to, value_frequency)
+            #validate_time_series_feature(item, phenomenon_time_from, phenomenon_time_to, value_frequency)
 
-            response_data = {
-                'phenomenon_time_from': phenomenon_time_from,
-                'phenomenon_time_to': phenomenon_time_to,
-                'value_frequency': value_frequency,
-                'feature_collection': time_series_list
-            }
-
-            break
+        response_data = {
+            'phenomenon_time_from': phenomenon_time_from,
+            'phenomenon_time_to': phenomenon_time_to,
+            'value_frequency': value_frequency,
+            'feature_collection': time_series_list
+        }
 
         results = TimeSeriesSerializer(response_data).data
         return Response(results)
