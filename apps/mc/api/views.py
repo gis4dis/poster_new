@@ -11,8 +11,11 @@ from rest_framework.response import Response
 
 from apps.ad.anomaly_detection import get_timeseries
 from apps.common.models import Property
-from apps.mc.api.serializers import PropertySerializer, TimeSeriesSerializer
+from apps.common.models import Topic
+from apps.mc.api.serializers import PropertySerializer, TimeSeriesSerializer, TopicSerializer
 from apps.mc.models import TimeSeriesFeature
+
+from apps.mc import settings_v2
 
 
 def import_models(path):
@@ -123,6 +126,12 @@ class PropertyViewSet(viewsets.ReadOnlyModelViewSet):
     prop_names = settings.APPLICATION_MC.PROPERTIES.keys()
     queryset = Property.objects.filter(name_id__in=prop_names)
     serializer_class = PropertySerializer
+
+
+class TopicViewSet(viewsets.ReadOnlyModelViewSet):
+    prop_names = settings_v2.TOPICS.keys()
+    queryset = Topic.objects.filter(name_id__in=prop_names)
+    serializer_class = TopicSerializer
 
 
 #TODO otestovat vice provideru v ramci jedne charakteristiky v configu

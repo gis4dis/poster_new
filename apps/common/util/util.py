@@ -1,5 +1,5 @@
 from apps.utils.obj import *
-from apps.common.models import Property, Process
+from apps.common.models import Property, Process, Topic
 
 props_def = [
     ('precipitation', {
@@ -117,6 +117,11 @@ processes_def = [
 ]
 
 
+topics_def = [
+    ('drought', {'name': u'drought'})
+]
+
+
 def get_or_create_props():
     for prop in props_def:
         if 'default_mean' in prop[1]:
@@ -133,3 +138,7 @@ def get_or_create_props():
 
 def get_or_create_processes():
     return get_or_create_objs(Process, processes_def, 'name_id')
+
+
+def get_or_create_topics():
+    return get_or_create_objs(Topic, topics_def, 'name_id')

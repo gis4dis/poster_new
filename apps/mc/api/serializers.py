@@ -10,6 +10,12 @@ class PropertySerializer(serializers.ModelSerializer):
         fields = ('name_id', 'name', 'unit')
 
 
+class TopicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Property
+        fields = ('name_id', 'name')
+
+
 class TimeSeriesFeatureSerializer(GeoFeatureModelSerializer):
     class Meta:
         model = TimeSeriesFeature

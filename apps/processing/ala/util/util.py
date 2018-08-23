@@ -12,7 +12,7 @@ from django.contrib.gis.geos import GEOSGeometry
 from django.db.utils import IntegrityError
 
 from apps.processing.ala.models import SamplingFeature, Observation
-from apps.common.util.util import get_or_create_processes, get_or_create_props
+from apps.common.util.util import get_or_create_processes, get_or_create_props, get_or_create_topics
 from apps.common.models import Process, Property
 from apps.utils.obj import *
 from apps.utils.time import UTC_P0100
@@ -119,6 +119,7 @@ def load(station, day):
 
     logger.info('Downloading {}'.format(url))
     props = get_or_create_props()
+    topics = get_or_create_topics()
 
     with closing(requests.get(url, stream=True)) as r:
         reader = csv.reader(codecs.iterdecode(r.iter_lines(), 'utf-8'),

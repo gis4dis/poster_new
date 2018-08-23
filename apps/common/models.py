@@ -5,6 +5,28 @@ from django.contrib.postgres import fields as pgmodels
 from apps.utils.time import format_delta
 
 
+class Topic(models.Model):
+    """Process used to generate the result, e.g. measurement or
+    hourly average."""
+    name_id = models.CharField(
+        help_text="Unique and computer-friendly name of the topic. eg. ('drought')",
+        max_length=100,
+        unique=True,
+        editable=False
+    )
+    name = models.CharField(
+        help_text="Human-readable name of the topic.",
+        max_length=50
+    )
+
+    class Meta:
+        ordering = ['name']
+        verbose_name_plural = "topics"
+
+    def __str__(self):
+        return self.name
+
+
 class Process(models.Model):
     """Process used to generate the result, e.g. measurement or
     hourly average."""
@@ -54,6 +76,15 @@ class Property(models.Model):
         help_text="Process aggregation used to calculate the result.",
         related_name="%(app_label)s_%(class)s_related",
         editable=False,
+        on_delete=models.DO_NOTHING,
+    )
+
+    topic = models.ForeignKey(
+        Topic,
+        null=True,
+        help_text="Property topic",
+        related_name="%(app_label)s_%(class)s_related",
+        editable=True,
         on_delete=models.DO_NOTHING,
     )
 
