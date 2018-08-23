@@ -8,18 +8,14 @@ import apps.common.lookups
 from apps.mc import settings_v2
 
 
-def get_timeseries(topic, observed_property, observation_provider_model, feature_of_interest, phenomenon_time_range):
-    topic_config = settings_v2.TOPICS[topic]
-    if not topic_config:
-        raise Exception
+def get_timeseries(
+        observed_property,
+        observation_provider_model,
+        feature_of_interest,
+        phenomenon_time_range,
+        process,
+        frequency):
 
-    properties = topic_config['properties']
-
-    frequency = topic_config["value_frequency"]
-
-    observation_provider_model_name = f"{observation_provider_model.__module__}.{observation_provider_model.__name__}"
-    process = Process.objects.get(
-        name_id=properties[observed_property.name_id]['observation_providers'][observation_provider_model_name]["process"])
     timezone = phenomenon_time_range.lower.tzinfo
 
     obss = observation_provider_model.objects.filter(
@@ -106,6 +102,7 @@ def get_timeseries(topic, observed_property, observation_provider_model, feature
         'property_anomaly_rates': anomalyScore,
     }
 
+
 def anomaly_detect(observations, detector_method='bitmap_detector'):
     time_period = None
 
@@ -120,3 +117,6 @@ def anomaly_detect(observations, detector_method='bitmap_detector'):
     score = my_detector.get_all_scores()
 
     return (list(score.itervalues()), time_period)
+
+
+

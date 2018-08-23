@@ -79,15 +79,6 @@ class Property(models.Model):
         on_delete=models.DO_NOTHING,
     )
 
-    topic = models.ForeignKey(
-        Topic,
-        null=True,
-        help_text="Property topic",
-        related_name="%(app_label)s_%(class)s_related",
-        editable=True,
-        on_delete=models.DO_NOTHING,
-    )
-
     class Meta:
         ordering = ['name']
         verbose_name_plural = "properties"
