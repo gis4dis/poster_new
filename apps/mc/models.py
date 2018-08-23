@@ -6,6 +6,12 @@ from django.contrib.postgres.fields import ArrayField
 
 
 class TimeSeriesFeature(models.Model):
+    feature_id = models.CharField(
+        help_text="ID of the feature - path_to_feature_of_interest_django_model + : + id_by_provider",
+        max_length=100,
+        editable=False
+    )
+
     id_by_provider = models.CharField(
         help_text="ID of the station used by provider.",
         max_length=50,

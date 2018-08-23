@@ -14,10 +14,11 @@ class TimeSeriesFeatureSerializer(GeoFeatureModelSerializer):
     class Meta:
         model = TimeSeriesFeature
         geo_field = "geometry"
-        id_field = "id_by_provider"
+        id_field = "feature_id"
         fields = (
             'id',
             'id_by_provider',
+            'feature_id',
             'name',
             'value_index_shift',
             'property_values',

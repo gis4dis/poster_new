@@ -201,8 +201,15 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                 if not value_frequency:
                     value_frequency = ts['value_frequency']
 
+                feature_id = path[0] +\
+                             "." +\
+                             feature_of_interest_model.__name__ +\
+                             ":" +\
+                             str(item.id_by_provider)
+
                 f = TimeSeriesFeature(
                     id=item.id,
+                    feature_id=feature_id,
                     id_by_provider=item.id_by_provider,
                     name=item.name,
                     geometry=item.geometry,
