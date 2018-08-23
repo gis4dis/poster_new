@@ -16,20 +16,6 @@ class TopicSerializer(serializers.ModelSerializer):
         fields = ('name_id', 'name')
 
 
-class TimeSeriesFeatureSerializerOld(GeoFeatureModelSerializer):
-    class Meta:
-        model = TimeSeriesFeature
-        geo_field = "geometry"
-        id_field = "id"
-        fields = (
-            'id',
-            'id_by_provider',
-            'name',
-            'value_index_shift',
-            'property_values',
-            'property_anomaly_rates'
-        )
-
 class TimeSeriesFeatureSerializer(GeoFeatureModelSerializer):
     class Meta:
         model = TimeSeriesFeature
@@ -38,13 +24,12 @@ class TimeSeriesFeatureSerializer(GeoFeatureModelSerializer):
         fields = '__all__'
 
     def get_properties(self, instance, fields):
-        # This is a PostgreSQL HStore field, which django maps to a dict
-        return instance.metadata
+        return instance.content
 
     def unformat_geojson(self, feature):
         attrs = {
             self.Meta.geo_field: feature["geometry"],
-            "metadata": feature["properties"]
+            "content": feature["properties"]
         }
 
         return attrs

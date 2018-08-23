@@ -158,7 +158,7 @@ class TopicViewSet(viewsets.ReadOnlyModelViewSet):
 # http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27&bbox=1826997.8501,6306589.8927,1846565.7293,6521189.3651
 # http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27
 
-# http://localhost:8000/api/v1/timeseries?topic=drought&properties=air_temperature,ground_air_temperature&name_id=air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27
+# http://localhost:8000/api/v1/timeseries?topic=drought&properties=air_temperature,ground_air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27
 class TimeSeriesViewSet(viewsets.ViewSet):
 
     def list(self, request):
@@ -167,15 +167,10 @@ class TimeSeriesViewSet(viewsets.ViewSet):
         else:
             raise APIException('Parameter topic is required')
 
-        '''
-        if 'name_id' in request.GET:
-            name_id = request.GET['name_id']
-        else:
-            raise APIException("Parameter name_id is required")
-        '''
         #TODO
-        #properties, (optional), comma - separated string of name_ids of selected properties
-        #if not set, all properties of the topic will be considered
+        print('TODO implementace nacteni properties z topicu')
+        print('TODO validate neexistujici props,...')
+        print('validace oproti DB')
 
         if 'properties' in request.GET:
             properties_string = request.GET['properties']
@@ -183,10 +178,6 @@ class TimeSeriesViewSet(viewsets.ViewSet):
             raise APIException("Parameter properties is required")
 
         param_properties = parse_properties(properties_string)
-        print('PROPERTIES: ', param_properties)
-
-        name_id = 'air_temperature'
-
 
         if 'phenomenon_date_from' in request.GET:
             phenomenon_date_from = request.GET['phenomenon_date_from']
@@ -205,15 +196,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
             bbox = request.GET['bbox']
             geom_bbox = parse_bbox(bbox)
 
-        #properties = settings.APPLICATION_MC.PROPERTIES
-        #properties = settings_v2.TOPICS['drought']['properties']
-
         topic_config = settings.APPLICATION_MC.TOPICS.get(topic)
-
-        '''
-        TODO
-        todo ziskat nejaky config, kde pro jednotlive modely stanic bude seznam merenych vlastnosti - otocit konfik
-        '''
 
         model_props = {}
 
@@ -233,14 +216,6 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                         model_props[provider] = [prop]
         else:
             raise APIException('Topic in configuration not found.')
-
-        print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
-        print(model_props)
-
-        #TODO VYMYSLET PREDELANI NA FOR CYCLE
-
-        if not (name_id in properties):
-            raise APIException("name_id not found in config")
 
         time_series_list = []
         phenomenon_time_from = None
@@ -267,7 +242,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
             observation_provider_model_name = f"{provider_model.__module__}.{provider_model.__name__}"
 
             for item in all_features:
-                metadata = {}
+                content = {}
 
                 f_phenomenon_time_from = None
                 f_phenomenon_time_to = None
@@ -315,8 +290,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                         'value_index_shift': 'TODO'
                     }
 
-                    metadata[prop] = feature_prop_dict
-
+                    content[prop] = feature_prop_dict
 
                 feature_id = path[0] +\
                              "." +\
@@ -329,26 +303,37 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                     id_by_provider=item.id_by_provider,
                     name=item.name,
                     geometry=item.geometry,
-                    phenomenon_time_from=f_phenomenon_time_from,
-                    phenomenon_time_to=f_phenomenon_time_to,
-                    metadata=metadata
-                    #phenomenon_time_from=ts['phenomenon_time_range'].lower,
-                    #phenomenon_time_to=ts['phenomenon_time_range'].upper,
+                    content=content
                 )
                 time_series_list.append(f)
 
         for item in time_series_list:
-            if phenomenon_time_from and item.phenomenon_time_from:
-                diff = phenomenon_time_from - item.phenomenon_time_from
-                value_index_shift = round(abs(diff.total_seconds()) / value_frequency)
-                item.value_index_shift = value_index_shift
+            if phenomenon_time_from:
+
+                for item_prop in item.content:
+                    item_prop_from = item.content[item_prop]['phenomenon_time_from']
+
+                    if phenomenon_time_from and item_prop_from:
+                        diff = phenomenon_time_from - item_prop_from
+                        value_index_shift = round(abs(diff.total_seconds()) / value_frequency)
+                        item.content[item_prop]['value_index_shift'] = value_index_shift
+                    else:
+                        item.content[item_prop]['value_index_shift'] = None
+
+                    try:
+                        del item.content[item_prop]['phenomenon_time_from']
+                    except KeyError:
+                        pass
+
+                    try:
+                        del item.content[item_prop]['phenomenon_time_to']
+                    except KeyError:
+                        pass
+
+
                 #TODO
-                print('TODO')
-                print('TODO')
-                print('TODO')
-                print('TODO')
-                print('TODO')
-            #validate_time_series_feature(item, phenomenon_time_from, phenomenon_time_to, value_frequency)
+                print('TODO validation')
+                #validate_time_series_feature(item, phenomenon_time_from, phenomenon_time_to, value_frequency)
 
         response_data = {
             'phenomenon_time_from': phenomenon_time_from,
