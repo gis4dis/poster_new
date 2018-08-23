@@ -26,7 +26,7 @@ processes_def = [
     ('measure', {'name': u'measuring'})
 ]
 
-basedir_def = '/pmo/'
+basedir_def = '/import/apps.processing.pmo/'
 
 
 def get_or_create_props():
