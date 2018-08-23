@@ -209,7 +209,6 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
                 f = TimeSeriesFeature(
                     id=feature_id,
-                    feature_id=feature_id,
                     id_by_provider=item.id_by_provider,
                     name=item.name,
                     geometry=item.geometry,
