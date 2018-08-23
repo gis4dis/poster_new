@@ -208,7 +208,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                              str(item.id_by_provider)
 
                 f = TimeSeriesFeature(
-                    id=item.id,
+                    id=feature_id,
                     feature_id=feature_id,
                     id_by_provider=item.id_by_provider,
                     name=item.name,
