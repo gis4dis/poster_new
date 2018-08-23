@@ -6,6 +6,7 @@ from psycopg2.extras import DateTimeTZRange
 from datetime import timedelta, datetime
 from apps.ad.anomaly_detection import get_timeseries
 from apps.utils.time import UTC_P0100
+from django.conf import settings
 
 time_range_boundary = '[)'
 time_from = datetime(2018, 6, 15, 00, 00, 00)
@@ -47,14 +48,24 @@ def get_time_series_test(
         observed_property="air_temperature",
         observation_provider_model=Observation):
 
+    topic_config = settings.APPLICATION_MC.TOPICS['drought']
+    observation_provider_model_name = f"{observation_provider_model.__module__}.{observation_provider_model.__name__}"
+    prop_config = topic_config['properties'][observed_property]
+    process = Process.objects.get(
+            name_id=prop_config['observation_providers'][
+                observation_provider_model_name]["process"])
+    frequency = topic_config['value_frequency']
+
     station = SamplingFeature.objects.get(name=station_name)
     prop = Property.objects.get(name_id=observed_property)
+
     return get_timeseries(
-        topic='drought',
         observed_property=prop,
         observation_provider_model=observation_provider_model,
         feature_of_interest=station,
-        phenomenon_time_range=time_range
+        phenomenon_time_range=time_range,
+        process=process,
+        frequency=frequency
     )
 
 
@@ -190,12 +201,14 @@ class TimeSeriesTestCase(TestCase):
         self.assertEqual(ts['property_values'], [1.000, 1000.000, 1.500])
 
     def test_property_not_exists(self):
+        proccess = Process.objects.get(name_id='apps.common.aggregate.arithmetic_mean')
         ts = get_timeseries(
-            topic='drought',
             observed_property=Property.objects.get(name_id='ground_air_temperature'),
             observation_provider_model=Observation,
             feature_of_interest=SamplingFeature.objects.get(name='Brno'),
-            phenomenon_time_range=date_time_range
+            phenomenon_time_range=date_time_range,
+            process=proccess,
+            frequency=3600
         )
         self.assertIsNone(ts['phenomenon_time_range'].lower)
         self.assertIsNone(ts['phenomenon_time_range'].upper)

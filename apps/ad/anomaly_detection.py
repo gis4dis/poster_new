@@ -81,7 +81,6 @@ def get_timeseries(
             'property_anomaly_rates': [0],
         }
 
-    print(obs_reduced)
     (anomalyScore, anomalyPeriod) = anomaly_detect(obs_reduced)
 
     dt = result_time_range.upper - result_time_range.lower
