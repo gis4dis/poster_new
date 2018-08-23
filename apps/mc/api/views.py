@@ -10,7 +10,7 @@ from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 
 from apps.ad.anomaly_detection import get_timeseries
-from apps.common.models import Property
+from apps.common.models import Property, Process
 from apps.common.models import Topic
 from apps.mc.api.serializers import PropertySerializer, TimeSeriesSerializer, TopicSerializer
 from apps.mc.models import TimeSeriesFeature
@@ -76,6 +76,11 @@ def validate_bbox_values(bbox_array):
         raise APIException("BBOX miny is not < maxy")
 
 
+def parse_properties(properties_string):
+    properties_parts = properties_string.rsplit(',')
+    return properties_parts
+
+
 def parse_bbox(bbox_string):
     bbox_parts = bbox_string.rsplit(',')
 
@@ -121,6 +126,7 @@ def validate_time_series_feature(item, time_series_from, time_series_to, value_f
                 "Error: feature.property_values.length + feature.value_index_shift > (phenomenon_time_to::seconds - phenomenon_time_from::seconds) / value_frequency")
 
 
+
 class PropertyViewSet(viewsets.ViewSet):
 
     def list(self, request):
@@ -152,13 +158,35 @@ class TopicViewSet(viewsets.ReadOnlyModelViewSet):
 # http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27&bbox=1826997.8501,6306589.8927,1846565.7293,6521189.3651
 # http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27
 
+# http://localhost:8000/api/v1/timeseries?topic=drought&properties=air_temperature,ground_air_temperature&name_id=air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27
 class TimeSeriesViewSet(viewsets.ViewSet):
 
     def list(self, request):
+        if 'topic' in request.GET:
+            topic = request.GET['topic']
+        else:
+            raise APIException('Parameter topic is required')
+
+        '''
         if 'name_id' in request.GET:
             name_id = request.GET['name_id']
         else:
             raise APIException("Parameter name_id is required")
+        '''
+        #TODO
+        #properties, (optional), comma - separated string of name_ids of selected properties
+        #if not set, all properties of the topic will be considered
+
+        if 'properties' in request.GET:
+            properties_string = request.GET['properties']
+        else:
+            raise APIException("Parameter properties is required")
+
+        param_properties = parse_properties(properties_string)
+        print('PROPERTIES: ', param_properties)
+
+        name_id = 'air_temperature'
+
 
         if 'phenomenon_date_from' in request.GET:
             phenomenon_date_from = request.GET['phenomenon_date_from']
@@ -178,7 +206,40 @@ class TimeSeriesViewSet(viewsets.ViewSet):
             geom_bbox = parse_bbox(bbox)
 
         #properties = settings.APPLICATION_MC.PROPERTIES
-        properties = settings_v2.TOPICS['drought']['properties']
+        #properties = settings_v2.TOPICS['drought']['properties']
+
+        topic_config = settings.APPLICATION_MC.TOPICS.get(topic)
+
+        '''
+        TODO
+        todo ziskat nejaky config, kde pro jednotlive modely stanic bude seznam merenych vlastnosti - otocit konfik
+        '''
+
+        model_props = {}
+
+        if topic_config:
+            properties = topic_config['properties']
+            for prop in param_properties:
+                prop_config = properties.get(prop)
+                if not prop_config:
+                    raise APIException('Property: ' + prop + ' does not exist in config')
+
+                op = prop_config['observation_providers']
+
+                for provider in op:
+                    if provider in model_props:
+                        model_props[provider].append(prop)
+                    else:
+                        model_props[provider] = [prop]
+        else:
+            raise APIException('Topic in configuration not found.')
+
+        print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
+        print(model_props)
+
+        #TODO VYMYSLET PREDELANI NA FOR CYCLE
+
+        prop_config = topic_config['properties'][name_id]
 
         if not (name_id in properties):
             raise APIException("name_id not found in config")
@@ -186,7 +247,9 @@ class TimeSeriesViewSet(viewsets.ViewSet):
         config_prop = properties[name_id]
         config_observation_providers = config_prop['observation_providers']
 
-        for key in config_observation_providers:
+
+
+        for key in model_props:
             time_series_list = []
             provider_module, provider_model, error_message = import_models(key)
             if error_message:
@@ -207,13 +270,27 @@ class TimeSeriesViewSet(viewsets.ViewSet):
             phenomenon_time_to = None
             value_frequency = None
 
+            observation_provider_model_name = f"{provider_model.__module__}.{provider_model.__name__}"
+
+            frequency = topic_config['value_frequency']
+
             for item in all_features:
+                metadata = {}
+
+
+
+                process = Process.objects.get(
+                    name_id=prop_config['observation_providers'][
+                        observation_provider_model_name]["process"])
+
                 ts = get_timeseries(
-                    topic='drought',
                     observed_property=Property.objects.get(name_id=name_id),
                     observation_provider_model=provider_model,
                     feature_of_interest=item,
-                    phenomenon_time_range=pt_range)
+                    phenomenon_time_range=pt_range,
+                    process=process,
+                    frequency=frequency
+                )
 
                 if ts['phenomenon_time_range'].lower is not None:
                     if not phenomenon_time_from or phenomenon_time_from > ts['phenomenon_time_range'].lower:
@@ -232,16 +309,25 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                              ":" +\
                              str(item.id_by_provider)
 
+                feature_prop_dict = {
+                        'values': ts['property_values'],
+                        'anomaly_rates': ts['property_anomaly_rates'],
+                        'value_index_shift': 'TODO'
+                }
+
+                metadata[name_id] = feature_prop_dict
+
                 f = TimeSeriesFeature(
                     id=feature_id,
                     id_by_provider=item.id_by_provider,
                     name=item.name,
                     geometry=item.geometry,
-                    property_values=ts['property_values'],
-                    property_anomaly_rates=ts['property_anomaly_rates'],
-                    value_index_shift=None,
+                    #property_values=ts['property_values'],
+                    #property_anomaly_rates=ts['property_anomaly_rates'],
+                    #value_index_shift=None,
                     phenomenon_time_from=ts['phenomenon_time_range'].lower,
-                    phenomenon_time_to=ts['phenomenon_time_range'].upper
+                    phenomenon_time_to=ts['phenomenon_time_range'].upper,
+                    metadata=metadata
                 )
                 time_series_list.append(f)
 
@@ -251,7 +337,14 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                     value_index_shift = round(abs(diff.total_seconds()) / value_frequency)
                     item.value_index_shift = value_index_shift
 
-                validate_time_series_feature(item, phenomenon_time_from, phenomenon_time_to, value_frequency)
+
+                #TODO
+                print('TODO')
+                print('TODO')
+                print('TODO')
+                print('TODO')
+                print('TODO')
+                #validate_time_series_feature(item, phenomenon_time_from, phenomenon_time_to, value_frequency)
 
             response_data = {
                 'phenomenon_time_from': phenomenon_time_from,
@@ -259,6 +352,8 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                 'value_frequency': value_frequency,
                 'feature_collection': time_series_list
             }
+
+            break
 
         results = TimeSeriesSerializer(response_data).data
         return Response(results)

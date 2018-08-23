@@ -2,7 +2,7 @@
 # from django.utils.timezone import localtime
 from django.contrib.gis.db import models
 from django.db.models.fields import DecimalField
-from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.fields import ArrayField, HStoreField
 
 
 class TimeSeriesFeature(models.Model):
@@ -28,6 +28,8 @@ class TimeSeriesFeature(models.Model):
     phenomenon_time_from = models.DateTimeField()
     phenomenon_time_to = models.DateTimeField()
     value_index_shift = models.IntegerField()
+
+    metadata = HStoreField(blank=True, null=True, default=dict)
 
     class Meta:
         managed = False
