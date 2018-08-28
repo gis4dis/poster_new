@@ -38,43 +38,49 @@ class Command(BaseCommand):
         
         day_from = day_from.astimezone(UTC_P0100) 
         day_to = day_to.astimezone(UTC_P0100)
+        import_number_of_events(day_from, day_to)
 
-        whole_extent = EventExtent.objects.get(name_id="brno_brno_venkov_d1")
-        whole_extent_units = whole_extent.admin_units.all()
+def import_number_of_events(day_from, day_to):
+    if type(day_from) is date and type(day_to) is date:
+        day_from = datetime.combine(day_from, datetime.min.time())
+        day_to = datetime.combine(day_to, datetime.min.time())
         
-        custom_categories = CategoryCustomGroup.objects.all()
+    whole_extent = EventExtent.objects.get(name_id="brno_brno_venkov_d1")
+    whole_extent_units = whole_extent.admin_units.all()
+    
+    custom_categories = CategoryCustomGroup.objects.all()
 
-        get_or_create_props()
-        observed_property = Property.objects.get(name_id="number_of_emerged_events")
-        procedure = Process.objects.get(name_id="observation")
-        
-        time_from = day_from
-        time_to = time_from + timedelta(hours=1)
-        dt_range = DateTimeTZRange(time_from, time_to)
+    # get_or_create_props()
+    observed_property = Property.objects.get(name_id="number_of_emerged_events")
+    procedure = Process.objects.get(name_id="observation")
+    
+    time_from = day_from
+    time_to = time_from + timedelta(hours=1)
+    dt_range = DateTimeTZRange(time_from, time_to)
 
-        while(time_to <= day_to):
-            for category in custom_categories:
-                for admin_unit in whole_extent_units:
-                    admin_geom = admin_unit.geometry
-                    
-                    number_events = NumberOfEventsObservation.objects.update_or_create(
-                                    phenomenon_time_range= dt_range,
-                                    observed_property=observed_property,
-                                    feature_of_interest=admin_unit,
-                                    procedure=procedure,
-                                    category_custom_group=category,
-                                )[0]
-                    
-                    events = EventObservation.objects.filter(
-                        phenomenon_time_range__startswith__range=(time_from, time_to),
-                        point_geometry__intersects=admin_geom,
-                        category__custom_group=category
-                        )
-                            
-                    number_events.result = len(events)
-                    number_events.save()
+    while(time_to <= day_to):
+        for category in custom_categories:
+            for admin_unit in whole_extent_units:
+                admin_geom = admin_unit.geometry
+                
+                number_events = NumberOfEventsObservation.objects.update_or_create(
+                                phenomenon_time_range= dt_range,
+                                observed_property=observed_property,
+                                feature_of_interest=admin_unit,
+                                procedure=procedure,
+                                category_custom_group=category,
+                            )[0]
+                
+                events = EventObservation.objects.filter(
+                    phenomenon_time_range__startswith__range=(time_from, time_to),
+                    point_geometry__intersects=admin_geom,
+                    category__custom_group=category
+                    )
+                        
+                number_events.result = len(events)
+                number_events.save()
 
-            print('Time {} {}'.format(time_from, time_to))
-            time_from = time_from + timedelta(hours=1)
-            time_to = time_to + timedelta(hours=1)
-            dt_range = DateTimeTZRange(time_from, time_to)   
+        print('Time {} {}'.format(time_from, time_to))
+        time_from = time_from + timedelta(hours=1)
+        time_to = time_to + timedelta(hours=1)
+        dt_range = DateTimeTZRange(time_from, time_to)   
