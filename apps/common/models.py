@@ -12,7 +12,6 @@ class Topic(models.Model):
         help_text="Unique and computer-friendly name of the topic. eg. ('drought')",
         max_length=100,
         unique=True,
-        editable=False
     )
     name = models.CharField(
         help_text="Human-readable name of the topic.",

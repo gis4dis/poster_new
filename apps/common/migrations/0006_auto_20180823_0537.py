@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
             name='Topic',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name_id', models.CharField(editable=False, help_text="Unique and computer-friendly name of the topic. eg. ('drought')", max_length=100, unique=True)),
+                ('name_id', models.CharField(help_text="Unique and computer-friendly name of the topic. eg. ('drought')", max_length=100, unique=True)),
                 ('name', models.CharField(help_text='Human-readable name of the topic.', max_length=50)),
             ],
             options={

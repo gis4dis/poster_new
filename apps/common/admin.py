@@ -26,9 +26,7 @@ class ProcessAdmin(admin.ModelAdmin):
 
 
 class TopicAdmin(admin.ModelAdmin):
-    readonly_fields = (
-        'name_id',
-     )
+    pass
 
 admin.site.register(Property, PropertyAdmin)
 admin.site.register(Process, ProcessAdmin)
