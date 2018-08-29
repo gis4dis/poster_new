@@ -182,7 +182,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                 if not properties.get(prop):
                     raise APIException('Property: ' + prop + ' does not exist in config')
         else:
-            param_properties = properties
+            param_properties = properties.keys()
 
         if 'phenomenon_date_from' in request.GET:
             phenomenon_date_from = request.GET['phenomenon_date_from']
@@ -336,7 +336,8 @@ class TimeSeriesViewSet(viewsets.ViewSet):
             'phenomenon_time_from': phenomenon_time_from,
             'phenomenon_time_to': phenomenon_time_to,
             'value_frequency': value_frequency,
-            'feature_collection': time_series_list
+            'feature_collection': time_series_list,
+            'properties': param_properties
         }
 
         results = TimeSeriesSerializer(response_data).data

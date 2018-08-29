@@ -2,7 +2,7 @@
 # from django.utils.timezone import localtime
 from django.contrib.gis.db import models
 from django.db.models.fields import DecimalField
-from django.contrib.postgres.fields import ArrayField, HStoreField
+from django.contrib.postgres.fields import HStoreField
 
 
 class TimeSeriesFeature(models.Model):
