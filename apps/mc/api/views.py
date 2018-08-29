@@ -100,39 +100,13 @@ def parse_bbox(bbox_string):
     return geom_bbox
 
 
-def validate_time_series_feature(item, time_series_from, time_series_to, value_frequency):
-    if time_series_from and time_series_to:
-        time_series_from_s = int(round(time_series_from.timestamp() * 1000))
-        time_series_to_s = int(round(time_series_to.timestamp() * 1000))
-
-        if len(item.property_values) != len(item.property_anomaly_rates):
-            raise APIException(
-                "Error: feature.property_values.length !== feature.property_anomaly_rates.length")
-
-        if time_series_from_s % value_frequency != 0:
-            raise APIException(
-                "Error: OUT.phenomenon_time_from::seconds % OUT.value_frequency !== 0")
-
-        if (time_series_to_s - time_series_from_s) % value_frequency != 0:
-            raise APIException(
-                "Error: (OUT.phenomenon_time_to::seconds - OUT.phenomenon_time_from::seconds) % OUT.value_frequency != 0")
-
-        values_max_count = (time_series_to - time_series_from).total_seconds() / value_frequency
-
-        if (len(item.property_values) + item.value_index_shift) > values_max_count:
-            raise APIException(
-                "Error: feature.property_values.length + feature.value_index_shift > (phenomenon_time_to::seconds - phenomenon_time_from::seconds) / value_frequency")
-
-
-
 class PropertyViewSet(viewsets.ViewSet):
-
     def list(self, request):
         if 'topic' in request.GET:
             topic_param = request.GET['topic']
             topic = settings.APPLICATION_MC.TOPICS.get(topic_param)
 
-            if topic:
+            if topic and Topic.objects.filter(name_id=topic_param).exists():
                 prop_names = list(topic['properties'].keys())
             else:
                 prop_names = []
@@ -150,13 +124,9 @@ class TopicViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = TopicSerializer
 
 
-#TODO otestovat vice provideru v ramci jedne charakteristiky v configu
-# http://localhost:8000/api/v1/timeseries?name_id=water_level&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27&bbox=1826997.8501,6306589.8927,1846565.7293,6521189.3651
-# http://localhost:8000/api/v1/timeseries?name_id=water_level&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27
-# http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2017-01-20&phenomenon_date_to=2017-01-27&bbox=1826997.8501,6306589.8927,1846565.7293,6521189.3651
-# http://localhost:8000/api/v1/timeseries?name_id=air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27
+# http://localhost:8000/api/v2/timeseries/?topic=drought&properties=air_temperature,ground_air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27&bbox=1826997.8501,6306589.8927,1846565.7293,6521189.3651
+# http://localhost:8000/api/v2/timeseries?topic=drought&properties=air_temperature,ground_air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27
 
-# http://localhost:8000/api/v1/timeseries?topic=drought&properties=air_temperature,ground_air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27
 class TimeSeriesViewSet(viewsets.ViewSet):
 
     def list(self, request):
@@ -166,13 +136,10 @@ class TimeSeriesViewSet(viewsets.ViewSet):
             raise APIException('Parameter topic is required')
 
         topic_config = settings.APPLICATION_MC.TOPICS.get(topic)
-        if not topic_config:
-            raise APIException('Topic in configuration not found.')
+        if not topic_config or not Topic.objects.filter(name_id=topic).exists():
+            raise APIException('Topic not found.')
 
         properties = topic_config['properties']
-
-        #TODO
-        print('validace parametru oproti DB')
 
         if 'properties' in request.GET:
             properties_string = request.GET['properties']
@@ -276,15 +243,12 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                         if not f_phenomenon_time_to or f_phenomenon_time_to > ts['phenomenon_time_range'].upper:
                             f_phenomenon_time_to = ts['phenomenon_time_range'].upper
 
-                    if not value_frequency:
-                        value_frequency = ts['value_frequency']
-
                     feature_prop_dict = {
                         'values': ts['property_values'],
                         'anomaly_rates': ts['property_anomaly_rates'],
                         'phenomenon_time_from': ts['phenomenon_time_range'].lower,
                         'phenomenon_time_to': ts['phenomenon_time_range'].upper,
-                        'value_index_shift': 'TODO'
+                        'value_index_shift': None
                     }
 
                     content[prop] = feature_prop_dict
@@ -306,7 +270,6 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
         for item in time_series_list:
             if phenomenon_time_from:
-
                 for item_prop in item.content:
                     item_prop_from = item.content[item_prop]['phenomenon_time_from']
 
@@ -326,11 +289,6 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                         del item.content[item_prop]['phenomenon_time_to']
                     except KeyError:
                         pass
-
-
-                #TODO
-                print('TODO validation')
-                #validate_time_series_feature(item, phenomenon_time_from, phenomenon_time_to, value_frequency)
 
         response_data = {
             'phenomenon_time_from': phenomenon_time_from,

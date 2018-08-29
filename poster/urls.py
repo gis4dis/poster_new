@@ -17,7 +17,7 @@ urlpatterns = []
 
 # ===== INCLUDE API PATTERNS =====
 urlpatterns += [
-    path('api/v1/', include(api_patterns)),
+    path('api/v2/', include(api_patterns)),
 ]
 
 # ===== INCLUDE STANDARD PATTERNS =====
