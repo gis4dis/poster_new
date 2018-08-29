@@ -15,8 +15,6 @@ from apps.common.models import Topic
 from apps.mc.api.serializers import PropertySerializer, TimeSeriesSerializer, TopicSerializer
 from apps.mc.models import TimeSeriesFeature
 
-from apps.mc import settings_v2
-
 
 def import_models(path):
     provider_module = None
@@ -167,17 +165,24 @@ class TimeSeriesViewSet(viewsets.ViewSet):
         else:
             raise APIException('Parameter topic is required')
 
+        topic_config = settings.APPLICATION_MC.TOPICS.get(topic)
+        if not topic_config:
+            raise APIException('Topic in configuration not found.')
+
+        properties = topic_config['properties']
+
         #TODO
-        print('TODO implementace nacteni properties z topicu')
-        print('TODO validate neexistujici props,...')
-        print('validace oproti DB')
+        print('validace parametru oproti DB')
 
         if 'properties' in request.GET:
             properties_string = request.GET['properties']
-        else:
-            raise APIException("Parameter properties is required")
+            param_properties = parse_properties(properties_string)
 
-        param_properties = parse_properties(properties_string)
+            for prop in param_properties:
+                if not properties.get(prop):
+                    raise APIException('Property: ' + prop + ' does not exist in config')
+        else:
+            param_properties = properties
 
         if 'phenomenon_date_from' in request.GET:
             phenomenon_date_from = request.GET['phenomenon_date_from']
@@ -196,17 +201,11 @@ class TimeSeriesViewSet(viewsets.ViewSet):
             bbox = request.GET['bbox']
             geom_bbox = parse_bbox(bbox)
 
-        topic_config = settings.APPLICATION_MC.TOPICS.get(topic)
-
         model_props = {}
 
         if topic_config:
-            properties = topic_config['properties']
             for prop in param_properties:
                 prop_config = properties.get(prop)
-                if not prop_config:
-                    raise APIException('Property: ' + prop + ' does not exist in config')
-
                 op = prop_config['observation_providers']
 
                 for provider in op:
@@ -214,21 +213,19 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                         model_props[provider].append(prop)
                     else:
                         model_props[provider] = [prop]
-        else:
-            raise APIException('Topic in configuration not found.')
 
         time_series_list = []
         phenomenon_time_from = None
         phenomenon_time_to = None
         value_frequency = topic_config['value_frequency']
 
-        for key in model_props:
+        for model in model_props:
 
-            provider_module, provider_model, error_message = import_models(key)
+            provider_module, provider_model, error_message = import_models(model)
             if error_message:
-                raise APIException("Importing error - %s : %s" % (key, error_message))
+                raise APIException("Importing error - %s : %s" % (model, error_message))
 
-            path = key.rsplit('.', 1)
+            path = model.rsplit('.', 1)
             provider_module = import_module(path[0])
             provider_model = getattr(provider_module, path[1])
 
@@ -247,7 +244,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                 f_phenomenon_time_from = None
                 f_phenomenon_time_to = None
 
-                for prop in model_props[key]:
+                for prop in model_props[model]:
                     prop_config = topic_config['properties'][prop]
 
                     process = Process.objects.get(
