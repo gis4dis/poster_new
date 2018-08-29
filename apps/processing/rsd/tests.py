@@ -32,8 +32,8 @@ def import_events_test():
 class ImportEventsTestCase(TestCase):
     def setUp(self):
 
-        import_towns('shapefiles/rsd/obce_4326.shp')
-        import_towns('shapefiles/rsd/momc_4326.shp')
+        import_towns('shapefiles/rsd/obce_4326_vyber.shp')
+        import_towns('shapefiles/rsd/momc_4326_vyber.shp')
 
         process = Process.objects.create(
             name_id='observation',
@@ -104,6 +104,7 @@ class ImportEventsTestCase(TestCase):
         self.assertEqual(imported_time, expected_time)
 
     def test_number_of_events(self):
+        # check import number of events
         custom_401 = CategoryCustomGroup.objects.create(
             name_id='cat_401',
             name='dopravni uzavirky',
@@ -120,10 +121,31 @@ class ImportEventsTestCase(TestCase):
 
         cat_401.update(custom_group=custom_401)
         cat_704.update(custom_group=custom_704)
-        
+
+        day_from = datetime(2018, 3, 25, 0, 0, tzinfo=pytz.utc)
+        day_to = datetime(2018, 3, 26, 0, 0, tzinfo=pytz.utc)
+
         import_number_of_events(day_from, day_to)
 
         self.assertEqual(
             NumberOfEventsObservation.objects.count(),
             96
+        )
+
+        NumberOfEventsObservations = []
+        for event in NumberOfEventsObservation.objects.all().iterator():
+            if(event.result > 0):
+                NumberOfEventsObservations.append(event)
+
+        time_from = datetime(2018, 3, 25, 21, 0, tzinfo=pytz.utc)
+        time_to = datetime(2018, 3, 25, 22, 0, tzinfo=pytz.utc)
+
+        self.assertEqual(
+            NumberOfEventsObservations[0].phenomenon_time_range,
+            DateTimeTZRange(time_from, time_to)
+        )
+
+        self.assertEqual(
+            NumberOfEventsObservations[0].category_custom_group,
+            custom_401
         )

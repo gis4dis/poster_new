@@ -44,7 +44,9 @@ def import_number_of_events(day_from, day_to):
     if type(day_from) is date and type(day_to) is date:
         day_from = datetime.combine(day_from, datetime.min.time())
         day_to = datetime.combine(day_to, datetime.min.time())
-        
+        day_from = day_from.replace(tzinfo=UTC_P0100) 
+        day_to = day_to.replace(tzinfo=UTC_P0100)
+    
     whole_extent = EventExtent.objects.get(name_id="brno_brno_venkov_d1")
     whole_extent_units = whole_extent.admin_units.all()
     
@@ -76,7 +78,7 @@ def import_number_of_events(day_from, day_to):
                     point_geometry__intersects=admin_geom,
                     category__custom_group=category
                     )
-                        
+                
                 number_events.result = len(events)
                 number_events.save()
 
