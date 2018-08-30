@@ -32,8 +32,8 @@ def import_events_test():
 class ImportEventsTestCase(TestCase):
     def setUp(self):
 
-        import_towns('shapefiles/rsd/obce_4326_vyber.shp')
-        import_towns('shapefiles/rsd/momc_4326_vyber.shp')
+        import_towns('test/apps.processing.rsd/obce_4326_vyber.shp')
+        import_towns('test/apps.processing.rsd/momc_4326_vyber.shp')
 
         process = Process.objects.create(
             name_id='observation',
