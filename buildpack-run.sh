@@ -5,4 +5,4 @@ cd modules/mc-client
 pwd
 ls -la
 
-curl -L https://github.com/gis4dis/mc-client/releases/download/v1.6/release.tar.gz | tar xvz
+curl -L https://github.com/gis4dis/mc-client/releases/download/v1.7/release.tar.gz | tar xvz
