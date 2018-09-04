@@ -86,6 +86,43 @@ class EventCategory(models.Model):
         verbose_name_plural = "Event categories"
 
 
+class Street(AbstractFeature):
+    id_by_provider = models.CharField(
+        help_text="ID of the street used by provider.",
+        max_length=50,
+        editable=False,
+        unique=True
+    )
+    geometry = models.MultiLineStringField(
+        help_text="Spatial information about feature.",
+        srid=3857,
+        null=True
+    )
+
+class Road(AbstractFeature):
+    id_by_provider = None
+
+    geometry = models.MultiLineStringField(
+        help_text="Spatial information about feature.",
+        srid=3857,
+        null=True
+    )
+
+    road_number = models.CharField(
+        help_text="Road number.",
+        max_length=50,
+        editable=False,
+    )
+
+    road_class = models.CharField(
+        help_text="Road class.",
+        max_length=50,
+        editable=False,
+    )
+    
+    class Meta:
+        unique_together = (('road_number','road_class'),)
+
 class EventObservation(AbstractObservation):
     """The observed event"""
     feature_of_interest = models.ForeignKey(
@@ -123,6 +160,12 @@ class EventObservation(AbstractObservation):
         help_text="Reference to original provider log",
         related_name="rsd_event_observation",
         on_delete=models.DO_NOTHING,
+    )
+    street = models.ManyToManyField(
+        Street, related_name='rsd_streets'
+    )
+    road = models.ManyToManyField(
+        Road, related_name='rsd_streets'
     )
 
     class Meta:
