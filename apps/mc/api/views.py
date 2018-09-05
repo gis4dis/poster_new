@@ -148,8 +148,21 @@ class TimeSeriesViewSet(viewsets.ViewSet):
             for prop in param_properties:
                 if not properties.get(prop):
                     raise APIException('Property: ' + prop + ' does not exist in config')
+
+                try:
+                    Property.objects.get(name_id=prop)
+                except Property.DoesNotExist:
+                    raise APIException('Property from config not found.')
+
         else:
             param_properties = properties.keys()
+            db_filtered_props = []
+            for prop in param_properties:
+                try:
+                    Property.objects.get(name_id=prop)
+                    db_filtered_props.append(prop)
+                except Property.DoesNotExist:
+                    raise APIException('Config has property not present in datbaase.')
 
         if 'phenomenon_date_from' in request.GET:
             phenomenon_date_from = request.GET['phenomenon_date_from']
@@ -208,18 +221,27 @@ class TimeSeriesViewSet(viewsets.ViewSet):
             for item in all_features:
                 content = {}
 
+                hasValues = False
+
                 f_phenomenon_time_from = None
                 f_phenomenon_time_to = None
 
                 for prop in model_props[model]:
                     prop_config = topic_config['properties'][prop]
 
-                    process = Process.objects.get(
-                        name_id=prop_config['observation_providers'][
-                            observation_provider_model_name]["process"])
+                    try:
+                        process = Process.objects.get(
+                            name_id=prop_config['observation_providers'][observation_provider_model_name]["process"])
+                    except Process.DoesNotExist:
+                        process = None
+
+                    if not process:
+                        raise APIException('Process from config not found.')
+
+                    prop_item = Property.objects.get(name_id=prop)
 
                     ts = get_timeseries(
-                        observed_property=Property.objects.get(name_id=prop),
+                        observed_property=prop_item,
                         observation_provider_model=provider_model,
                         feature_of_interest=item,
                         phenomenon_time_range=pt_range,
@@ -253,20 +275,24 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
                     content[prop] = feature_prop_dict
 
+                    if len(ts['property_values']) > 0:
+                        hasValues = True
+
                 feature_id = path[0] +\
                              "." +\
                              feature_of_interest_model.__name__ +\
                              ":" +\
                              str(item.id_by_provider)
 
-                f = TimeSeriesFeature(
-                    id=feature_id,
-                    id_by_provider=item.id_by_provider,
-                    name=item.name,
-                    geometry=item.geometry,
-                    content=content
-                )
-                time_series_list.append(f)
+                if hasValues:
+                    f = TimeSeriesFeature(
+                        id=feature_id,
+                        id_by_provider=item.id_by_provider,
+                        name=item.name,
+                        geometry=item.geometry,
+                        content=content
+                    )
+                    time_series_list.append(f)
 
         for item in time_series_list:
             if phenomenon_time_from:
@@ -289,6 +315,9 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                         del item.content[item_prop]['phenomenon_time_to']
                     except KeyError:
                         pass
+
+        if len(time_series_list) == 0:
+            value_frequency = None
 
         response_data = {
             'phenomenon_time_from': phenomenon_time_from,

@@ -3,8 +3,9 @@ from django.contrib.gis.geos import GEOSGeometry
 from apps.common.models import Process
 from psycopg2.extras import DateTimeTZRange
 from datetime import timedelta, datetime
+from django.conf import settings
 
-from apps.common.models import Property
+from apps.common.models import Property, Topic
 from apps.ad.anomaly_detection import get_timeseries
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -17,23 +18,26 @@ NAME_ID = 'name_id=air_temperature'
 DATE_FROM = '&phenomenon_date_from=2018-06-15'
 DATE_TO = '&phenomenon_date_to=2018-06-15'
 
-URL_TIMESERIES = '/api/v1/timeseries/?' + NAME_ID + DATE_FROM + DATE_TO
+TOPIC_NAME = 'drought'
+TOPIC_NAME_NOT_EXISTS = 'xxxx'
+
+URL_TIMESERIES = '/api/v2/timeseries/?topic=' + TOPIC_NAME + DATE_FROM + DATE_TO
+URL_TIMESERIES_TOPIC_NOT_EXISTS = '/api/v2/timeseries/?topic=' + TOPIC_NAME_NOT_EXISTS + DATE_FROM + DATE_TO
 
 DATE_FROM_ERROR = '&phenomenon_date_from=00000-06-15'
 DATE_TO_ERROR = '&phenomenon_date_to=XXX'
-URL_TIMESERIES_WRONG_DATE_FROM = '/api/v1/timeseries/?' + NAME_ID + DATE_FROM_ERROR + DATE_TO
-URL_TIMESERIES_WRONG_DATE_TO = '/api/v1/timeseries/?' + NAME_ID + DATE_FROM + DATE_TO_ERROR
-
-NAME_ID_NOT_EXISTS = 'name_id=xxxx'
-URL_TIMESERIES_NAME_ID_NOT_EXISTS = '/api/v1/timeseries/?' + NAME_ID_NOT_EXISTS + DATE_FROM + \
-                                    DATE_TO
+URL_TIMESERIES_WRONG_DATE_FROM =  URL_TIMESERIES + DATE_FROM_ERROR + DATE_TO
+URL_TIMESERIES_WRONG_DATE_TO = URL_TIMESERIES + DATE_FROM + DATE_TO_ERROR
+URL_TIMESERIES_INTERVAL_NO_VALUES =  '/api/v2/timeseries/?topic=' + TOPIC_NAME + '&phenomenon_date_from=2000-06-15' + '&phenomenon_date_to=2000-06-15'
 
 URL_TIMESERIES_BBOX = URL_TIMESERIES + '&bbox=1826997.8501,6306589.8927,1856565.7293,6521189.3651'
 URL_TIMESERIES_BBOX_NO_DATA = URL_TIMESERIES + '&bbox=1826997.8501,6306589.8927,1836565.7293,6521189.3651'
 URL_TIMESERIES_BBOX_WRONG_VALUES = URL_TIMESERIES + '&bbox=1856997.8501,6306589.8927,1836565.7293,6521189.3651'
 URL_TIMESERIES_BBOX_MISSING_VALUES = URL_TIMESERIES + '&bbox=1856997.8501,6306589.8927,1836565.7293'
 
-URL_PROPERTIES = '/api/v1/properties/'
+URL_PROPERTIES = '/api/v2/properties/?topic=' + TOPIC_NAME
+URL_TOPICS = '/api/v2/topics/'
+
 
 STATION_PROPS = {
     '11359201': {
@@ -78,17 +82,27 @@ def get_time_series_test():
     station = SamplingFeature.objects.get(name="Brno")
     prop = Property.objects.get(name_id='air_temperature')
     time_range = date_time_range
+    topic_config = settings.APPLICATION_MC.TOPICS.get(TOPIC_NAME)
+    process = Process.objects.get(name_id="apps.common.aggregate.arithmetic_mean")
+    value_frequency = topic_config['value_frequency']
 
     return get_timeseries(
         observed_property=prop,
         observation_provider_model=Observation,
         feature_of_interest=station,
-        phenomenon_time_range=time_range
+        phenomenon_time_range=time_range,
+        process = process,
+        frequency = value_frequency
     )
 
 
 class RestApiTestCase(APITestCase):
     def setUp(self):
+
+        topic = Topic.objects.create(
+            name_id='drought',
+            name='drought'
+        )
 
         am_process = Process.objects.create(
             name_id='apps.common.aggregate.arithmetic_mean',
@@ -109,9 +123,9 @@ class RestApiTestCase(APITestCase):
         )
 
         Property.objects.create(
-            name_id='water_level',
-            name='water level',
-            unit='cm',
+            name_id='ground_air_temperature',
+            name='ground_air_temperature',
+            unit='°C',
             default_mean=am_process
         )
 
@@ -215,11 +229,22 @@ class RestApiTestCase(APITestCase):
         response = self.client.get(URL_PROPERTIES)
         expected_response = [
             {"name_id": "air_temperature", "name": "air temperature", "unit": "°C" },
-            {"name_id": "water_level", "name": "water level", "unit": "cm"}
+            {"name_id": "ground_air_temperature", "name": "ground_air_temperature", "unit": "°C"}
         ]
         self.assertEquals(response.data, expected_response)
 
-    def test_timeseries_response_status(self) :
+    def test_topics_response_status(self):
+        response = self.client.get(URL_TOPICS)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_topics_response_content(self):
+        response = self.client.get(URL_TOPICS)
+        expected_response = [
+            {"name_id": "drought", "name": "drought"}
+        ]
+        self.assertEquals(response.data, expected_response)
+
+    def test_timeseries_response_status(self):
         response = self.client.get(URL_TIMESERIES)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -228,12 +253,15 @@ class RestApiTestCase(APITestCase):
         data = response.data
         fc = data['feature_collection']
         features = fc['features']
+        props = data['properties']
 
         for f in features:
             properties = f.get('properties', None)
-            property_values = properties.get('property_values', None)
-            property_anomaly_rates = properties.get('property_anomaly_rates', None)
-            self.assertEquals(len(property_values), len(property_anomaly_rates))
+            for p in props:
+                property = properties.get(p, None)
+                property_values = property.get('values', None)
+                property_anomaly_rates = property.get('anomaly_rates', None)
+                self.assertEquals(len(property_values), len(property_anomaly_rates))
 
     def test_timeseries_feature_output(self):
         response = self.client.get(URL_TIMESERIES, format='json')
@@ -242,8 +270,11 @@ class RestApiTestCase(APITestCase):
         features = fc['features']
 
         for f in features:
-            properties = f.get('properties', None)
-            id_by_provider = properties.get('id_by_provider', None)
+            props = f.get('properties', None)
+            for p in props:
+                self.assertIsNotNone(props.get(p, None))
+            id = f.get('id', None)
+            id_by_provider = id.split(':')[-1]
 
             geom = f.get('geometry', None)
             coordinates = geom.get('coordinates', None)
@@ -288,6 +319,13 @@ class RestApiTestCase(APITestCase):
         self.assertEquals(phenomenon_time_from, None)
         self.assertEquals(phenomenon_time_to, None)
 
+    def test_timeseries_interval_no_data(self):
+        response = self.client.get(URL_TIMESERIES_INTERVAL_NO_VALUES, format='json')
+        data = response.data
+        fc = data['feature_collection']
+        features = fc['features']
+        self.assertEquals(len(features), 0)
+
     def test_timeseries_bbox_wrong_params(self):
         response = self.client.get(URL_TIMESERIES_BBOX_WRONG_VALUES, format='json')
         self.assertEquals(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -304,6 +342,6 @@ class RestApiTestCase(APITestCase):
         response = self.client.get(URL_TIMESERIES_WRONG_DATE_TO, format='json')
         self.assertEquals(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def test_timeseries_phenomenon_name_id_not_exists(self):
-        response = self.client.get(URL_TIMESERIES_NAME_ID_NOT_EXISTS, format='json')
+    def test_timeseries_topic_not_exists(self):
+        response = self.client.get(URL_TIMESERIES_TOPIC_NOT_EXISTS, format='json')
         self.assertEquals(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
