@@ -1,11 +1,7 @@
-from django.conf import settings
-from apps.common.models import Process
 from datetime import datetime
 from psycopg2.extras import DateTimeTZRange
 
 from luminol.anomaly_detector import AnomalyDetector
-import apps.common.lookups
-from apps.mc import settings_v2
 
 
 def get_timeseries(
