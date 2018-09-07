@@ -1,7 +1,7 @@
 from django.db import models
 from apps.importing.models import ProviderLog
 from apps.common.models import Property, Process
-from apps.processing.rsd.models import EventExtent, AdminUnit, EventObservation, EventCategory
+from apps.processing.rsd.models import EventExtent, AdminUnit, EventObservation, EventCategory, Street, Road
 from apps.processing.rsd.management.commands.import_categories import parse_date
 from django.core.management.base import BaseCommand
 import xml.etree.ElementTree as ET
@@ -25,7 +25,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         
-        # EventObservation.objects.all().delete()
+        EventObservation.objects.all().delete()
 
         arg_from = options['date_from']
         arg_to = options['date_to']
@@ -57,7 +57,6 @@ def import_events(provider_logs, day_from, day_to):
     # extent of d1, brno, brno venkov admin units
     whole_extent = get_special_extent()
     whole_extent_units = list(whole_extent.admin_units.all())
-    
     # get IDs to prevent duplicates
     ids= []
     for event in EventObservation.objects.iterator():
@@ -82,7 +81,9 @@ def import_events(provider_logs, day_from, day_to):
                 continue
         
             ids.append(id_by_provider)
-            
+
+            roads = []
+            streets = []
             for tag in msg.iter('DEST'):
                 road = tag.find('ROAD')
                 is_d1 = False
@@ -95,7 +96,25 @@ def import_events(provider_logs, day_from, day_to):
                     else:
                         code = tag.attrib['TownCode']
                     codes.append(code)
-                    
+
+                    for street_tag in tag.iter('STRE'):
+                        if 'StreetCode' in street_tag.attrib and 'StreetName' in street_tag.attrib:
+                            street = Street.objects.get_or_create(
+                                id_by_provider=street_tag.attrib['StreetCode'],
+                                name=street_tag.attrib['StreetName'],
+                                geometry=None
+                            )[0]
+                            streets.append(street)
+
+                    for road_tag in tag.iter('ROAD'):
+                        if 'RoadNumber' in road_tag.attrib and 'RoadClass' in road_tag.attrib:
+                            road = Road.objects.get_or_create(
+                                road_number=road_tag.attrib['RoadNumber'],
+                                road_class=road_tag.attrib['RoadClass'],
+                                geometry=None
+                            )[0]
+                            roads.append(road)
+
             if(len(codes) == 0):
                 continue
 
@@ -156,6 +175,11 @@ def import_events(provider_logs, day_from, day_to):
                     provider_log=provider_log,
                 )
                 observation.save()
+                for road in roads:
+                    observation.road.add(road)
+                for street in streets:
+                    observation.street.add(street)
+                observation.save()
                 new_observations.append(observation)
                 i += 1
                 print('Number of new events: {}'.format(i))
@@ -166,10 +190,5 @@ def import_events(provider_logs, day_from, day_to):
         
 
 def get_special_extent():
-    ext = EventExtent.objects.get(name_id="brno_brno_venkov_d1")
-    if ext:
-        return ext
-    else:
-        ext = EventExtent(name_id="brno_brno_venkov_d1")
-        ext.save()
-        return ext
+    ext = EventExtent.objects.get_or_create(name_id="brno_brno_venkov_d1")[0]
+    return ext
