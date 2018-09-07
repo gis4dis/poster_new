@@ -25,7 +25,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         
-        EventObservation.objects.all().delete()
+        # EventObservation.objects.all().delete()
 
         arg_from = options['date_from']
         arg_to = options['date_to']
