@@ -106,10 +106,10 @@ class PropertyViewSet(viewsets.ViewSet):
             topic_param = request.GET['topic']
             topic = settings.APPLICATION_MC.TOPICS.get(topic_param)
 
-            if topic and Topic.objects.filter(name_id=topic_param).exists():
-                prop_names = list(topic['properties'].keys())
-            else:
-                prop_names = []
+            if not topic or not Topic.objects.filter(name_id=topic_param).exists():
+                raise APIException('Topic not found.')
+
+            prop_names = list(topic['properties'].keys())
 
             queryset = Property.objects.filter(name_id__in=prop_names)
             serializer = PropertySerializer(queryset, many=True)
