@@ -3,6 +3,7 @@ from psycopg2.extras import DateTimeTZRange
 
 from luminol.anomaly_detector import AnomalyDetector
 
+import apps.common.lookups
 
 def get_timeseries(
         observed_property,
