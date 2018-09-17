@@ -101,6 +101,7 @@ class Street(AbstractFeature):
 
 class Road(AbstractFeature):
     id_by_provider = None
+    name = None
 
     geometry = models.MultiLineStringField(
         help_text="Spatial information about feature.",
