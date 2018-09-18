@@ -43,15 +43,6 @@ def generate_intervals(
     minutes_from = timeseries.range_from.minutes
     seconds_from = timeseries.range_from.seconds
 
-    '''
-    print('years_from: ', years_from)
-    print('months_from: ', months_from)
-    print('days_from: ', days_from)
-    print('hours_from: ', hours_from)
-    print('minutes_from: ', minutes_from)
-    print('seconds_from: ', seconds_from)
-    '''
-
     days_frequency = timeseries.frequency.days
     hours_frequency = timeseries.frequency.hours
     minutes_frequency = timeseries.frequency.minutes
@@ -62,32 +53,37 @@ def generate_intervals(
     total_seconds_frequency += minutes_frequency * intervals["minutes"]
     total_seconds_frequency += seconds_frequency * intervals["seconds"]
 
-    print('TOTAL_SECONDS: ', total_seconds_frequency)
-
     diff_until_from = (from_datetime - first_start.lower).total_seconds()
     diff_until_to = (to_datetime - first_start.lower).total_seconds()
 
     intervals_before_start = diff_until_from / total_seconds_frequency
     intervals_until_end = diff_until_to / total_seconds_frequency
-    intervals_until_end_modulo = diff_until_to % total_seconds_frequency
-
-    print('intervals_until_end_modulo: ', intervals_until_end_modulo)
-    print('intervals_before_start: ', intervals_before_start )
-    print('intervals_until_end: ', intervals_until_end)
 
     first_interval_counter = int(intervals_before_start)
     last_interval_counter = int(intervals_until_end) + 1
+
+    '''
+    intervals_until_end_modulo = diff_until_to % total_seconds_frequency
     if intervals_until_end_modulo > 0:
         last_interval_counter += 1
+    '''
 
     slots = []
-    for N in range(first_interval_counter, last_interval_counter):
-        slot = DateTimeTZRange(
-            lower=timeseries.zero + N * timeseries.frequency + timeseries.range_from,
-            upper=timeseries.zero + N * timeseries.frequency + timeseries.range_to)
-        print('--------------------------------------------')
-        print(slot)
-        slots.append(slot)
+
+    if (first_interval_counter < 0) and (last_interval_counter > 0):
+        first_interval_counter = 0
+
+    print('first_interval_counter: ', first_interval_counter )
+    print('last_interval_counter: ', last_interval_counter)
+
+    if (first_interval_counter >= 0) and (last_interval_counter > first_interval_counter):
+        for N in range(first_interval_counter, last_interval_counter):
+            slot = DateTimeTZRange(
+                lower=timeseries.zero + N * timeseries.frequency + timeseries.range_from,
+                upper=timeseries.zero + N * timeseries.frequency + timeseries.range_to)
+            print('--------------------------------------------')
+            print(slot)
+            slots.append(slot)
 
     return slots
 
@@ -113,33 +109,175 @@ class TimeSeriesTestCase(TestCase):
             range_to=relativedelta(hours=2)
         )
 
-        zero_2 = datetime(2018, 1, 1, 0, 00, 00)
-        zero_2 = zero_2.replace(tzinfo=UTC_P0100)
+        default_zero = datetime(2000, 1, 1, 0, 00, 00)
+        default_zero = default_zero.replace(tzinfo=UTC_P0100)
 
-        zero_2_add_5 = datetime(2018, 5, 5, 5, 00, 00)
-        zero_2_add_5 = zero_2_add_5.replace(tzinfo=UTC_P0100)
+        #1-hour slots every hour
+        t_1_hour_slots_every_hour = TimeSeries(
+            zero=default_zero,
+            frequency=relativedelta(hours=1),
+            range_from=relativedelta(hours=0),
+            range_to=relativedelta(hours=1)
+        )
 
-        zero_2_add_10 = datetime(2018, 5, 5, 10, 00, 00)
-        zero_2_add_10 = zero_2_add_10.replace(tzinfo=UTC_P0100)
+        '''
+        generate_intervals(
+            timeseries=t_1_hour_slots_every_hour,
+            from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            to_datetime=datetime(2000, 1, 4, 0, 00, 00).replace(tzinfo=UTC_P0100),
+        )
+        '''
 
-        t2 = TimeSeries(
-            zero=zero_2,
+        #2-hour slots every 2 hours
+        t_2_hour_slots_every_2_hours = TimeSeries(
+            zero=default_zero,
             frequency=relativedelta(hours=2),
             range_from=relativedelta(hours=0),
             range_to=relativedelta(hours=2)
         )
         '''
-        i = generate_intervals(
-            timeseries=t2,
-            from_datetime=zero_2,
-            to_datetime=zero_2_add_5
+        generate_intervals(
+            timeseries=t_2_hour_slots_every_2_hours,
+            from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            to_datetime=datetime(2000, 1, 4, 0, 00, 00).replace(tzinfo=UTC_P0100),
         )
         '''
 
+        #24-hour slots every hour
+        t_24_hour_slots_every_2_hours = TimeSeries(
+            zero=default_zero,
+            frequency=relativedelta(hours=1),
+            range_from=relativedelta(hours=12),
+            range_to=relativedelta(hours=1)
+        )
+
+        '''
+        generate_intervals(
+            timeseries=t_24_hour_slots_every_2_hours,
+            from_datetime=datetime(2000, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            to_datetime=datetime(2000, 1, 2, 0, 00, 00).replace(tzinfo=UTC_P0100),
+        )
+        '''
+
+        #1 - week slots every week starting on Monday
+        t_1_week_slots_every_week_starting_monday = TimeSeries(
+            zero=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            frequency=relativedelta(days=7),
+            range_from=relativedelta(hours=0),
+            range_to=relativedelta(days=7)
+        )
+
+        t2_1_week_slots_every_week_starting_monday = TimeSeries(
+            zero=datetime(2000, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            frequency=relativedelta(days=7),
+            range_from=relativedelta(days=2),
+            range_to=relativedelta(days=9)
+        )
+
+        t3_1_week_slots_every_week_starting_monday = TimeSeries(
+            zero=datetime(2000, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            frequency=relativedelta(days=7),
+            range_from=relativedelta(days=-5),
+            range_to=relativedelta(days=2)
+        )
+
+        '''
+        generate_intervals(
+            timeseries=t_1_week_slots_every_week_starting_monday,
+            from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            to_datetime=datetime(2000, 1, 31, 0, 00, 00).replace(tzinfo=UTC_P0100),
+        )
+
+        generate_intervals(
+            timeseries=t2_1_week_slots_every_week_starting_monday,
+            from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            to_datetime=datetime(2000, 1, 31, 0, 00, 00).replace(tzinfo=UTC_P0100),
+        )
+
+        generate_intervals(
+            timeseries=t3_1_week_slots_every_week_starting_monday,
+            from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            to_datetime=datetime(2000, 1, 31, 0, 00, 00).replace(tzinfo=UTC_P0100),
+        )
+        '''
+
+        #3 - hour slots every Wednesday from 8: 00 to 11: 00
+        t_3_hour_slots_wednesday_from_8_to_11 = TimeSeries(
+            zero=datetime(2000, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            frequency=relativedelta(days=7),
+            range_from=relativedelta(days=4, hours=8),
+            range_to=relativedelta(days=4, hours=11)
+        )
+        '''
+        generate_intervals(
+            timeseries=t_3_hour_slots_wednesday_from_8_to_11,
+            from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            to_datetime=datetime(2000, 1, 31, 0, 00, 00).replace(tzinfo=UTC_P0100),
+        )
+        '''
+
+        # 1-day slots every last day of week
+        t_1_day_slots_last_day_of_week = TimeSeries(
+            zero=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            frequency=relativedelta(weeks=1),
+            range_from=relativedelta(days=-1),
+            range_to=relativedelta(0)
+        )
+
+        '''
+        generate_intervals(
+            timeseries=t_1_day_slots_last_day_of_week,
+            from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            to_datetime=datetime(2000, 1, 31, 0, 00, 00).replace(tzinfo=UTC_P0100),
+        )
+        '''
+
+        #TODO
+        #1-day slots every last day of month
+        t_1_day_slots_last_day_of_month = TimeSeries(
+            zero=datetime(2000, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            frequency=relativedelta(months=7),
+            range_from=relativedelta(days=4, hours=8),
+            range_to=relativedelta(days=4, hours=11)
+        )
+
+        #TODO - MESICE A ROKY
+        #TODO - omezujici parametry
+        #TODO - pokryt to testy
+
+
+
+        t2 = TimeSeries(
+            zero=datetime(2018, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            frequency=relativedelta(hours=1),
+            range_from=relativedelta(hours=4),
+            range_to=relativedelta(hours=3)
+        )
+
+        t3 = TimeSeries(
+            zero=datetime(2018, 5, 5, 5, 00, 00).replace(tzinfo=UTC_P0100),
+            frequency=relativedelta(hours=2),
+            range_from=relativedelta(hours=2),
+            range_to=relativedelta(hours=2)
+        )
+
+
+
+        '''
         intervals = generate_intervals(
             timeseries=t2,
-            from_datetime=zero_2_add_5,
-            to_datetime=zero_2_add_10
+            from_datetime=datetime(2018, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            to_datetime=datetime(2018, 1, 1, 5, 00, 00).replace(tzinfo=UTC_P0100),
         )
+        '''
+
+        '''
+        intervals = generate_intervals(
+            timeseries=t2,
+            from_datetime=datetime(2018, 5, 5, 5, 00, 00).replace(tzinfo=UTC_P0100),
+            to_datetime=datetime(2018, 5, 5, 10, 00, 00).replace(tzinfo=UTC_P0100)
+        )
+        '''
+
 
         self.assertEqual(intervals, False)
