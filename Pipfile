@@ -45,5 +45,6 @@ django_celery_results = "==1.0.1"
 django-allauth = "*"
 django-sekizai = "*"
 django-widget-tweaks = "*"
+django-relativedelta = "*"
 
 [dev-packages]

@@ -3,6 +3,37 @@
 from django.contrib.gis.db import models
 from django.contrib.postgres import fields as pgmodels
 from apps.utils.time import format_delta
+import datetime
+from relativedeltafield import RelativeDeltaField
+from datetime import datetime
+from apps.utils.time import UTC_P0100
+from dateutil.relativedelta import relativedelta
+
+time_series_default_zero = datetime(2000, 1, 1, 1, 00, 00)
+time_series_default_zero = time_series_default_zero.replace(tzinfo=UTC_P0100)
+
+#TODO udelat omezeni na positive, negative interval
+# example? https://stackoverflow.com/questions/849142/how-to-limit-the-maximum-value-of-a-numeric-field-in-a-django-model
+class TimeSeries(models.Model):
+    zero = models.DateTimeField(
+        null=False,
+        default=time_series_default_zero
+    )
+
+    frequency = RelativeDeltaField(
+        null=False,
+        #default=relativedelta(hours=1)
+    )
+
+    range_from = RelativeDeltaField(
+        null=False,
+        #default=rd
+    )
+
+    range_to = RelativeDeltaField(
+        null=False,
+        #default=relativedelta(hours=1)
+    )
 
 
 class Topic(models.Model):
