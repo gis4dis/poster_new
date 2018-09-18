@@ -21,11 +21,6 @@ intervals = {
 }
 
 
-def createRange(timeseries, n):
-    return DateTimeTZRange(
-        lower=timeseries.zero + n * timeseries.frequency + timeseries.range_from,
-        upper=timeseries.zero + n * timeseries.frequency + timeseries.range_to)
-
 def generate_intervals(
     timeseries,         #: TimeSeries
     from_datetime,               #: datetime with timezone
@@ -67,16 +62,32 @@ def generate_intervals(
     if (first_interval_counter < 0) and (last_interval_counter > 0):
         first_interval_counter = 0
 
+    '''
+    range.lower < INPUT.to
+    range.upper > INPUT.from
+    range.lower >= INPUT.range_from_limit
+    range.upper < INPUT.range_to_limit
+    '''
+
     if (first_interval_counter >= 0) and (last_interval_counter > first_interval_counter):
         for N in range(first_interval_counter, last_interval_counter):
             slot = DateTimeTZRange(
                 lower=timeseries.zero + N * timeseries.frequency + timeseries.range_from,
                 upper=timeseries.zero + N * timeseries.frequency + timeseries.range_to)
             # Check if slot is after from_datetime
+            print('-------------check conditions-------------')
             if from_datetime <= slot.upper:
-                #print('--------------------------------------------')
-                #print(slot)
-                slots.append(slot)
+                condition = True
+                if range_from_limit and slot.lower < range_from_limit:
+                    condition = False
+
+                if range_to_limit and slot.upper >= range_to_limit:
+                    condition = False
+
+                if condition:
+                    print('--------------------------------------------')
+                    print(slot)
+                    slots.append(slot)
 
     return slots
 
@@ -359,6 +370,88 @@ class TimeSeriesTestCase(TestCase):
             DateTimeTZRange(
                 lower=datetime(2002, 1, 1, 0, 0).replace(tzinfo=UTC_P0100),
                 upper=datetime(2002, 1, 4, 3, 0).replace(tzinfo=UTC_P0100)
+            )
+        ]
+
+        self.assertEqual(expected_slots, result_slots)
+
+    def test_from_limit(self):
+        t = TimeSeries(
+            zero=default_zero,
+            frequency=relativedelta(hours=1),
+            range_from=relativedelta(hours=0),
+            range_to=relativedelta(hours=1)
+        )
+
+        result_slots = generate_intervals(
+            timeseries=t,
+            from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            to_datetime=datetime(2000, 1, 3, 2, 00, 00).replace(tzinfo=UTC_P0100),
+            range_from_limit=datetime(2000, 1, 3, 1, 00, 00).replace(tzinfo=UTC_P0100),
+            #range_to_limit
+        )
+
+        expected_slots = [
+            DateTimeTZRange(
+                lower=datetime(2000, 1, 3, 1, 0).replace(tzinfo=UTC_P0100),
+                upper=datetime(2000, 1, 3, 2, 0).replace(tzinfo=UTC_P0100)
+            ),
+            DateTimeTZRange(
+                lower=datetime(2000, 1, 3, 2, 0).replace(tzinfo=UTC_P0100),
+                upper=datetime(2000, 1, 3, 3, 0).replace(tzinfo=UTC_P0100)
+            )
+        ]
+
+        self.assertEqual(expected_slots, result_slots)
+
+    def test_to_limit(self):
+        t = TimeSeries(
+            zero=default_zero,
+            frequency=relativedelta(hours=1),
+            range_from=relativedelta(hours=0),
+            range_to=relativedelta(hours=1)
+        )
+
+        result_slots = generate_intervals(
+            timeseries=t,
+            from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            to_datetime=datetime(2000, 1, 3, 2, 00, 00).replace(tzinfo=UTC_P0100),
+            range_to_limit=datetime(2000, 1, 3, 3, 00, 00).replace(tzinfo=UTC_P0100)
+        )
+
+        expected_slots = [
+            DateTimeTZRange(
+                lower=datetime(2000, 1, 3, 0, 0).replace(tzinfo=UTC_P0100),
+                upper=datetime(2000, 1, 3, 1, 0).replace(tzinfo=UTC_P0100)
+            ),
+            DateTimeTZRange(
+                lower=datetime(2000, 1, 3, 1, 0).replace(tzinfo=UTC_P0100),
+                upper=datetime(2000, 1, 3, 2, 0).replace(tzinfo=UTC_P0100)
+            )
+        ]
+
+        self.assertEqual(expected_slots, result_slots)
+
+    def test_limits(self):
+        t = TimeSeries(
+            zero=default_zero,
+            frequency=relativedelta(hours=1),
+            range_from=relativedelta(hours=0),
+            range_to=relativedelta(hours=1)
+        )
+
+        result_slots = generate_intervals(
+            timeseries=t,
+            from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            to_datetime=datetime(2000, 1, 3, 2, 00, 00).replace(tzinfo=UTC_P0100),
+            range_from_limit=datetime(2000, 1, 3, 1, 00, 00).replace(tzinfo=UTC_P0100),
+            range_to_limit=datetime(2000, 1, 3, 3, 00, 00).replace(tzinfo=UTC_P0100)
+        )
+
+        expected_slots = [
+            DateTimeTZRange(
+                lower=datetime(2000, 1, 3, 1, 0).replace(tzinfo=UTC_P0100),
+                upper=datetime(2000, 1, 3, 2, 0).replace(tzinfo=UTC_P0100)
             )
         ]
 
