@@ -11,6 +11,24 @@ default_zero = datetime(2000, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100)
 
 
 class TimeSeriesTestCase(TestCase):
+    def test_param_exceptions(self):
+        t = TimeSeries(
+            zero=default_zero,
+            frequency=relativedelta(hours=1),
+            range_from=relativedelta(hours=0),
+            range_to=relativedelta(hours=1)
+        )
+        t.clean()
+
+        from_datetime = datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100)
+        to_datetime = datetime(2000, 1, 3, 2, 00, 00).replace(tzinfo=UTC_P0100)
+
+        self.assertRaises(Exception, generate_intervals, t, None, None)
+        self.assertRaises(Exception, generate_intervals, t, None, to_datetime)
+        self.assertRaises(Exception, generate_intervals, t, from_datetime, None)
+        self.assertRaises(Exception, generate_intervals,
+            t, from_datetime, to_datetime, to_datetime, from_datetime)
+
     def test_hour_slots_every_hour(self):
         t = TimeSeries(
             zero=default_zero,

@@ -1,6 +1,7 @@
 from apps.utils.obj import *
 from apps.common.models import Property, Process
 from psycopg2.extras import DateTimeTZRange
+from datetime import datetime
 
 props_def = [
     ('precipitation', {
@@ -146,7 +147,6 @@ intervals = {
 }
 
 
-# TODO validate params - return exceptions
 # TODO in case frequency is months or years => zero day <= 28
 def generate_intervals(
     timeseries,         #: TimeSeries
@@ -155,6 +155,24 @@ def generate_intervals(
     range_from_limit=None,   #: datetime with timezone, default=datetime.min UTC+01:00
     range_to_limit=None     #: datetime with timezone, default=datetime.max UTC+01:00
 ):
+    if not isinstance(from_datetime, datetime):
+        raise Exception('from_datetime must be type of datetime')
+
+    if not isinstance(to_datetime, datetime):
+        raise Exception('to_datetime must be type of datetime')
+
+    if range_from_limit and not isinstance(range_from_limit, datetime):
+        raise Exception('range_from_limit must be type of datetime')
+
+    if range_to_limit and not isinstance(range_to_limit, datetime):
+        raise Exception('range_to_limit must be type of datetime')
+
+    if from_datetime >= to_datetime:
+        raise Exception('to_datetime must be after from_datetime')
+
+    if range_to_limit and range_from_limit and range_from_limit >= range_to_limit:
+        raise Exception('range_to_limit must be after range_from_limit')
+
     first_start = DateTimeTZRange(
         lower=timeseries.zero + 0 * timeseries.frequency + timeseries.range_from,
         upper=timeseries.zero + 0 * timeseries.frequency + timeseries.range_to)
