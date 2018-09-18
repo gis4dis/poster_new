@@ -1,118 +1,16 @@
 from django.test import TestCase
 from dateutil import relativedelta
-from relativedeltafield import RelativeDeltaField
 from dateutil.relativedelta import relativedelta
 from apps.common.models import TimeSeries
 from datetime import datetime
 from apps.utils.time import UTC_P0100
 from psycopg2.extras import DateTimeTZRange
+from apps.common.util.util import generate_intervals
 
-zero = datetime(2018, 5, 5, 5, 00, 00)
-zero = zero.replace(tzinfo=UTC_P0100)
+default_zero = datetime(2000, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100)
 
-intervals = {
-    "years": 29030400,  # 60 * 60 * 24 * 7 * 4 * 12
-    "months": 2419200,  # 60 * 60 * 24 * 7 * 4
-    "weeks": 604800,    # 60 * 60 * 24 * 7
-    "days": 86400,      # 60 * 60 * 24
-    "hours": 3600,      # 60 * 60
-    "minutes": 60,
-    "seconds": 1,
-}
-
-
-def generate_intervals(
-    timeseries,         #: TimeSeries
-    from_datetime,               #: datetime with timezone
-    to_datetime,                 #: datetime with timezone
-    range_from_limit=None,   #: datetime with timezone, default=datetime.min UTC+01:00
-    range_to_limit=None     #: datetime with timezone, default=datetime.max UTC+01:00
-):
-    first_start = DateTimeTZRange(
-        lower=timeseries.zero + 0 * timeseries.frequency + timeseries.range_from,
-        upper=timeseries.zero + 0 * timeseries.frequency + timeseries.range_to)
-
-    years_frequency = timeseries.frequency.years
-    months_frequency = timeseries.frequency.months
-    days_frequency = timeseries.frequency.days
-    hours_frequency = timeseries.frequency.hours
-    minutes_frequency = timeseries.frequency.minutes
-    seconds_frequency = timeseries.frequency.seconds
-
-    if years_frequency or months_frequency:
-        total_seconds_frequency = years_frequency * intervals["years"]
-        total_seconds_frequency += months_frequency * intervals["months"]
-    else:
-        total_seconds_frequency = days_frequency * intervals["days"]
-        total_seconds_frequency += hours_frequency * intervals["hours"]
-        total_seconds_frequency += minutes_frequency * intervals["minutes"]
-        total_seconds_frequency += seconds_frequency * intervals["seconds"]
-
-    diff_until_from = (from_datetime - first_start.lower).total_seconds()
-    diff_until_to = (to_datetime - first_start.lower).total_seconds()
-
-    intervals_before_start = diff_until_from / total_seconds_frequency
-    intervals_until_end = diff_until_to / total_seconds_frequency
-
-    first_interval_counter = int(intervals_before_start)
-    last_interval_counter = int(intervals_until_end) + 1
-
-    slots = []
-
-    if (first_interval_counter < 0) and (last_interval_counter > 0):
-        first_interval_counter = 0
-
-    '''
-    range.lower < INPUT.to
-    range.upper > INPUT.from
-    range.lower >= INPUT.range_from_limit
-    range.upper < INPUT.range_to_limit
-    '''
-
-    if (first_interval_counter >= 0) and (last_interval_counter > first_interval_counter):
-        for N in range(first_interval_counter, last_interval_counter):
-            slot = DateTimeTZRange(
-                lower=timeseries.zero + N * timeseries.frequency + timeseries.range_from,
-                upper=timeseries.zero + N * timeseries.frequency + timeseries.range_to)
-            # Check if slot is after from_datetime
-            print('-------------check conditions-------------')
-            if from_datetime <= slot.upper:
-                condition = True
-                if range_from_limit and slot.lower < range_from_limit:
-                    condition = False
-
-                if range_to_limit and slot.upper >= range_to_limit:
-                    condition = False
-
-                if condition:
-                    print('--------------------------------------------')
-                    print(slot)
-                    slots.append(slot)
-
-    return slots
-
-
-def create_test_timeseries():
-    TimeSeries(
-        zero=zero,
-        frequency=relativedelta(hours=2),
-        range_from=relativedelta(hours=0),
-        range_to=relativedelta(hours=2)
-    )
-
-
-default_zero = datetime(2000, 1, 1, 0, 00, 00)
-default_zero = default_zero.replace(tzinfo=UTC_P0100)
-
-
-# TODO - omezujici parametry
-# TODO - udelat omezeni na urovni modelu
-# TODO pokud je frequency libovolna kombinace mesicu a let, tak zero musi mit den v mesici <= 28
 
 class TimeSeriesTestCase(TestCase):
-    def setUp(self):
-        create_test_timeseries()
-
     def test_hour_slots_every_hour(self):
         t = TimeSeries(
             zero=default_zero,
@@ -120,6 +18,7 @@ class TimeSeriesTestCase(TestCase):
             range_from=relativedelta(hours=0),
             range_to=relativedelta(hours=1)
         )
+        t.clean()
 
         result_slots = generate_intervals(
             timeseries=t,
@@ -151,6 +50,7 @@ class TimeSeriesTestCase(TestCase):
             range_from=relativedelta(hours=0),
             range_to=relativedelta(hours=2)
         )
+        t.clean()
 
         result_slots = generate_intervals(
             timeseries=t,
@@ -178,6 +78,7 @@ class TimeSeriesTestCase(TestCase):
             range_from=relativedelta(hours=0),
             range_to=relativedelta(days=7)
         )
+        t.clean()
 
         t2 = TimeSeries(
             zero=datetime(2000, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100),
@@ -185,6 +86,7 @@ class TimeSeriesTestCase(TestCase):
             range_from=relativedelta(days=2),
             range_to=relativedelta(days=9)
         )
+        t2.clean()
 
         t3 = TimeSeries(
             zero=datetime(2000, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100),
@@ -192,6 +94,7 @@ class TimeSeriesTestCase(TestCase):
             range_from=relativedelta(days=-5),
             range_to=relativedelta(days=2)
         )
+        t3.clean()
 
         i1 = generate_intervals(
             timeseries=t,
@@ -246,6 +149,7 @@ class TimeSeriesTestCase(TestCase):
             range_from=relativedelta(days=4, hours=8),
             range_to=relativedelta(days=4, hours=11)
         )
+        t.clean()
 
         result_slots = generate_intervals(
             timeseries=t,
@@ -281,6 +185,7 @@ class TimeSeriesTestCase(TestCase):
             range_from=relativedelta(days=-1),
             range_to=relativedelta(0)
         )
+        t.clean()
 
         result_slots = generate_intervals(
             timeseries=t,
@@ -316,6 +221,7 @@ class TimeSeriesTestCase(TestCase):
             range_from=relativedelta(days=-1),
             range_to=relativedelta(0)
         )
+        t.clean()
 
         result_slots = generate_intervals(
             timeseries=t,
@@ -351,6 +257,7 @@ class TimeSeriesTestCase(TestCase):
             range_from=relativedelta(0),
             range_to=relativedelta(days=3, hours=3)
         )
+        t.clean()
 
         result_slots = generate_intervals(
             timeseries=t,
@@ -382,13 +289,13 @@ class TimeSeriesTestCase(TestCase):
             range_from=relativedelta(hours=0),
             range_to=relativedelta(hours=1)
         )
+        t.clean()
 
         result_slots = generate_intervals(
             timeseries=t,
             from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
             to_datetime=datetime(2000, 1, 3, 2, 00, 00).replace(tzinfo=UTC_P0100),
-            range_from_limit=datetime(2000, 1, 3, 1, 00, 00).replace(tzinfo=UTC_P0100),
-            #range_to_limit
+            range_from_limit=datetime(2000, 1, 3, 1, 00, 00).replace(tzinfo=UTC_P0100)
         )
 
         expected_slots = [
@@ -411,6 +318,7 @@ class TimeSeriesTestCase(TestCase):
             range_from=relativedelta(hours=0),
             range_to=relativedelta(hours=1)
         )
+        t.clean()
 
         result_slots = generate_intervals(
             timeseries=t,
@@ -439,6 +347,7 @@ class TimeSeriesTestCase(TestCase):
             range_from=relativedelta(hours=0),
             range_to=relativedelta(hours=1)
         )
+        t.clean()
 
         result_slots = generate_intervals(
             timeseries=t,
@@ -457,3 +366,35 @@ class TimeSeriesTestCase(TestCase):
 
         self.assertEqual(expected_slots, result_slots)
 
+    #TODO consult - valid values in t?
+    def test_null_range(self):
+        t = TimeSeries(
+            zero=default_zero,
+            frequency=None,
+            range_from=None,
+            range_to=None
+        )
+        t.clean()
+
+        result_slots = generate_intervals(
+            timeseries=t,
+            from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
+            to_datetime=datetime(2000, 1, 3, 2, 00, 00).replace(tzinfo=UTC_P0100),
+        )
+
+        expected_slots = [
+            DateTimeTZRange(
+                lower=datetime(2000, 1, 3, 0, 0).replace(tzinfo=UTC_P0100),
+                upper=datetime(2000, 1, 3, 1, 0).replace(tzinfo=UTC_P0100)
+            ),
+            DateTimeTZRange(
+                lower=datetime(2000, 1, 3, 1, 0).replace(tzinfo=UTC_P0100),
+                upper=datetime(2000, 1, 3, 2, 0).replace(tzinfo=UTC_P0100)
+            ),
+            DateTimeTZRange(
+                lower=datetime(2000, 1, 3, 2, 0).replace(tzinfo=UTC_P0100),
+                upper=datetime(2000, 1, 3, 3, 0).replace(tzinfo=UTC_P0100)
+            )
+        ]
+
+        self.assertEqual(expected_slots, result_slots)
