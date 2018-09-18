@@ -24,7 +24,13 @@ class TimeSeriesFeatureSerializer(GeoFeatureModelSerializer):
         fields = '__all__'
 
     def get_properties(self, instance, fields):
-        return instance.content
+        return {
+            **{
+                'id_by_provider': instance.id_by_provider,
+                'name': instance.name,
+            },
+            **instance.content,
+        }
 
     def unformat_geojson(self, feature):
         attrs = {
