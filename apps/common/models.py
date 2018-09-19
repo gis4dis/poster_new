@@ -4,7 +4,6 @@ from django.contrib.gis.db import models
 from django.contrib.postgres import fields as pgmodels
 from apps.utils.time import format_delta
 from django import forms
-import datetime
 from relativedeltafield import RelativeDeltaField
 from datetime import datetime
 from apps.utils.time import UTC_P0100
@@ -27,25 +26,23 @@ def relative_delta_to_total_seconds(rel_delta):
     hours = rel_delta.hours
     minutes = rel_delta.minutes
     seconds = rel_delta.seconds
-
     total_seconds = years * INTERVALS["years"]
     total_seconds += months * INTERVALS["months"]
     total_seconds += days * INTERVALS["days"]
     total_seconds += hours * INTERVALS["hours"]
     total_seconds += minutes * INTERVALS["minutes"]
     total_seconds += seconds * INTERVALS["seconds"]
-
     return total_seconds
 
 
 time_series_default_zero = datetime(2000, 1, 1, 1, 00, 00)
 time_series_default_zero = time_series_default_zero.replace(tzinfo=UTC_P0100)
 
-#TODO consult
+
 def default_relative_delta_zero():
     return relativedelta(0)
 
-#TODO consult
+
 def default_relative_delta_hour():
     return relativedelta(hours=1)
 
@@ -71,21 +68,18 @@ class TimeSeries(models.Model):
         default=default_relative_delta_hour
     )
 
-    # TODO consult - default values
     def clean(self):
-
         if self.frequency is None:
-            self.frequency = default_relative_delta_hour()
+            raise forms.ValidationError('frequency cannot be null')
 
         if self.range_from is None:
-            self.range_from = default_relative_delta_zero()
+            raise forms.ValidationError('range_from cannot be null')
 
         if self.range_to is None:
-            self.range_to = default_relative_delta_hour()
+            raise forms.ValidationError('range_to cannot be null')
 
-        # TODO consult - is detection of negative interval valid
         if relative_delta_to_total_seconds(self.frequency) <= 0:
-            raise forms.ValidationError('frequency must be positive interval')
+            raise forms.ValidationError('frequency must be positive interval ')
 
         if relative_delta_to_total_seconds(self.range_to) <= relative_delta_to_total_seconds(self.range_from):
             raise forms.ValidationError('range_to must be greater than range_from')

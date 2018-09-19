@@ -384,13 +384,24 @@ class TimeSeriesTestCase(TestCase):
 
         self.assertEqual(expected_slots, result_slots)
 
-    #TODO consult - valid values in t?
-    def test_null_range(self):
+    def test_frequency_relative_delta_content(self):
         t = TimeSeries(
             zero=default_zero,
-            frequency=None,
-            range_from=None,
-            range_to=None
+            frequency=relativedelta(hours=1, months=1),
+            range_from=relativedelta(hours=0),
+            range_to=relativedelta(hours=1)
+        )
+        t.clean()
+
+        self.assertRaises(Exception,
+                          generate_intervals,
+                          t,
+                          datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
+                          datetime(2000, 1, 5, 0, 00, 00).replace(tzinfo=UTC_P0100))
+
+    def test_timeseries_default_values(self):
+        t = TimeSeries(
+            zero=default_zero
         )
         t.clean()
 
