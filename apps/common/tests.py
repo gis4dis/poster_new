@@ -52,10 +52,6 @@ class TimeSeriesTestCase(TestCase):
             DateTimeTZRange(
                 lower=datetime(2000, 1, 3, 1, 0).replace(tzinfo=UTC_P0100),
                 upper=datetime(2000, 1, 3, 2, 0).replace(tzinfo=UTC_P0100)
-            ),
-            DateTimeTZRange(
-                lower=datetime(2000, 1, 3, 2, 0).replace(tzinfo=UTC_P0100),
-                upper=datetime(2000, 1, 3, 3, 0).replace(tzinfo=UTC_P0100)
             )
         ]
 
@@ -80,10 +76,6 @@ class TimeSeriesTestCase(TestCase):
             DateTimeTZRange(
                 lower=datetime(2000, 1, 3, 5, 0).replace(tzinfo=UTC_P0100),
                 upper=datetime(2000, 1, 3, 7, 0).replace(tzinfo=UTC_P0100)
-            ),
-            DateTimeTZRange(
-                lower=datetime(2000, 1, 3, 6, 0).replace(tzinfo=UTC_P0100),
-                upper=datetime(2000, 1, 3, 8, 0).replace(tzinfo=UTC_P0100)
             )
         ]
 
@@ -148,10 +140,6 @@ class TimeSeriesTestCase(TestCase):
             DateTimeTZRange(
                 lower=datetime(2000, 1, 24, 0, 0).replace(tzinfo=UTC_P0100),
                 upper=datetime(2000, 1, 31, 0, 0).replace(tzinfo=UTC_P0100)
-            ),
-            DateTimeTZRange(
-                lower=datetime(2000, 1, 31, 0, 0).replace(tzinfo=UTC_P0100),
-                upper=datetime(2000, 2, 7, 0, 0).replace(tzinfo=UTC_P0100)
             )
         ]
 
@@ -259,10 +247,6 @@ class TimeSeriesTestCase(TestCase):
             DateTimeTZRange(
                 lower=datetime(2000, 4, 30, 0, 0).replace(tzinfo=UTC_P0100),
                 upper=datetime(2000, 5, 1, 0, 0).replace(tzinfo=UTC_P0100)
-            ),
-            DateTimeTZRange(
-                lower=datetime(2000, 5, 31, 0, 0).replace(tzinfo=UTC_P0100),
-                upper=datetime(2000, 6, 1, 0, 0).replace(tzinfo=UTC_P0100)
             )
         ]
 
@@ -291,10 +275,6 @@ class TimeSeriesTestCase(TestCase):
             DateTimeTZRange(
                 lower=datetime(2001, 1, 1, 0, 0).replace(tzinfo=UTC_P0100),
                 upper=datetime(2001, 1, 4, 3, 0).replace(tzinfo=UTC_P0100)
-            ),
-            DateTimeTZRange(
-                lower=datetime(2002, 1, 1, 0, 0).replace(tzinfo=UTC_P0100),
-                upper=datetime(2002, 1, 4, 3, 0).replace(tzinfo=UTC_P0100)
             )
         ]
 
@@ -320,10 +300,6 @@ class TimeSeriesTestCase(TestCase):
             DateTimeTZRange(
                 lower=datetime(2000, 1, 3, 1, 0).replace(tzinfo=UTC_P0100),
                 upper=datetime(2000, 1, 3, 2, 0).replace(tzinfo=UTC_P0100)
-            ),
-            DateTimeTZRange(
-                lower=datetime(2000, 1, 3, 2, 0).replace(tzinfo=UTC_P0100),
-                upper=datetime(2000, 1, 3, 3, 0).replace(tzinfo=UTC_P0100)
             )
         ]
 
@@ -334,25 +310,25 @@ class TimeSeriesTestCase(TestCase):
             zero=default_zero,
             frequency=relativedelta(hours=1),
             range_from=relativedelta(hours=0),
-            range_to=relativedelta(hours=1)
+            range_to=relativedelta(hours=2)
         )
         t.clean()
 
         result_slots = generate_intervals(
             timeseries=t,
             from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
-            to_datetime=datetime(2000, 1, 3, 2, 00, 00).replace(tzinfo=UTC_P0100),
+            to_datetime=datetime(2000, 1, 3, 4, 00, 00).replace(tzinfo=UTC_P0100),
             range_to_limit=datetime(2000, 1, 3, 3, 00, 00).replace(tzinfo=UTC_P0100)
         )
 
         expected_slots = [
             DateTimeTZRange(
                 lower=datetime(2000, 1, 3, 0, 0).replace(tzinfo=UTC_P0100),
-                upper=datetime(2000, 1, 3, 1, 0).replace(tzinfo=UTC_P0100)
+                upper=datetime(2000, 1, 3, 2, 0).replace(tzinfo=UTC_P0100)
             ),
             DateTimeTZRange(
                 lower=datetime(2000, 1, 3, 1, 0).replace(tzinfo=UTC_P0100),
-                upper=datetime(2000, 1, 3, 2, 0).replace(tzinfo=UTC_P0100)
+                upper=datetime(2000, 1, 3, 3, 0).replace(tzinfo=UTC_P0100)
             )
         ]
 
@@ -363,22 +339,22 @@ class TimeSeriesTestCase(TestCase):
             zero=default_zero,
             frequency=relativedelta(hours=1),
             range_from=relativedelta(hours=0),
-            range_to=relativedelta(hours=1)
+            range_to=relativedelta(hours=2)
         )
         t.clean()
 
         result_slots = generate_intervals(
             timeseries=t,
             from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
-            to_datetime=datetime(2000, 1, 3, 2, 00, 00).replace(tzinfo=UTC_P0100),
             range_from_limit=datetime(2000, 1, 3, 1, 00, 00).replace(tzinfo=UTC_P0100),
+            to_datetime=datetime(2000, 1, 3, 4, 00, 00).replace(tzinfo=UTC_P0100),
             range_to_limit=datetime(2000, 1, 3, 3, 00, 00).replace(tzinfo=UTC_P0100)
         )
 
         expected_slots = [
             DateTimeTZRange(
                 lower=datetime(2000, 1, 3, 1, 0).replace(tzinfo=UTC_P0100),
-                upper=datetime(2000, 1, 3, 2, 0).replace(tzinfo=UTC_P0100)
+                upper=datetime(2000, 1, 3, 3, 0).replace(tzinfo=UTC_P0100)
             )
         ]
 
@@ -419,10 +395,6 @@ class TimeSeriesTestCase(TestCase):
             DateTimeTZRange(
                 lower=datetime(2000, 1, 3, 1, 0).replace(tzinfo=UTC_P0100),
                 upper=datetime(2000, 1, 3, 2, 0).replace(tzinfo=UTC_P0100)
-            ),
-            DateTimeTZRange(
-                lower=datetime(2000, 1, 3, 2, 0).replace(tzinfo=UTC_P0100),
-                upper=datetime(2000, 1, 3, 3, 0).replace(tzinfo=UTC_P0100)
             )
         ]
 

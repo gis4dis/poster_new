@@ -198,6 +198,7 @@ def generate_intervals(
 
         intervals_before_start = diff_until_from / total_months_frequency
         intervals_until_end = diff_until_to / total_months_frequency
+        intervals_until_end_modulo = diff_until_to % total_months_frequency
     else:
         total_seconds_frequency = days_frequency * INTERVALS["days"]
         total_seconds_frequency += hours_frequency * INTERVALS["hours"]
@@ -209,9 +210,13 @@ def generate_intervals(
 
         intervals_before_start = diff_until_from / total_seconds_frequency
         intervals_until_end = diff_until_to / total_seconds_frequency
+        intervals_until_end_modulo = diff_until_to % total_seconds_frequency
 
     first_interval_counter = int(intervals_before_start)
-    last_interval_counter = int(intervals_until_end) + 1
+    last_interval_counter = int(intervals_until_end)# + 1
+
+    if intervals_until_end_modulo > 0:
+        last_interval_counter += 1
 
     slots = []
 
@@ -225,15 +230,20 @@ def generate_intervals(
                 upper=timeseries.zero + N * timeseries.frequency + timeseries.range_to)
 
             # Check if slot is after from_datetime
-            if from_datetime <= slot.upper:
-                condition = True
-                if range_from_limit and slot.lower < range_from_limit:
-                    condition = False
+            condition = True
+            if from_datetime > slot.upper:
+                condition = False
 
-                if range_to_limit and slot.upper >= range_to_limit:
-                    condition = False
+            if slot.lower >= to_datetime:
+                condition = False
 
-                if condition:
-                    slots.append(slot)
+            if range_from_limit and slot.lower < range_from_limit:
+                condition = False
+
+            if range_to_limit and slot.upper > range_to_limit:
+                condition = False
+
+            if condition:
+                slots.append(slot)
 
     return slots
