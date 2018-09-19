@@ -231,7 +231,7 @@ def generate_intervals(
 
             # Check if slot is after from_datetime
             condition = True
-            if from_datetime > slot.upper:
+            if from_datetime >= slot.upper:
                 condition = False
 
             if slot.lower >= to_datetime:
