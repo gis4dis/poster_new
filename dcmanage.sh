@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker-compose run --rm poster-web python manage.py "$@"
+docker-compose run --rm poster-web pipenv run python manage.py "$@"
