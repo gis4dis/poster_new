@@ -4,7 +4,7 @@ from dateutil.parser import parse
 from psycopg2.extras import DateTimeTZRange
 from apps.utils.time import UTC_P0100
 from apps.processing.pmo.util.util import parse_date_range
-from datetime import datetime
+from datetime import datetime, timedelta
 import csv
 from apps.common.models import Process, Property
 from apps.common.util.util import get_or_create_processes, get_or_create_props
@@ -12,9 +12,10 @@ from apps.processing.pmo.models import WeatherStation, WeatherObservation
 import io
 import re
 
+
 class Command(BaseCommand):
     help = 'Imports all stations and all observations from files within the date range' \
-        './dcmanage pmo_srazsae_import --date_range "24 11 2017"' \
+        './dcmanage.sh pmo_srazsae_import --date_range "24 11 2017"' \
         'docker-compose run --rm poster-web python manage.py pmo_srazsae_import --date_range "24 11 2017"'
 
     def add_arguments(self, parser):
@@ -25,7 +26,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
-        # WeatherObservation.objects.all().delete()
+        WeatherObservation.objects.all().delete()
 
         path = options['path']
         day_from, day_to = options['date_range']
@@ -41,8 +42,6 @@ class Command(BaseCommand):
         content = tuple(default_storage.listdir(path))
         for con in content:
             folder_name = get_name(con.object_name)
-            print("Import from folder")
-            print(folder_name)
             try:
                 date_from_name = datetime.strptime(folder_name, "%Y%m%d")
                 if(day_from <= date_from_name < day_to):
@@ -50,6 +49,8 @@ class Command(BaseCommand):
                     for f in files:
                         file_name = get_name(f.object_name)
                         if(file_name == "srazsae.dat"):
+                            print("Importing srazsae.dat from")
+                            print(folder_name)
                             csv_file = default_storage.open(name=f.object_name, mode='r')
                             foo = csv_file.data.decode('utf-8')
                             reader = csv.reader(io.StringIO(foo), delimiter=" ")
@@ -65,7 +66,11 @@ class Command(BaseCommand):
                                 parsed = parse(row[2] + " " + row[3])
                                 time = parsed.astimezone(UTC_P0100) 
                                 dt_range = DateTimeTZRange(time, time, bounds="[]")
-                                observed_property = air_temperature if row[1] == '32' else precipitation
+                                if row[1] == '32':
+                                    observed_property = air_temperature
+                                else:
+                                    observed_property = precipitation
+                                    dt_range = DateTimeTZRange(time, time.timedelta(hours=1), bounds="[)")
                     
                                 WeatherObservation.objects.get_or_create(
                                     phenomenon_time_range=dt_range,
