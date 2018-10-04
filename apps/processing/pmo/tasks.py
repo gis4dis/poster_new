@@ -31,7 +31,7 @@ basedir_def = '/apps.processing.pmo/'
 @task(name="pmo.import_observation")
 def import_observation(date_str):
     date = datetime.strptime(date_str, "%Y%m%d").date()
-    logger.info('Importing file: ', date)
+    logger.info('Importing file: ' + str(date))
     util.load(date)
 
 
