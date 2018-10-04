@@ -29,7 +29,8 @@ basedir_def = '/apps.processing.pmo/'
 
 
 @task(name="pmo.import_observation")
-def import_observation(date):
+def import_observation(date_str):
+    date = datetime.strptime(date_str, "%Y%m%d").date()
     logger.info('Importing file: ', date)
     util.load(date)
 
@@ -56,7 +57,7 @@ def import_observations():
             day_str = day.strftime("%Y%m%d")
             path = basedir_def + day_str + '/HOD.dat'
             if default_storage.exists(path):
-                dates_to_import.append(day)
+                dates_to_import.append(day_str)
             day += timedelta(1)
     else:
         listed = default_storage.listdir(basedir_def)
@@ -65,11 +66,13 @@ def import_observations():
                 folder_path = filename.object_name
                 path = folder_path + '/HOD.dat'
                 if default_storage.exists(path):
-                    date_str = filename.object_name.strip("/").split('/')[-1]
-                    day = datetime.strptime(date_str, "%Y%m%d").date()
-                    dates_to_import.append(day)
+                    day_str = filename.object_name.strip("/").split('/')[-1]
+                    dates_to_import.append(day_str)
+
     try:
         g = group(import_observation.s(date) for date in dates_to_import)
         g.apply_async()
     except Exception as e:
         logger.error(e)
+
+
