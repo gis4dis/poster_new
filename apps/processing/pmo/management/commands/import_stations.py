@@ -23,7 +23,6 @@ def parse_dms(dms):
     return degree, minute, second, ms
 
 
-
 class Command(BaseCommand):
     help = 'Import stations '
 

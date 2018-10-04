@@ -4,7 +4,7 @@ from apps.processing.pmo.tasks import import_observations
 
 
 class Command(BaseCommand):
-    help = 'GetLastRecordDate '
+    help = 'Import new observations'
 
     def handle(self, *args, **options):
         import_observations()
