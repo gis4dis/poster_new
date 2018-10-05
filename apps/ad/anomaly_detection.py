@@ -20,9 +20,6 @@ def get_timeseries(
     requested_tr_length = (phenomenon_time_range.upper.timestamp() - phenomenon_time_range.lower.timestamp()) / frequency
 
     baseline_time_series = None
-    
-    if "baseline_time_range" in settings.APPLICATION_MC.PROPERTIES[observed_property.name_id]:
-        baseline_time_series = settings.APPLICATION_MC.PROPERTIES[observed_property.name_id]["baseline_time_range"]
 
     if baseline_time_range is not None:
         baseline_time_series = observation_provider_model.objects.filter(
