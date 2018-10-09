@@ -27,14 +27,12 @@ def parse_dms(dms):
 #   co by vsechno melo byt logovane?
 #Celery task ???? Jak?
 
-baseDir = '/pmo/stanice_tok.csv'
-
 class Command(BaseCommand):
     help = 'Import stations '
 
     def add_arguments(self, parser):
         parser.add_argument('--path', nargs='?', type=str,
-                            default='/import/apps.processing.pmo/stanice_tok.csv')
+                            default='/apps.processing.pmo/stanice_tok.csv')
 
     def handle(self, *args, **options):
         path = options['path']
