@@ -25,7 +25,7 @@ def get_last_record():
     return last_item
 
 
-basedir_def = '/apps.processing.pmo/'
+basedir_def = '/import/apps.processing.pmo/'
 
 
 @task(name="pmo.import_observation")
@@ -48,8 +48,7 @@ def import_observations():
         now = datetime.now()
         now = now.replace(tzinfo=UTC_P0100)
         today = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        this_week_start = (today - timedelta(days=now.weekday()))
-        day_to = this_week_start
+        day_to = today
 
         day = start_day
 

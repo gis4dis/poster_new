@@ -7,4 +7,4 @@ class Command(BaseCommand):
     help = 'Import new observations'
 
     def handle(self, *args, **options):
-        import_observations()
+        import_observations.apply_async()
