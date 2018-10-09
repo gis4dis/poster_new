@@ -7,7 +7,7 @@ from datetime import timedelta, datetime, date
 from apps.processing.pmo.management.commands.pmo_srazsae_import import srazsae_import
 import pytz
 
-# ./dcmanage.sh test apps.processing.pmo.tests.SrazsaeImportTestCase.srazsae_import
+# ./dcmanage.sh test apps.processing.pmo
 
 class SrazsaeImportTestCase(TestCase):
     def setUp(self):
@@ -16,7 +16,7 @@ class SrazsaeImportTestCase(TestCase):
         day_to = datetime(2017, 11, 25)
         srazsae_import(path, day_from, day_to)
 
-    def srazsae_import(self):
+    def test_srazsae_import(self):
         # check import number of observations
         self.assertEqual(
             WeatherObservation.objects.count(),
