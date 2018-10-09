@@ -360,6 +360,40 @@ class TimeSeriesTestCase(TestCase):
 
         self.assertEqual(expected_slots, result_slots)
 
+    def test_limits2(self):
+        t = TimeSeries(
+            zero=default_zero,
+            frequency=relativedelta(hours=1),
+            range_from=relativedelta(hours=0),
+            range_to=relativedelta(hours=2)
+        )
+        t.clean()
+
+        result_slots = generate_intervals(
+            timeseries=t,
+            from_datetime=datetime(2000, 1, 3, 2, 00, 00).replace(
+                tzinfo=UTC_P0100),
+            to_datetime=datetime(2000, 1, 3, 3, 00, 00).replace(
+                tzinfo=UTC_P0100),
+            range_from_limit=datetime(2000, 1, 3, 0, 00, 00).replace(
+                tzinfo=UTC_P0100),
+            range_to_limit=datetime(2000, 1, 3, 4, 00, 00).replace(
+                tzinfo=UTC_P0100)
+        )
+
+        expected_slots = [
+            DateTimeTZRange(
+                lower=datetime(2000, 1, 3, 1, 0).replace(tzinfo=UTC_P0100),
+                upper=datetime(2000, 1, 3, 3, 0).replace(tzinfo=UTC_P0100)
+            ),
+            DateTimeTZRange(
+                lower=datetime(2000, 1, 3, 2, 0).replace(tzinfo=UTC_P0100),
+                upper=datetime(2000, 1, 3, 4, 0).replace(tzinfo=UTC_P0100)
+            ),
+        ]
+
+        self.assertEqual(expected_slots, result_slots)
+
     def test_frequency_relative_delta_content(self):
         t = TimeSeries(
             zero=default_zero,
