@@ -16,7 +16,7 @@ class Command(BaseCommand):
     help = 'Import data from OZP stations. Path to folder with csv files.'
 
     def add_arguments(self, parser):
-        parser.add_argument('--path', nargs='?', type=str, default='/import/apps.processing.ozp/2017/')
+        parser.add_argument('--path', nargs='?', type=str, default='/apps.processing.ozp/2017/')
 
     def handle(self, *args, **options):
         start = time.time()
