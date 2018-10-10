@@ -212,7 +212,12 @@ def generate_intervals(
         intervals_until_end = diff_until_to / total_seconds_frequency
         intervals_until_end_modulo = diff_until_to % total_seconds_frequency
 
-    first_interval_counter = int(intervals_before_start)
+    first_interval_counter = intervals_before_start if \
+        (intervals_before_start == 0) \
+        else intervals_before_start - 1
+
+    first_interval_counter = int(first_interval_counter)
+
     last_interval_counter = int(intervals_until_end)# + 1
 
     if intervals_until_end_modulo > 0:

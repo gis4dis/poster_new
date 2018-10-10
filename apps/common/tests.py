@@ -74,6 +74,10 @@ class TimeSeriesTestCase(TestCase):
 
         expected_slots = [
             DateTimeTZRange(
+                lower=datetime(2000, 1, 3, 4, 0).replace(tzinfo=UTC_P0100),
+                upper=datetime(2000, 1, 3, 6, 0).replace(tzinfo=UTC_P0100)
+            ),
+            DateTimeTZRange(
                 lower=datetime(2000, 1, 3, 5, 0).replace(tzinfo=UTC_P0100),
                 upper=datetime(2000, 1, 3, 7, 0).replace(tzinfo=UTC_P0100)
             )
@@ -322,6 +326,10 @@ class TimeSeriesTestCase(TestCase):
         )
 
         expected_slots = [
+            DateTimeTZRange(
+                lower=datetime(2000, 1, 2, 23, 0).replace(tzinfo=UTC_P0100),
+                upper=datetime(2000, 1, 3, 1, 0).replace(tzinfo=UTC_P0100)
+            ),
             DateTimeTZRange(
                 lower=datetime(2000, 1, 3, 0, 0).replace(tzinfo=UTC_P0100),
                 upper=datetime(2000, 1, 3, 2, 0).replace(tzinfo=UTC_P0100)
