@@ -10,7 +10,7 @@ import relativedeltafield
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('common', '0005_time_range_custom_functions'),
+        ('common', '0006_topic'),
     ]
 
     operations = [
