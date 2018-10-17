@@ -5,6 +5,9 @@ from django.db.utils import IntegrityError
 from apps.common.models import Process, Property
 from apps.utils.obj import *
 from psycopg2.extras import DateTimeTZRange
+from dateutil.parser import parse
+from dateutil import relativedelta
+from datetime import date, timedelta, datetime
 from django.core.files.storage import default_storage
 import csv
 from apps.processing.pmo.models import WatercourseObservation, WatercourseStation
@@ -139,3 +142,17 @@ def load(day):
                     logger.error('Unknown measure code %s', code)
     else:
         logger.error("Error file path: %s not found", path)
+
+
+
+def parse_date_range(date_str):
+    if len(date_str) == 4:
+        day_from = parse(date_str).replace(day=1, month=1)
+        day_to = day_from + relativedelta.relativedelta(years=1)
+    elif len(date_str) == 7:
+        day_from = parse(date_str).replace(day=1)
+        day_to = day_from + relativedelta.relativedelta(months=1)
+    else:
+        day_from = parse(date_str)
+        day_to = day_from + timedelta(1)
+    return [day_from, day_to]

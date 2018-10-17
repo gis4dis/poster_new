@@ -34,4 +34,16 @@ class WatercourseObservation(AbstractObservation):
         unique_together = (('phenomenon_time_range',
                             'observed_property', 'feature_of_interest',
                             'procedure'),)
+                            
 
+class WeatherStation(AbstractFeature):
+    geometry = None
+
+class WeatherObservation(AbstractObservation):
+    feature_of_interest = models.ForeignKey(
+        WeatherStation,
+        help_text="Weather station where the observation was taken.",
+        related_name="%(app_label)s_%(class)s_related",
+        editable=False,
+        on_delete=models.DO_NOTHING,
+    )

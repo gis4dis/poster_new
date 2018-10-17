@@ -23,12 +23,6 @@ def parse_dms(dms):
     return degree, minute, second, ms
 
 
-#Logovani - mam do loggeru posilat info o zalozeni stanice nebo update?
-#   co by vsechno melo byt logovane?
-#Celery task ???? Jak?
-
-baseDir = '/pmo/stanice_tok.csv'
-
 class Command(BaseCommand):
     help = 'Import stations '
 

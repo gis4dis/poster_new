@@ -21,12 +21,30 @@ TOPICS = {
 
                         # mandatory, name_id of common.Process
                         'process': 'apps.common.aggregate.arithmetic_mean'
+                    },
+
+                    'apps.processing.ozp.models.Observation': {
+                        'process': 'measure'
                     }
                 },
             },
-            'ground_air_temperature': {
+            'precipitation': {
                 'observation_providers': {
                     'apps.processing.ala.models.Observation': {
+                        'process': 'apps.common.aggregate.arithmetic_mean',
+                    },
+                }
+            },
+            'pm10': {
+                'observation_providers': {
+                    'apps.processing.ozp.models.Observation': {
+                        'process': 'measure',
+                    },
+                }
+            },
+            'stream_flow': {
+                'observation_providers': {
+                    'apps.processing.pmo.models.WatercourseObservation': {
                         'process': 'apps.common.aggregate.arithmetic_mean',
                     },
                 }

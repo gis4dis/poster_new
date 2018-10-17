@@ -38,7 +38,7 @@ unicodecsv = "==0.14.1"
 vine = "==1.1.4"
 whitenoise = "==3.3.1"
 Babel = "==2.6.0"
-Django = "==2.0.3"
+Django = "==2.0.8"
 django_celery_beat = "==1.1.1"
 django_celery_results = "==1.0.1"
 django-allauth = "*"
@@ -46,5 +46,6 @@ django-sekizai = "*"
 django-widget-tweaks = "*"
 social-auth-app-django = "*"
 luminol = {editable = true, git = "https://github.com/gis4dis/luminol.git"}
+django-relativedelta = "*"
 
 [dev-packages]

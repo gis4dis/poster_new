@@ -1,5 +1,8 @@
 from apps.utils.obj import *
 from apps.common.models import Property, Process
+from psycopg2.extras import DateTimeTZRange
+from datetime import datetime
+from apps.utils.time import UTC_P0100
 
 props_def = [
     ('precipitation', {
@@ -133,3 +136,119 @@ def get_or_create_props():
 def get_or_create_processes():
     return get_or_create_objs(Process, processes_def, 'name_id')
 
+
+INTERVALS = {
+    "weeks": 604800,    # 60 * 60 * 24 * 7
+    "days": 86400,      # 60 * 60 * 24
+    "hours": 3600,      # 60 * 60
+    "minutes": 60,
+    "seconds": 1,
+}
+
+
+def generate_intervals(
+    timeseries,             #: TimeSeries
+    from_datetime,          #: datetime with timezone
+    to_datetime,            #: datetime with timezone
+    range_from_limit=datetime.min.replace(tzinfo=UTC_P0100),
+    range_to_limit=datetime.max.replace(tzinfo=UTC_P0100)
+):
+    if not isinstance(from_datetime, datetime):
+        raise Exception('from_datetime must be type of datetime')
+
+    if not isinstance(to_datetime, datetime):
+        raise Exception('to_datetime must be type of datetime')
+
+    if not isinstance(range_from_limit, datetime):
+        raise Exception('range_from_limit must be type of datetime')
+
+    if not isinstance(range_to_limit, datetime):
+        raise Exception('range_to_limit must be type of datetime')
+
+    if from_datetime >= to_datetime:
+        raise Exception('to_datetime must be after from_datetime')
+
+    if range_from_limit >= range_to_limit:
+        raise Exception('range_to_limit must be after range_from_limit')
+
+    first_start = DateTimeTZRange(
+        lower=timeseries.zero + 0 * timeseries.frequency + timeseries.range_from,
+        upper=timeseries.zero + 0 * timeseries.frequency + timeseries.range_to)
+
+    years_frequency = timeseries.frequency.years
+    months_frequency = timeseries.frequency.months
+    days_frequency = timeseries.frequency.days
+    hours_frequency = timeseries.frequency.hours
+    minutes_frequency = timeseries.frequency.minutes
+    seconds_frequency = timeseries.frequency.seconds
+
+    if years_frequency or months_frequency:
+        if timeseries.zero.day > 28:
+            raise Exception('zero day in month must be less than 28 when frequency contains years or months')
+
+        if days_frequency or hours_frequency or minutes_frequency or seconds_frequency:
+            raise Exception(
+                'when frequency contains years or months then only months or years are allowed in relativedelta')
+
+        total_months_frequency = years_frequency * 12 + months_frequency
+        diff_until_from = ((from_datetime.year - first_start.lower.year) * 12) \
+                          + from_datetime.month - first_start.lower.month
+        diff_until_to = ((to_datetime.year - first_start.lower.year) * 12) \
+                        + to_datetime.month - first_start.lower.month
+
+        intervals_before_start = diff_until_from / total_months_frequency
+        intervals_until_end = diff_until_to / total_months_frequency
+        intervals_until_end_modulo = diff_until_to % total_months_frequency
+    else:
+        total_seconds_frequency = days_frequency * INTERVALS["days"]
+        total_seconds_frequency += hours_frequency * INTERVALS["hours"]
+        total_seconds_frequency += minutes_frequency * INTERVALS["minutes"]
+        total_seconds_frequency += seconds_frequency * INTERVALS["seconds"]
+
+        diff_until_from = (from_datetime - first_start.lower).total_seconds()
+        diff_until_to = (to_datetime - first_start.lower).total_seconds()
+
+        intervals_before_start = diff_until_from / total_seconds_frequency
+        intervals_until_end = diff_until_to / total_seconds_frequency
+        intervals_until_end_modulo = diff_until_to % total_seconds_frequency
+
+    first_interval_counter = intervals_before_start if \
+        (intervals_before_start == 0) \
+        else intervals_before_start - 1
+
+    first_interval_counter = int(first_interval_counter)
+
+    last_interval_counter = int(intervals_until_end)# + 1
+
+    if intervals_until_end_modulo > 0:
+        last_interval_counter += 1
+
+    slots = []
+
+    if (first_interval_counter < 0) and (last_interval_counter > 0):
+        first_interval_counter = 0
+
+    if (first_interval_counter >= 0) and (last_interval_counter > first_interval_counter):
+        for N in range(first_interval_counter, last_interval_counter):
+            slot = DateTimeTZRange(
+                lower=timeseries.zero + N * timeseries.frequency + timeseries.range_from,
+                upper=timeseries.zero + N * timeseries.frequency + timeseries.range_to)
+
+            # Check if slot is after from_datetime
+            condition = True
+            if from_datetime >= slot.upper:
+                condition = False
+
+            if slot.lower >= to_datetime:
+                condition = False
+
+            if range_from_limit and slot.lower < range_from_limit:
+                condition = False
+
+            if range_to_limit and slot.upper > range_to_limit:
+                condition = False
+
+            if condition:
+                slots.append(slot)
+
+    return slots

@@ -14,6 +14,7 @@ from apps.common.models import Property, Process
 from apps.common.models import Topic
 from apps.mc.api.serializers import PropertySerializer, TimeSeriesSerializer, TopicSerializer
 from apps.mc.models import TimeSeriesFeature
+from apps.utils.time import UTC_P0100
 
 
 def import_models(path):
@@ -239,12 +240,17 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                         raise APIException('Process from config not found.')
 
                     prop_item = Property.objects.get(name_id=prop)
+             
+                    pt_range_z =  DateTimeTZRange(
+                        pt_range.lower.replace(tzinfo=UTC_P0100),
+                        pt_range.upper.replace(tzinfo=UTC_P0100)
+                    )
 
                     ts = get_timeseries(
                         observed_property=prop_item,
                         observation_provider_model=provider_model,
                         feature_of_interest=item,
-                        phenomenon_time_range=pt_range,
+                        phenomenon_time_range=pt_range_z,
                         process=process,
                         frequency=value_frequency
                     )
