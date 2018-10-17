@@ -47,5 +47,5 @@ class Command(BaseCommand):
             )
             for station in stations:
                 util.load(station, day)
-                util.create_avgs(station, day)
+                #util.create_avgs(station, day)
             day += timedelta(1)

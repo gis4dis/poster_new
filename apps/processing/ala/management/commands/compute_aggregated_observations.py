@@ -15,6 +15,9 @@ from apps.common.util.util import generate_intervals
 from apps.common.aggregate import aggregate
 from django.db.utils import IntegrityError
 
+from apps.processing.ala.models import SamplingFeature, Observation
+
+
 #todo - move to util - pouzit jak u api, tak tady?
 def import_models(path):
     provider_module = None
@@ -34,9 +37,7 @@ def import_models(path):
 
 
 def aggregate_observations(observations, obseervation_model, prop, pt_range, feature_of_interest):
-    print('AGGGREGATTTTTEEEE')
-    print(observations)
-
+    print('AGG CALC')
     values = list(map(lambda o: o.result, observations))
     values = list(filter(lambda v: v is not None, values))
     if (len(values) == 0):
@@ -78,6 +79,8 @@ def aggregate_observations(observations, obseervation_model, prop, pt_range, fea
     except IntegrityError as e:
         pass
 
+print('NESEDI PRESNE DELKA - smazano 72 tady pocita 71')
+print('NENAJDE TO POSLEDNI INTERVAL PRO VYPOCET AGG')
 
 class Command(BaseCommand):
     help = 'recalculation'
@@ -88,9 +91,6 @@ class Command(BaseCommand):
         for agg_provider in agg_providers_list:
             ts_config = agg_provider.get('time_series')
             op_config = agg_provider.get('observation_providers')
-            print('OP: ', op_config)
-
-            model_props = {}
 
             for provider in op_config:
                 print('calculate provider: ', provider)
@@ -106,10 +106,6 @@ class Command(BaseCommand):
                 provider_module = import_module(path[0])
                 provider_model = getattr(provider_module, path[1])
 
-                #MIN(phenomenon_time_range.lower)
-
-
-
                 try:
                     process = Process.objects.get(
                         name_id=op_config[provider]["process"])
@@ -120,13 +116,7 @@ class Command(BaseCommand):
                 for observed_property in observed_properties:
                     prop_item = Property.objects.get(name_id=observed_property)
                     print('--')
-                    print('--')
-                    print('--')
-                    print('--')
                     print('OBSERVED_PROPERTY: ', observed_property)
-                    print('ITEM: ', prop_item)
-                    print('PROCESS: ', process)
-                    print("FOF", feature_of_interest_model)
 
                     all_features = feature_of_interest_model.objects.all()
                     for item in all_features:
@@ -136,20 +126,8 @@ class Command(BaseCommand):
                         from_value = None
                         to_value = None
 
-
                         print('=====ITEM====')
                         print(item)
-
-                        obss = provider_model.objects.filter(
-                            observed_property=prop_item,
-                            procedure=process,
-                            feature_of_interest=item
-                        )
-
-                        #from django.db.models import F, Func
-                        #queryset.annotate(field_lower=Func(F('field'), function='LOWER'))
-                        print('IIIIIIIIIIIIIIIIIIIIIIIIIIII')
-                        #provider_model.object.order_by(F('last_contacted').desc(nulls_last=True))
 
                         range_to_limit_observation = provider_model.objects.filter(
                             observed_property=prop_item,
@@ -175,28 +153,29 @@ class Command(BaseCommand):
 
                         range_from_limit = range_from_limit_observation[0].phenomenon_time_range.lower
 
-
-                        print('range_from_limit: ', range_from_limit)
-                        print('range_to_limit: ', range_to_limit)
-
                         max_updated_at_observation = provider_model.objects.filter(
                             observed_property=prop_item,
                             procedure=prop_item.default_mean,
                             feature_of_interest=item
                         ).order_by('-updated_at')[:1]
 
+                        print(max_updated_at_observation)
+
                         if max_updated_at_observation:
                             max_updated_at = max_updated_at_observation[0].updated_at
 
                         if max_updated_at:
+                            print('LAST AGG MAX: ', max_updated_at)
                             from_observation = provider_model.objects.filter(
                                 observed_property=prop_item,
                                 procedure=process,
                                 feature_of_interest=item,
-                                updated_at__gt=max_updated_at
+                                updated_at__gte=max_updated_at
                             ).annotate(
                                 field_lower=Func(F('phenomenon_time_range'), function='LOWER')
                             ).order_by('field_lower')[:1]
+
+                            print(from_observation)
 
                             if from_observation:
                                from_value = from_observation[0].phenomenon_time_range.lower
@@ -205,24 +184,39 @@ class Command(BaseCommand):
                                 observed_property=prop_item,
                                 procedure=process,
                                 feature_of_interest=item,
-                                updated_at__gt=max_updated_at
+                                updated_at__gte=max_updated_at
                             ).annotate(
                                 field_upper=Func(F('phenomenon_time_range'), function='UPPER')
                             ).order_by('-field_upper')[:1]
-                            print('TO OBSERVATION: ', to_observation)
 
                             if to_observation:
-                                to_value = from_observation[0].phenomenon_time_range.upper
+                                to_value = to_observation[0].phenomenon_time_range.upper
 
                         else:
                             from_value = range_from_limit
                             to_value = range_to_limit
 
-                        print('FROM: ', from_value)
-                        print('TO: ', to_value)
 
                         if from_value and to_value:
-                            print('DEFAULT_ZERO')
+
+
+                            print('FROM: ', from_value)
+                            print('TO: ', to_value)
+                            print('range_from_limit: ', range_from_limit)
+                            print('range_to_limit: ', range_to_limit)
+                            print('---')
+
+                            from_value = from_value.astimezone(UTC_P0100)
+                            to_value = to_value.astimezone(UTC_P0100)
+                            range_from_limit = range_from_limit.astimezone(UTC_P0100)
+                            range_to_limit = range_to_limit.astimezone(UTC_P0100)
+
+                            print('FROM: ', from_value)
+                            print('TO: ', to_value)
+                            print('range_from_limit: ', range_from_limit)
+                            print('range_to_limit: ', range_to_limit)
+
+
                             default_zero = datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100)
 
                             t = TimeSeries(
@@ -244,15 +238,9 @@ class Command(BaseCommand):
                                 range_to_limit=range_to_limit
                             )
 
-                            print('NESEDI PRESNE DELKA - smazano 72 tady pocita 71')
-                            print('LENGTH: ', len(result_slots))
-
-                            print(result_slots)
+                            print('last slot::: ', result_slots[-1])
 
                             for slot in result_slots:
-                                print('CALCULATE AGGREGATIONS')
-                                print('SLOT: ', slot)
-
                                 observations = provider_model.objects.filter(
                                     observed_property=prop_item,
                                     procedure=process,
@@ -267,5 +255,12 @@ class Command(BaseCommand):
                                 aggregate_observations(observations, provider_model, prop_item, slot, item)
 
 
-                        else:
-                            print('NEMAM CO POCITAT')
+        '''
+        print('Posledni MERENI')
+        last = Observation.objects.all().order_by('-created_at')[:1]
+        print('LAST : ;:::: ', last)
+        print(last[0].phenomenon_time_range)
+        print(last[0].phenomenon_time_range.upper)
+        print('LAST REPLACED: ', last[0].phenomenon_time_range.upper.replace(tzinfo=UTC_P0100))
+        print('LAST AS: ', last[0].phenomenon_time_range.upper.astimezone(UTC_P0100))
+        '''
