@@ -1,11 +1,11 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "07d5c73debf09db283c282322e7089ff6e1e86a62ceab08ee26eebe036a7472a"
+            "sha256": "8abd97477997a46eedcb1e994ee19b6dc8264ed010ba070f6a8f815f5318a608"
         },
         "pipfile-spec": 6,
         "requires": {
-            "python_version": "3.5"
+            "python_version": "3.6"
         },
         "sources": [
             {
@@ -85,15 +85,16 @@
                 "sha256:24d7f2f94f7f3cb6061acb215685e5125fbcdc40a857eff9de22518820b0a4f4",
                 "sha256:702a91ade2968a82beb0db1e0766a6a273f33d4616a6ce8cde475d8e09853b20"
             ],
+            "markers": "python_version >= '3.0'",
             "version": "==0.5.0"
         },
         "django": {
             "hashes": [
-                "sha256:3d9916515599f757043c690ae2b5ea28666afa09779636351da505396cbb2f19",
-                "sha256:769f212ffd5762f72c764fa648fca3b7f7dd4ec27407198b68e7c4abf4609fd0"
+                "sha256:0c5b65847d00845ee404bbc0b4a85686f15eb3001ffddda3db4e9baa265bf136",
+                "sha256:68aeea369a8130259354b6ba1fa9babe0c5ee6bced505dea4afcd00f765ae38b"
             ],
             "index": "pypi",
-            "version": "==2.0.3"
+            "version": "==2.0.8"
         },
         "django-allauth": {
             "hashes": [
@@ -281,12 +282,9 @@
             "version": "==4.2.1"
         },
         "luminol": {
-            "hashes": [
-                "sha256:59e4b5711eb5e7f02d4be4957edee2cfac3e707c43b177af6e4c4eb050113e67",
-                "sha256:ed0db2936e9d376fee475b77eed6b952decd08bd6b0ca6d8ee8c5b9d8d405b29"
-            ],
-            "index": "pypi",
-            "version": "==0.4"
+            "editable": true,
+            "git": "https://github.com/gis4dis/luminol.git",
+            "ref": "b39e0195b4212972bd69751aa7a101776e1a4a80"
         },
         "minio": {
             "hashes": [
@@ -327,7 +325,7 @@
                 "sha256:f592fd7fe1f20b5041928cce1330937eca62f9058cb41e69c2c2d83cffc0d1e3",
                 "sha256:ffab5b80bba8c86251291b8ce2e6c99a61446459d4c6637f5d5cc8c9ce37c972"
             ],
-            "markers": "python_version != '3.2.*' and python_version != '3.0.*' and python_version != '3.1.*' and python_version != '3.3.*' and python_version >= '2.7'",
+            "markers": "python_version != '3.3.*' and python_version != '3.2.*' and python_version >= '2.7' and python_version != '3.0.*' and python_version != '3.1.*'",
             "version": "==1.15.2"
         },
         "oauthlib": {
@@ -405,6 +403,13 @@
             "index": "pypi",
             "version": "==2.7.4"
         },
+        "pyjwt": {
+            "hashes": [
+                "sha256:30b1380ff43b55441283cc2b2676b755cca45693ae3097325dea01f3d110628c",
+                "sha256:4ee413b357d53fd3fb44704577afac88e72e878716116270d722723d65b42176"
+            ],
+            "version": "==1.6.4"
+        },
         "python-dateutil": {
             "hashes": [
                 "sha256:891c38b2a02f5bb1be3e4793866c8df49c7d19baabf9c1bad62547e0b4866aca",
@@ -418,6 +423,7 @@
                 "sha256:0086da6b6ef3161cfe50fb1ee5cceaf2cda1700019fda03c2c5c440ca6abe4fa",
                 "sha256:628d365d687e12da12d02c6691170f4451db28d6d68d050007e4a40065868502"
             ],
+            "markers": "python_version >= '3.0'",
             "version": "==3.1.0"
         },
         "pytz": {
@@ -482,7 +488,7 @@
                 "sha256:f0521af1b722265d824d6ad055acfe9bd3341765735c44b5a4d0069e189a0f40",
                 "sha256:f25c281f12c0da726c6ed00535ca5d1622ec755c30a3f8eafef26cf43fede694"
             ],
-            "markers": "python_version != '3.2.*' and python_version != '3.0.*' and python_version != '3.1.*' and python_version != '3.3.*' and python_version >= '2.7'",
+            "markers": "python_version != '3.3.*' and python_version != '3.2.*' and python_version >= '2.7' and python_version != '3.0.*' and python_version != '3.1.*'",
             "version": "==1.1.0"
         },
         "six": {
@@ -492,6 +498,23 @@
             ],
             "index": "pypi",
             "version": "==1.11.0"
+        },
+        "social-auth-app-django": {
+            "hashes": [
+                "sha256:25295c94375d28062f65d0b3cd4b7e304c7e2fb7bac1ec51b40650a654c352f4",
+                "sha256:4e34d86709bfa51fd2938307e00f12f4e1dfef8a8ed6bfbfe9aeb4e69d57148f",
+                "sha256:b7c28bef8fbd11ff357ddd885cb219cdb55565e01109c709dd28569e0bfb0dea"
+            ],
+            "index": "pypi",
+            "version": "==2.1.0"
+        },
+        "social-auth-core": {
+            "hashes": [
+                "sha256:273eb5bbeded3cfc178ca7e14f0641165df03133a2f787a6e412f782489d56ba",
+                "sha256:7b393754ab75f6e5176568554f4f7b5cd9e4cb6dab23d9614e5c9e1425f3fcf9",
+                "sha256:eb0d0e29d0cfa729cd52437314d4aeb83806c4d6e7824cbe988195b6a4b85163"
+            ],
+            "version": "==1.7.0"
         },
         "tornado": {
             "hashes": [
