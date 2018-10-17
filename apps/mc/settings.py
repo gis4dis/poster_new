@@ -94,3 +94,39 @@ TOPICS = {
 
     # ...
 }
+
+AGGREGATED_OBSERVATIONS = [
+
+    # dictionary representing set of aggregated observations
+    {
+
+        # mandatory, definition of common.TimeSeries
+        'time_series': {
+
+            # datetime in ISO 8601, see https://en.wikipedia.org/wiki/ISO_8601
+            'zero': '2018-09-19T13:38:31+01:00',
+
+            # time interval in ISO 8601 "format with designators", see https://en.wikipedia.org/wiki/ISO_8601#Durations
+            'frequency': 'PT1H',
+            'range_from': 'PT0S',
+            'range_to': 'PT1H',
+        },
+
+        # dictionary of observation providers
+        # mandatory, at least one provider must be specified
+        'observation_providers': {
+
+            # path to Django model
+            # the model must be subclass of common.AbstractObservation
+            'apps.processing.ala.models.Observation': {
+
+                # mandatory, name_id of common.Process
+                'process': 'measure',
+
+                # mandatory, list of name_ids of common.Property
+                'observed_properties': ['precipitation', 'air_temperature',
+                                        'ground_air_temperature'],
+            },
+        },
+    },
+]
