@@ -12,6 +12,8 @@ from datetime import datetime
 from apps.utils.time import UTC_P0100
 from psycopg2.extras import DateTimeTZRange
 from apps.common.util.util import generate_intervals
+from apps.common.aggregate import aggregate
+from django.db.utils import IntegrityError
 
 #todo - move to util - pouzit jak u api, tak tady?
 def import_models(path):
@@ -29,6 +31,53 @@ def import_models(path):
     except AttributeError as e:
         error_message = 'function not found'
         return provider_model, provider_module, error_message
+
+
+def aggregate_observations(observations, obseervation_model, prop, pt_range, feature_of_interest):
+    print('AGGGREGATTTTTEEEE')
+    print(observations)
+
+    values = list(map(lambda o: o.result, observations))
+    values = list(filter(lambda v: v is not None, values))
+    if (len(values) == 0):
+        result = None
+        result_null_reason = 'only null values'
+    else:
+        result, result_null_reason, process = aggregate(prop, values)
+
+    if result is None:
+        logger.warning(
+            "Result_null_reason of hourly average, "
+            "station {}, property {}, pt_range {}: {}".format(
+                feature_of_interest.id_by_provider,
+                prop.name_id,
+                pt_range,
+                result_null_reason
+            )
+        )
+
+    try:
+        defaults = {
+            'phenomenon_time_range': pt_range,
+            'observed_property': prop,
+            'feature_of_interest': feature_of_interest,
+            'procedure': process,
+            'result': result,
+            'result_null_reason': result_null_reason
+        }
+
+        obs, created = obseervation_model.objects.update_or_create(
+            phenomenon_time_range=pt_range,
+            observed_property=prop,
+            feature_of_interest=feature_of_interest,
+            procedure=process,
+            defaults=defaults
+        )
+
+        obs.related_observations.set(observations)
+    except IntegrityError as e:
+        pass
+
 
 class Command(BaseCommand):
     help = 'recalculation'
@@ -174,10 +223,7 @@ class Command(BaseCommand):
 
                         if from_value and to_value:
                             print('DEFAULT_ZERO')
-                            #default_zero = datetime('2018-09-19T13:38:31+01:00')#.replace(tzinfo=UTC_P0100)
                             default_zero = datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100)
-
-                            print(default_zero)
 
                             t = TimeSeries(
                                 zero=default_zero,
@@ -188,9 +234,6 @@ class Command(BaseCommand):
                                 #range_to=relativedelta('PT1H')
                                 range_to = relativedelta(hours=1)
                             )
-
-                            print('TTTTTTTTTTTTTT')
-                            print(t)
                             t.clean()
 
                             result_slots = generate_intervals(
@@ -206,26 +249,23 @@ class Command(BaseCommand):
 
                             print(result_slots)
 
-                            print('CALCULATE AGGREGATIONS')
+                            for slot in result_slots:
+                                print('CALCULATE AGGREGATIONS')
+                                print('SLOT: ', slot)
+
+                                observations = provider_model.objects.filter(
+                                    observed_property=prop_item,
+                                    procedure=process,
+                                    feature_of_interest=item,
+                                    phenomenon_time_range__contained_by=slot
+                                )
+
+                                ids_to_agg = []
+                                for obs in observations:
+                                    ids_to_agg.append(obs.id)
+
+                                aggregate_observations(observations, provider_model, prop_item, slot, item)
+
+
                         else:
                             print('NEMAM CO POCITAT')
-
-                            
-
-
-
-
-
-
-                        #minimum = obss.aggregate(Max('phenomenon_time_range'))
-                        #obss.order_by('phenomenon_time_range__lower')
-                        #print(popular)
-
-
-                        #maximum = obss.aggregate(Max('updated_at'))
-                        #print('minimum: ', minimum)
-
-
-                        #print('OOOOOOOOOOOOOOOOOOOOOOO')
-                        #print(obss)
-
