@@ -17,7 +17,9 @@ RUN pip install pipenv
 
 ADD Pipfile /code/
 ADD Pipfile.lock /code/
+ADD . /code/
+
 
 RUN pipenv install --system
 
-ADD . /code/
+ENV PYTHONPATH "${PYTHONPATH}:/code/src"
