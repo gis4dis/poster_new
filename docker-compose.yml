@@ -7,7 +7,7 @@ services:
     container_name: poster-web
     build: .
     image: poster-web:latest
-    command: bash -c "./buildpack-run.sh; pipenv run python manage.py collectstatic --no-input; pipenv run python manage.py runserver 0.0.0.0:8000"
+    command: bash -c "./buildpack-run.sh; python manage.py collectstatic --no-input; python manage.py runserver 0.0.0.0:8000"
     ports:
       - 8000:8000
     env_file: .env
