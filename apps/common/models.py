@@ -87,6 +87,7 @@ class TimeSeries(models.Model):
 
 
 
+
 class Topic(models.Model):
     """Process used to generate the result, e.g. measurement or
     hourly average."""
