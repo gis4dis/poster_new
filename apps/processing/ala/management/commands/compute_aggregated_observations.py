@@ -11,6 +11,7 @@ from apps.common.util.util import generate_intervals
 from apps.common.aggregate import aggregate
 from django.db.utils import IntegrityError
 from django.utils.dateparse import parse_datetime
+from dateutil.parser import parse
 
 
 def import_models(path):
@@ -30,13 +31,11 @@ def import_models(path):
         return provider_model, provider_module, error_message
 
 
-def aggregate_observations(observations, obseervation_model, prop, pt_range, feature_of_interest):
-    print('AGG CALC')
+def aggregate_observations(observations, observation_model, prop, pt_range, feature_of_interest):
     values = list(map(lambda o: o.result, observations))
     values = list(filter(lambda v: v is not None, values))
     if (len(values) == 0):
-        result = None
-        result_null_reason = 'only null values'
+        return None
     else:
         result, result_null_reason, process = aggregate(prop, values)
 
@@ -61,7 +60,7 @@ def aggregate_observations(observations, obseervation_model, prop, pt_range, fea
             'result_null_reason': result_null_reason
         }
 
-        obs, created = obseervation_model.objects.update_or_create(
+        obs, created = observation_model.objects.update_or_create(
             phenomenon_time_range=pt_range,
             observed_property=prop,
             feature_of_interest=feature_of_interest,
@@ -74,10 +73,18 @@ def aggregate_observations(observations, obseervation_model, prop, pt_range, fea
         pass
 
 
+#TODO aggregate_updated_since
+
+#TODO který bude typu datetime (UTC +1). Defaultní hodnota bude None.
+#TODO Pokud bude zadán (nebude None), použije se v rámci tasku compute_aggregated_observations namísto hodnoty MAX(updated_at).
 class Command(BaseCommand):
     help = 'recalculation'
 
+    def add_arguments(self, parser):
+        parser.add_argument('aggregate_updated_since', nargs='?', type=parse_datetime, default=None)
+
     def handle(self, *args, **options):
+        aggregate_updated_since = options['aggregate_updated_since']
         agg_providers_list = settings.APPLICATION_MC.AGGREGATED_OBSERVATIONS
 
         for agg_provider in agg_providers_list:
@@ -101,7 +108,6 @@ class Command(BaseCommand):
             op_config = agg_provider.get('observation_providers')
 
             for provider in op_config:
-                print('calculate provider: ', provider)
 
                 provider_module, provider_model, error_message = import_models(provider)
                 if error_message:
@@ -123,8 +129,6 @@ class Command(BaseCommand):
                 observed_properties = op_config[provider]["observed_properties"]
                 for observed_property in observed_properties:
                     prop_item = Property.objects.get(name_id=observed_property)
-                    print('--')
-                    print('OBSERVED_PROPERTY: ', observed_property)
 
                     all_features = feature_of_interest_model.objects.all()
                     for item in all_features:
@@ -133,10 +137,6 @@ class Command(BaseCommand):
                         max_updated_at = None
                         from_value = None
                         to_value = None
-
-                        print('=====ITEM====')
-                        print(item)
-
 
                         range_to_limit_observation = provider_model.objects.filter(
                             observed_property=prop_item,
@@ -169,10 +169,11 @@ class Command(BaseCommand):
                             feature_of_interest=item
                         ).order_by('-updated_at')[:1]
 
-                        print(max_updated_at_observation)
 
-                        if max_updated_at_observation:
+                        if max_updated_at_observation and not aggregate_updated_since:
                             max_updated_at = max_updated_at_observation[0].updated_at
+                        elif aggregate_updated_since:
+                            max_updated_at = aggregate_updated_since
 
                         if max_updated_at:
                             from_observation = provider_model.objects.filter(
@@ -183,8 +184,6 @@ class Command(BaseCommand):
                             ).annotate(
                                 field_lower=Func(F('phenomenon_time_range'), function='LOWER')
                             ).order_by('field_lower')[:1]
-
-                            print(from_observation)
 
                             if from_observation:
                                from_value = from_observation[0].phenomenon_time_range.lower
@@ -208,8 +207,8 @@ class Command(BaseCommand):
                         if from_value and to_value:
                             from_value = from_value.astimezone(UTC_P0100)
                             to_value = to_value.astimezone(UTC_P0100)
-                            range_from_limit = range_from_limit.astimezone(UTC_P0100)
-                            range_to_limit = range_to_limit.astimezone(UTC_P0100)
+                            #range_from_limit = range_from_limit.astimezone(UTC_P0100)
+                            #range_to_limit = range_to_limit.astimezone(UTC_P0100)
 
                             result_slots = generate_intervals(
                                 timeseries=t,
