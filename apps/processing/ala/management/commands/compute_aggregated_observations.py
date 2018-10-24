@@ -6,12 +6,15 @@ from apps.common.models import Property, Process
 logger = logging.getLogger(__name__)
 from django.db.models import F, Func
 from apps.common.models import TimeSeries
-from apps.utils.time import UTC_P0100
 from apps.common.util.util import generate_intervals
 from apps.common.aggregate import aggregate
 from django.db.utils import IntegrityError
 from django.utils.dateparse import parse_datetime
-from dateutil.parser import parse
+
+from celery.task import task, group
+from celery.utils.log import get_task_logger
+from apps.utils.time import UTC_P0100
+logger = get_task_logger(__name__)
 
 
 def import_models(path):
@@ -72,19 +75,21 @@ def aggregate_observations(observations, observation_model, prop, pt_range, feat
     except IntegrityError as e:
         pass
 
+#TODO pokud se posle bez casove zony, tak by mel predpokladat ze to je v UTC +1 !!!!
+#TODO overit pro tu alu
 
-#TODO aggregate_updated_since
+from apps.mc.tasks import compute_aggregated_values
 
-#TODO který bude typu datetime (UTC +1). Defaultní hodnota bude None.
-#TODO Pokud bude zadán (nebude None), použije se v rámci tasku compute_aggregated_observations namísto hodnoty MAX(updated_at).
 class Command(BaseCommand):
     help = 'recalculation'
 
     def add_arguments(self, parser):
-        parser.add_argument('aggregate_updated_since', nargs='?', type=parse_datetime, default=None)
+        parser.add_argument('aggregate_updated_since', nargs='?', default=None)
 
     def handle(self, *args, **options):
-        aggregate_updated_since = options['aggregate_updated_since']
+        compute_aggregated_values.apply_async(kwargs={'aggregate_updated_since_datetime':(options['aggregate_updated_since'])})
+        return False
+
         agg_providers_list = settings.APPLICATION_MC.AGGREGATED_OBSERVATIONS
 
         for agg_provider in agg_providers_list:
@@ -186,7 +191,7 @@ class Command(BaseCommand):
                             ).order_by('field_lower')[:1]
 
                             if from_observation:
-                               from_value = from_observation[0].phenomenon_time_range.lower
+                                from_value = from_observation[0].phenomenon_time_range.lower
 
                             to_observation = provider_model.objects.filter(
                                 observed_property=prop_item,
@@ -230,4 +235,4 @@ class Command(BaseCommand):
                                 for obs in observations:
                                     ids_to_agg.append(obs.id)
 
-                                aggregate_observations(observations, provider_model, prop_item, slot, item)
+                                #aggregate_observations(observations, provider_model, prop_item, slot, item)

@@ -1,84 +1,20 @@
 from __future__ import absolute_import, unicode_literals
-
-from datetime import date, timedelta
-
-from celery.task import task, group
-from celery.utils.log import get_task_logger
-
-from django.core.management import call_command
-
-from apps.processing.ala.models import SamplingFeature
-from apps.processing.ala.util import util
-
-
-from django.utils.dateparse import parse_datetime
-from apps.utils.time import UTC_P0100
-
-logger = get_task_logger(__name__)
-
-
-@task(name="ala.import_all_stations")
-def import_all_stations(day=None):
-    stations = util.get_or_create_stations()
-
-    try:
-        # Call another Celery tasks as GROUP. For more info see Celery documentation.
-        g = group(import_station.s(station.pk, day) for station in stations)
-        g.apply_async()
-    except Exception as e:
-        logger.error(e)
-
-
-@task(name="ala.import_single_station")
-def import_station(station_id, day):
-
-    if day is None:
-        day = date.today() - timedelta(1)
-
-    try:
-        station = SamplingFeature.objects.get(pk=station_id)
-        logger.info('Importing data of {} ALA stations from {}.'.format(station, day))
-
-        util.load(station, day)
-        util.create_avgs(station, day)
-    except SamplingFeature.DoesNotExist as e:
-        logger.error(e)
-    except Exception as e:
-        logger.error(e)
-
-@task(name="ala.import")
-def import_default():
-    try:
-        call_command('ala_import')
-    except Exception as e:
-        logger.error(e)
-
-
-
-
-
-
-
-
-
-
-
-import logging
-from django.conf import settings
 from importlib import import_module
-from apps.common.models import Property, Process
-logger = logging.getLogger(__name__)
+
+from django.conf import settings
 from django.db.models import F, Func
-from apps.common.models import TimeSeries
-from apps.common.util.util import generate_intervals
-from apps.common.aggregate import aggregate
 from django.db.utils import IntegrityError
 from django.utils.dateparse import parse_datetime
 
-from celery.task import task, group
+from celery.task import task
 from celery.utils.log import get_task_logger
-from apps.utils.time import UTC_P0100
 logger = get_task_logger(__name__)
+
+from apps.common.models import Property, Process
+from apps.common.models import TimeSeries
+from apps.common.util.util import generate_intervals
+from apps.common.aggregate import aggregate
+from apps.utils.time import UTC_P0100
 
 
 def import_models(path):
@@ -140,8 +76,8 @@ def aggregate_observations(observations, observation_model, prop, pt_range, feat
         pass
 
 
-@task(name="ala.compute_aggregated")
-def compute_aggregated(aggregate_updated_since_datetime):
+@task(name="mc.compute_aggregated_values")
+def compute_aggregated_values(aggregate_updated_since_datetime):
     aggregate_updated_since = None
     if aggregate_updated_since_datetime:
         aggregate_updated_since = aggregate_updated_since_datetime
