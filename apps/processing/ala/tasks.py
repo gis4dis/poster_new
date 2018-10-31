@@ -10,7 +10,6 @@ from django.core.management import call_command
 from apps.processing.ala.models import SamplingFeature
 from apps.processing.ala.util import util
 
-
 logger = get_task_logger(__name__)
 
 
