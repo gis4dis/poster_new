@@ -4,6 +4,9 @@ import os
 import sys
 import apps.mc.settings as MC_SETTINGS
 
+if len(sys.argv) > 1 and sys.argv[1] == 'test':
+    import apps.mc.settings_test as MC_SETTINGS
+
 # Basic environ configuration to get all environment variables
 
 root = environ.Path(__file__) - 2            # two folder back (/a/b/c/ - 2 = /a/)

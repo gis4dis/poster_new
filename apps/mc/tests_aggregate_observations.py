@@ -37,8 +37,10 @@ def create_station(key):
         )
     )
 
-VALUES_A = [9.0, 9.0, 9.0, 9.1, 9.1, 9.1, 9.1, 9.1, 9.2, 9.1, 9.3, 9.3, 9.3, 9.2, 9.1, 9.1, 9.2, 9.2]
-DATETIME_A = parse_datetime('2018-10-28T00:00:00+01:00')
+
+VALUES_28_9_2018 = [9.0, 9.0, 9.0, 9.1, 9.1, 9.1, 9.1, 9.1, 9.2, 9.1, 9.3, 9.3, 9.3, 9.2, 9.1, 9.1, 9.2, 9.2]
+AGG_VALUES_28_2018 = [9.050, 9.183, 9.183]
+DATETIME_28_2018 = parse_datetime('2018-10-28T00:00:00+01:00')
 
 VALUES_29_9_2018 = [9.000, 9.000, 9.000, 9.100, 9.100, 9.100, 9.100, 9.100, 9.200, 9.100, 9.300, 9.300, 9.300, 9.200, 9.100, 9.100, 9.200, 9.200, 9.300, 9.300, 9.300, 9.200, 9.200, 9.300, 9.300, 9.300, 9.400, 9.500, 9.500, 9.500, 9.300, 9.300, 9.300, 9.400, 9.400, 9.400, 9.500, 9.500, 9.600, 9.700, 9.800, 9.800, 10.000, 10.200, 10.300, 10.300, 10.000, 10.000, 9.800, 10.000, 10.100, 10.200, 10.300, 10.500, 10.600, 10.800, 11.000, 11.100, 11.300, 11.400, 11.500, 11.600, 11.700, 11.900, 12.100, 12.300, 12.500, 12.700, 13.000, 13.500, 14.200, 15.300, 14.900, 14.800, 15.100, 14.900, 15.500, 15.500, 15.500, 15.300, 15.500, 16.500, 17.000, 17.000, 17.100, 17.500, 17.500, 17.600, 17.600, 17.600, 17.500, 17.400, 17.300, 17.400, 17.300, 17.000, 17.000, 17.000, 17.000, 17.000, 17.000, 17.200, 17.300, 17.400, 17.300, 17.400, 17.500, 17.600, 17.700, 17.800, 17.800, 17.800, 18.000, 18.100, 17.800, 18.100, 18.000, 17.800, 17.600, 17.700, 17.900, 17.800, 17.800, 17.900, 17.700, 17.800, 17.900, 17.800, 17.600, 17.700, 17.500, 17.400, 17.500, 17.500, 17.500, 17.500, 17.400, 17.600, 17.300, 17.200, 17.300, 17.200, 17.300, 17.500]
 AGG_VALUES_29_2018 = [9.050, 9.183, 9.183, 9.267, 9.417, 9.350, 9.650, 10.133, 10.150, 11.033, 11.850, 13.533, 15.117, 16.133, 17.483, 17.317, 17.033, 17.417, 17.867, 17.833, 17.817, 17.650, 17.500, 17.300]
@@ -68,11 +70,9 @@ def createObservations(
         )
         time_from = time_from + timedelta(minutes=10)
 
-    print(Observation.objects.all())
 
 
-
-class RestApiTestCase(TestCase):
+class AggregateObservationsTestCase(TestCase):
     def setUp(self):
         am_process = Process.objects.create(
             name_id='apps.common.aggregate.arithmetic_mean',
@@ -112,26 +112,24 @@ class RestApiTestCase(TestCase):
             measuring_process,
             station,
             at_prop,
-            VALUES_A,
-            DATETIME_A
+            VALUES_28_9_2018,
+            DATETIME_28_2018
         )
 
-
-    def test_db_import(self):
+    def test_initial_aggregation(self):
         compute_aggregated_values(None)
 
-        p = Process.objects.get(name_id='apps.common.aggregate.arithmetic_mean')
-
-        agg_obs = Observation.objects.filter(procedure=p).annotate(
+        agg_obs = Observation.objects.filter(
+            procedure=Process.objects.get(name_id='apps.common.aggregate.arithmetic_mean')
+        ).annotate(
             field_lower=Func(F('phenomenon_time_range'), function='LOWER')
         ).order_by('field_lower')
 
         result_list = [float(entry.result) for entry in agg_obs]
 
-        expected = [9.050, 9.183, 9.183]
-        self.assertEqual(result_list, expected)
+        self.assertEqual(result_list, AGG_VALUES_28_2018)
 
-    def test_db_import(self):
+    def test_additional_import(self):
         createObservations(
             Process.objects.get(name_id='measure'),
             SamplingFeature.objects.get(id_by_provider='11359201'),
@@ -142,16 +140,12 @@ class RestApiTestCase(TestCase):
 
         compute_aggregated_values(None)
 
-        p = Process.objects.get(name_id='apps.common.aggregate.arithmetic_mean')
-
         agg_obs = Observation.objects.filter(
-            procedure=p
+            procedure=Process.objects.get(name_id='apps.common.aggregate.arithmetic_mean')
         ).annotate(
             field_lower=Func(F('phenomenon_time_range'), function='LOWER')
         ).order_by('field_lower')
 
         result_list = [float(entry.result) for entry in agg_obs]
 
-        expected = [9.050, 9.183, 9.183] + AGG_VALUES_29_2018
-
-        self.assertEqual(result_list, expected)
+        self.assertEqual(result_list, AGG_VALUES_28_2018 + AGG_VALUES_29_2018)
