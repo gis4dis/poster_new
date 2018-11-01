@@ -4,8 +4,6 @@ logger = logging.getLogger(__name__)
 from apps.mc.tasks import compute_aggregated_values
 
 
-#TODO unit tests
-#TODO overit agregace ve srovnani s puvodnim agg metodou v importu ala
 class Command(BaseCommand):
     help = 'Calculation of aggregated values'
 
