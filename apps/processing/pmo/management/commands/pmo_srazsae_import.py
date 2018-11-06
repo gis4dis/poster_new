@@ -29,8 +29,8 @@ class Command(BaseCommand):
         day_from, day_to = options['date_range']
         srazsae_import(path, day_from, day_to)
 
+#todo CHYBEJICI STANICE: id_by_provider - 155 (slozka 20180409)
 def srazsae_import(path, day_from, day_to):
-
     # WeatherObservation.objects.all().delete()
 
     if day_from is None or day_to is None:
@@ -40,14 +40,16 @@ def srazsae_import(path, day_from, day_to):
     measure = Process.objects.get(name_id="measure")
     air_temperature = Property.objects.get(name_id="air_temperature")
     precipitation = Property.objects.get(name_id="precipitation")
-
     content = tuple(default_storage.listdir(path))
+
     for con in content:
         folder_name = os.path.basename(os.path.dirname(con.object_name))
         try:
             date_from_name = datetime.strptime(folder_name, "%Y%m%d")
+
             if(day_from <= date_from_name < day_to):
                 files = tuple(default_storage.listdir(con.object_name))
+                print('FILES: ', files)
                 for f in files:
                     file_name = os.path.basename(f.object_name)
                     if(file_name == "srazsae.dat"):
@@ -61,27 +63,27 @@ def srazsae_import(path, day_from, day_to):
                         rows = list(reader)
                         
                         for rid_x, row in enumerate(rows, 1):
-                            weather_station = WeatherStation.objects.get_or_create(
-                                id_by_provider=row[0],
-                                name=row[0]
-                                )[0]
+                            try:
+                                weather_station = WeatherStation.objects.get(id_by_provider=row[0])
+                                parsed = parse(row[2] + " " + row[3])
+                                time = parsed.astimezone(UTC_P0100)
+                                if row[1] == '32':
+                                    dt_range = DateTimeTZRange(time, time, bounds="[]")
+                                    observed_property = air_temperature
+                                else:
+                                    observed_property = precipitation
+                                    dt_range = DateTimeTZRange(time, time + timedelta(hours=1),
+                                                               bounds="[)")
 
-                            parsed = parse(row[2] + " " + row[3])
-                            time = parsed.astimezone(UTC_P0100) 
-                            if row[1] == '32':
-                                dt_range = DateTimeTZRange(time, time, bounds="[]")
-                                observed_property = air_temperature
-                            else:
-                                observed_property = precipitation
-                                dt_range = DateTimeTZRange(time, time + timedelta(hours=1), bounds="[)")
-                
-                            WeatherObservation.objects.get_or_create(
-                                phenomenon_time_range=dt_range,
-                                observed_property=observed_property,
-                                feature_of_interest=weather_station,
-                                procedure=measure,
-                                result=row[5]
-                            )
+                                WeatherObservation.objects.get_or_create(
+                                    phenomenon_time_range=dt_range,
+                                    observed_property=observed_property,
+                                    feature_of_interest=weather_station,
+                                    procedure=measure,
+                                    result=row[5]
+                                )
+                            except WeatherStation.DoesNotExist:
+                                print('Error STATION WITH ID NOT FOUND: ', row[0])
             else:
                 continue
         except Exception as e: 

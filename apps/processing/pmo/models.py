@@ -37,7 +37,18 @@ class WatercourseObservation(AbstractObservation):
                             
 
 class WeatherStation(AbstractFeature):
-    geometry = None
+    geometry = models.PointField(
+        help_text="Spatial information about station.",
+        srid=3857,
+        null=True
+    )
+
+    basin = models.CharField(
+        help_text="Human-readable name of the basin.",
+        max_length=150,
+        null = True
+    )
+
 
 class WeatherObservation(AbstractObservation):
     feature_of_interest = models.ForeignKey(

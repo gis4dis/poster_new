@@ -2,7 +2,7 @@ import logging
 from django.core.management.base import BaseCommand
 from django.core.files.storage import default_storage
 import csv
-from apps.processing.pmo.models import WatercourseStation
+from apps.processing.pmo.models import WeatherStation
 from django.contrib.gis.geos import GEOSGeometry, Point
 import io
 import re
@@ -28,13 +28,11 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--path', nargs='?', type=str,
-                            default='/apps.processing.pmo/stanice_tok.csv')
+                            default='/import/apps.processing.pmo/stanice_meteo.csv')
 
 
     def handle(self, *args, **options):
         path = options['path']
-
-        print('default_storage.exists(path):: ', default_storage.exists(path))
 
         if default_storage.exists(path):
             csv_file = default_storage.open(name=path, mode='r')
@@ -47,7 +45,7 @@ class Command(BaseCommand):
             for rid_x, row in enumerate(rows, 1):
                 id_by_prov = row[0]
                 name = row[1]
-                watercourse = row[2]
+                basin = row[2]
 
                 (degree, minute, second, ms) = parse_dms(row[3])
                 lat = (int(degree) + float(minute) / 60 + float(second) / 3600 + float(ms) / 36000)
@@ -67,10 +65,10 @@ class Command(BaseCommand):
                         'id_by_provider': id_by_prov,
                         'name': name,
                         'geometry': geom,
-                        'watercourse': watercourse
+                        'basin': basin
                     }
 
-                    WatercourseStation.objects.update_or_create(
+                    WeatherStation.objects.update_or_create(
                         id_by_provider=id_by_prov,
                         defaults=defaults
                     )
