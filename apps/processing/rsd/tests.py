@@ -12,6 +12,7 @@ from apps.processing.rsd.management.commands.import_categories import import_cat
 from apps.processing.rsd.management.commands.import_number_of_events import import_number_of_events
 from apps.processing.rsd.testing.provider_logs import import_provider_logs
 import pytz
+from apps.utils.test_util import copy_test_files
 
 # ./dcmanage.sh test
 # ./dcmanage.sh test apps.processing.rsd.tests.ImportEventsTestCase.test_number_of_events
@@ -31,6 +32,7 @@ def import_events_test():
 
 class ImportEventsTestCase(TestCase):
     def setUp(self):
+        copy_test_files()
 
         import_towns('test/apps.processing.rsd/obce_4326_vyber.shp')
         import_towns('test/apps.processing.rsd/momc_4326_vyber.shp')
