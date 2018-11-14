@@ -28,7 +28,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--path', nargs='?', type=str,
-                            default='/apps.processing.pmo/stanice_tok.csv')
+                            default='/import/apps.processing.pmo/stanice_tok.csv')
 
     def handle(self, *args, **options):
         path = options['path']
