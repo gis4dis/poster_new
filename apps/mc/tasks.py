@@ -15,6 +15,7 @@ from apps.common.models import TimeSeries
 from apps.common.util.util import generate_intervals
 from apps.common.aggregate import aggregate
 from apps.utils.time import UTC_P0100
+from django.utils import timezone
 
 
 def import_models(path):
@@ -77,7 +78,7 @@ def aggregate_observations(observations, observation_model, prop, pt_range, feat
 
 
 @task(name="mc.compute_aggregated_values")
-def compute_aggregated_values(aggregate_updated_since_datetime):
+def compute_aggregated_values(aggregate_updated_since_datetime=None):
     aggregate_updated_since = None
     if aggregate_updated_since_datetime:
         aggregate_updated_since = aggregate_updated_since_datetime
