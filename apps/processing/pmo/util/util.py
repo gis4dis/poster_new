@@ -92,9 +92,6 @@ def load_srazsae(day, basedir=basedir_def):
 
             except WeatherStation.DoesNotExist:
                 print('Error STATION WITH ID NOT FOUND: ', row[0])
-
-
-
     else:
         logger.error("Error file path: %s not found", path)
 

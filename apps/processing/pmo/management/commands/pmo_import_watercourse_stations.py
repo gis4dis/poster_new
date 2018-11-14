@@ -33,8 +33,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         path = options['path']
 
-        print('default_storage.exists(path):: ', default_storage.exists(path))
-
         if default_storage.exists(path):
             csv_file = default_storage.open(name=path, mode='r')
             foo = csv_file.data.decode('utf-8')
