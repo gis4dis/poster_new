@@ -1,46 +1,107 @@
 # coding=utf-8
 import logging
-from datetime import timedelta, datetime
 from django.db.utils import IntegrityError
 from apps.common.models import Process, Property
-from apps.utils.obj import *
 from psycopg2.extras import DateTimeTZRange
 from dateutil.parser import parse
 from dateutil import relativedelta
-from datetime import date, timedelta, datetime
+from datetime import timedelta, datetime
 from django.core.files.storage import default_storage
 import csv
-from apps.processing.pmo.models import WatercourseObservation, WatercourseStation
 import io
+
+from apps.processing.pmo.models import WatercourseObservation, WatercourseStation
+from apps.common.util.util import get_or_create_processes, get_or_create_props
+from apps.processing.pmo.models import WeatherStation, WeatherObservation
+from apps.utils.time import UTC_P0100
 
 logger = logging.getLogger(__name__)
 
-props_def = [
-    ('water_level', {"name": 'water level', 'unit': 'm'}),
-    ('stream_flow', {"name": 'stream flow', 'unit': 'm³/s'})
-]
+basedir_def = '/import/apps.processing.pmo/'
 
 props_data_types = {
     '17': 'water_level',
     '29': 'stream_flow'
 }
 
-processes_def = [
-    ('measure', {'name': u'measuring'})
-]
 
-basedir_def = '/import/apps.processing.pmo/'
+def load_srazsae(day, basedir=basedir_def):
+    day = day.strftime("%Y%m%d")
+
+    get_or_create_processes()
+    get_or_create_props()
+    measure = Process.objects.get(name_id="measure")
+    air_temperature = Property.objects.get(name_id="air_temperature")
+    precipitation = Property.objects.get(name_id="precipitation")
+
+    path = basedir + day + '/srazsae.dat'
+
+    if default_storage.exists(path):
+        csv_file = default_storage.open(name=path, mode='r')
+        foo = csv_file.data.decode('utf-8')
+        reader = csv.reader(io.StringIO(foo), delimiter=" ")
+        rows = list(reader)
+
+        for rid_x, row in enumerate(rows, 1):
+            try:
+                result = row[5]
+                station_id = row[0]
+                weather_station = WeatherStation.objects.get(id_by_provider=station_id)
+                parsed = parse(row[2] + " " + row[3])
+                time = parsed.astimezone(UTC_P0100)
+
+                print(row[1])
+
+                if row[1] == '32':
+                    print('AAAAAAAAAAAAAAAAAAAAAAAAAA')
+                    dt_range = DateTimeTZRange(time, time, bounds="[]")
+                    observed_property = air_temperature
+                else:
+                    observed_property = precipitation
+                    dt_range = DateTimeTZRange(time, time + timedelta(hours=1),
+                                               bounds="[)")
+
+                try:
+                    defaults = {
+                        'phenomenon_time_range': dt_range,
+                        'observed_property': observed_property,
+                        'feature_of_interest': weather_station,
+                        'procedure': measure,
+                        'result': result
+                    }
+
+                    WeatherObservation.objects.update_or_create(
+                        phenomenon_time_range=dt_range,
+                        observed_property=observed_property,
+                        feature_of_interest=weather_station,
+                        procedure=measure,
+                        defaults=defaults
+                    )
+
+                except IntegrityError as e:
+                    print(row)
+                    logger.warning(
+                        "Error in creating srazsae observation from station_id {},"
+                        "measure_date {}, measure_id {}".format(
+                            station_id,
+                            time,
+                            row[4]
+                        )
+                    )
+                    pass
+
+            except WeatherStation.DoesNotExist:
+                print('Error STATION WITH ID NOT FOUND: ', row[0])
 
 
-def get_or_create_props():
-    return get_or_create_objs(Property, props_def, 'name_id')
+
+    else:
+        logger.error("Error file path: %s not found", path)
 
 
-def get_or_create_processes():
-    return get_or_create_objs(Process, processes_def, 'name_id')
 
 
-def load(day):
+def load_hod(day):
 
     day = day.strftime("%Y%m%d")
 
@@ -116,7 +177,7 @@ def load(day):
                                 'result_null_reason': result_null_reason
                             }
 
-                            obs, created = WatercourseObservation.objects.update_or_create(
+                            WatercourseObservation.objects.update_or_create(
                                 phenomenon_time_range=pt_range,
                                 observed_property=observed_property,
                                 feature_of_interest=station,
@@ -142,7 +203,6 @@ def load(day):
                     logger.error('Unknown measure code %s', code)
     else:
         logger.error("Error file path: %s not found", path)
-
 
 
 def parse_date_range(date_str):

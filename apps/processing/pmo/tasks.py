@@ -28,17 +28,27 @@ def get_last_record():
 basedir_def = '/import/apps.processing.pmo/'
 
 
-@task(name="pmo.import_observation")
-def import_observation(date_str):
+@task(name="pmo.import_hod_observation")
+def import_hod_observation(date_str):
     date = datetime.strptime(date_str, "%Y%m%d").date()
     logger.info('Importing file: ' + str(date))
-    util.load(date)
+    util.load_hod(date)
 
+
+@task(name="pmo.import_srazsae_observation")
+def import_srazsae_observation(date_str):
+    date = datetime.strptime(date_str, "%Y%m%d").date()
+    logger.info('Importing file: ' + str(date))
+    util.load_srazsae(date)
+
+
+#TODO rozdelit na samostatne zjisteni posledniho importu - zvlast pro pocasi a vodocet
 
 @task(name="pmo.import_observations")
 def import_observations():
     last_record = get_last_record()
-    dates_to_import = []
+    watercourse_dates_to_import = []
+    srazsae_dates_to_import = []
 
     if last_record is not None:
         start_day = last_record.phenomenon_time_range.lower
@@ -54,22 +64,35 @@ def import_observations():
 
         while day < day_to:
             day_str = day.strftime("%Y%m%d")
-            path = basedir_def + day_str + '/HOD.dat'
-            if default_storage.exists(path):
-                dates_to_import.append(day_str)
+            if default_storage.exists(basedir_def + day_str + '/HOD.dat'):
+                watercourse_dates_to_import.append(day_str)
+
+            if default_storage.exists(basedir_def + day_str + '/srazsae.dat'):
+                srazsae_dates_to_import.append(day_str)
+
             day += timedelta(1)
     else:
         listed = default_storage.listdir(basedir_def)
         for filename in listed:
             if filename.is_dir:
                 folder_path = filename.object_name
-                path = folder_path + '/HOD.dat'
-                if default_storage.exists(path):
+
+                if default_storage.exists(folder_path + '/HOD.dat'):
                     day_str = filename.object_name.strip("/").split('/')[-1]
-                    dates_to_import.append(day_str)
+                    watercourse_dates_to_import.append(day_str)
+
+                if default_storage.exists(folder_path + '/srazsae.dat'):
+                    day_str = filename.object_name.strip("/").split('/')[-1]
+                    srazsae_dates_to_import.append(day_str)
 
     try:
-        g = group(import_observation.s(date) for date in dates_to_import)
+        g = group(import_hod_observation.s(date) for date in watercourse_dates_to_import)
+        g.apply_async()
+    except Exception as e:
+        logger.error(e)
+
+    try:
+        g = group(import_srazsae_observation.s(date) for date in srazsae_dates_to_import)
         g.apply_async()
     except Exception as e:
         logger.error(e)

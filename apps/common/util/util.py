@@ -108,6 +108,14 @@ props_def = [
         "name": 'number of emerged events',
         'unit': ''
     }),
+    ('water_level', {
+        "name": 'water level',
+        'unit': 'm'
+    }),
+    ('stream_flow', {
+        "name": 'stream flow',
+        'unit': 'm³/s'
+    })
 ]
 
 processes_def = [

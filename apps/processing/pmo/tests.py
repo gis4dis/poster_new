@@ -1,22 +1,26 @@
 from django.test import TestCase
-from apps.common.models import Process, Property
-from apps.common.util.util import get_or_create_processes, get_or_create_props
 from apps.processing.pmo.models import WeatherStation, WeatherObservation
 from psycopg2.extras import DateTimeTZRange
-from datetime import timedelta, datetime, date
-from apps.processing.pmo.management.commands.pmo_srazsae_import import srazsae_import
+from datetime import datetime
 import pytz
 from apps.utils.test_util import copy_test_files
+from apps.processing.pmo.util import util
+
 
 # ./dcmanage.sh test apps.processing.pmo
-
 class SrazsaeImportTestCase(TestCase):
     def setUp(self):
         copy_test_files()
-        path = "/test/apps.processing.pmo/"
-        day_from = datetime(2017, 11, 24)
-        day_to = datetime(2017, 11, 25)
-        srazsae_import(path, day_from, day_to)
+
+        WeatherStation.objects.create(
+            id_by_provider='001',
+            name='',
+            geometry=None,
+            basin=''
+        )
+
+        date = datetime(2017, 11, 24)
+        util.load_srazsae(date, "/test/apps.processing.pmo/")
 
     def test_srazsae_import(self):
         # check import number of observations
