@@ -17,6 +17,7 @@ before_install:
   - docker -v
 
 script:
+  - cp example.env .env
   - bash dcmanage.sh test
 
 after_failure:
