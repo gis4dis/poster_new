@@ -50,10 +50,7 @@ def load_srazsae(day, basedir=basedir_def):
                 parsed = parse(row[2] + " " + row[3])
                 time = parsed.astimezone(UTC_P0100)
 
-                print(row[1])
-
                 if row[1] == '32':
-                    print('AAAAAAAAAAAAAAAAAAAAAAAAAA')
                     dt_range = DateTimeTZRange(time, time, bounds="[]")
                     observed_property = air_temperature
                 else:
@@ -79,7 +76,6 @@ def load_srazsae(day, basedir=basedir_def):
                     )
 
                 except IntegrityError as e:
-                    print(row)
                     logger.warning(
                         "Error in creating srazsae observation from station_id {},"
                         "measure_date {}, measure_id {}".format(
@@ -94,8 +90,6 @@ def load_srazsae(day, basedir=basedir_def):
                 print('Error STATION WITH ID NOT FOUND: ', row[0])
     else:
         logger.error("Error file path: %s not found", path)
-
-
 
 
 def load_hod(day):
