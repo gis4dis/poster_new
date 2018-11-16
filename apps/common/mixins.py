@@ -15,7 +15,11 @@ class JSONResponseMixin:
         status = 200
 
         try:
-            data = self.perform_check(context)
+            check = self.perform_check(context)
+            if not check:
+                data = {}
+            else:
+                status, data = check
         except Exception as e:
             data = {"error": str(e)}
             status = 503
@@ -34,7 +38,7 @@ class JSONResponseMixin:
         # to do much more complex handling to ensure that arbitrary
         # objects -- such as Django model instances or querysets
         # -- can be serialized as JSON.
-        return context
+        return 200, context
 
 
 class MonitoringView(JSONResponseMixin, TemplateView):
