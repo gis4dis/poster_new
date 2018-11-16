@@ -6,11 +6,18 @@ from django.views.generic import TemplateView
 from apps.common.routers import CustomRouter
 from apps.mc.api.urls import router as mc_router
 
-# ===== BEGIN API PATTERNS =====
-router = CustomRouter()
-router.extend(mc_router)
+# ===== MONITORING API PATTERNS =====
+monitoring_patterns = (
+    [
+        url(r'pmo', include('apps.processing.pmo.monitoring.urls')),
+    ]
+    , 'monitoring')
 
-api_patterns = ([url(r'^', include(router.urls)), ], 'api')
+# ===== BEGIN API PATTERNS =====
+api_router = CustomRouter()
+api_router.extend(mc_router)
+
+api_patterns = ([url(r'^', include(api_router.urls)), ], 'api')
 
 # ===== BEGIN URL PATTERNS =====
 urlpatterns = []
@@ -18,6 +25,8 @@ urlpatterns = []
 # ===== INCLUDE API PATTERNS =====
 urlpatterns += [
     path('api/v2/', include(api_patterns)),
+
+    path('api/monitoring/', include(monitoring_patterns)),
 ]
 
 # ===== INCLUDE STANDARD PATTERNS =====
