@@ -5,8 +5,8 @@ from luminol.anomaly_detector import AnomalyDetector
 
 def get_timeseries(
         phenomenon_time_range,
-        property_values,
-        time_series):
+        property_values
+):
 
     if not isinstance(property_values, list):
         raise Exception('property_values should be array')
@@ -14,17 +14,13 @@ def get_timeseries(
     if len(property_values) == 0:
         return {
             'phenomenon_time_range': DateTimeTZRange(),
-            'value_frequency': None,
             'property_values': [],
             'property_anomaly_rates': [],
         }
 
-    #todo Tu je mozna problem ze neznam presne observations (takze na vystup predam zase phenomenom_time_range)
-    #   asi by bylo mozne k zacatku intervalu pricist frequency z timeseries
     if len(property_values) == 1:
         return {
             'phenomenon_time_range': phenomenon_time_range,
-            'value_frequency': time_series.frequency,
             'property_values': property_values,
             'property_anomaly_rates': [0],
         }
@@ -42,7 +38,6 @@ def get_timeseries(
 
     return {
         'phenomenon_time_range': phenomenon_time_range,
-        'value_frequency': time_series.frequency,
         'property_values': property_values,
         'property_anomaly_rates': anomalyScore,
     }

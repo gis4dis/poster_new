@@ -11,9 +11,7 @@ def get_timeseries(
         feature_of_interest,
         phenomenon_time_range,
         process,
-        frequency,
-        property_values,
-        time_series):
+        frequency):
 
     timezone = phenomenon_time_range.lower.tzinfo
 

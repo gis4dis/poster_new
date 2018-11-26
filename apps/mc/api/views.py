@@ -131,38 +131,53 @@ class TopicViewSet(viewsets.ReadOnlyModelViewSet):
 # http://localhost:8000/api/v2/timeseries/?topic=drought&properties=air_temperature,ground_air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27&bbox=1826997.8501,6306589.8927,1846565.7293,6521189.3651
 # http://localhost:8000/api/v2/timeseries?topic=drought&properties=air_temperature,ground_air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27
 
-def prepare_data(
-        ts_config,
-        pt_range_z,
-        observed_property,
-        observation_provider_model,
-        feature_of_interest,
-        process):
-    zero = parse_datetime(ts_config['zero'])
-    frequency = ts_config['frequency']
-    range_from = ts_config['range_from']
-    range_to = ts_config['range_to']
+def get_index_shift(time_slots, first_item_from, current_item_from):
+    first_idx = None
+    current_idx = None
+    for idx in range(len(time_slots)):
+        slot = time_slots[idx]
+        if slot.lower == first_item_from:
+            first_idx = idx
+        if slot.lower == current_item_from:
+            current_idx = idx
 
-    t = TimeSeries(
-        zero=zero,
-        frequency=frequency,
-        range_from=range_from,
-        range_to=range_to
-    )
-    t.full_clean()
-    t.clean()
+        if first_idx and current_idx:
+            break
 
+    return current_idx - first_idx
+
+
+def get_value_frequency(t, from_datetime):
+    to = from_datetime + t.frequency + t.frequency
     result_slots = generate_intervals(
+        timeseries=t,
+        from_datetime=from_datetime,
+        to_datetime=to,
+    )
+    diff = (result_slots[1].lower - result_slots[0].lower).total_seconds()
+    return diff
+
+
+def get_empty_slots(t, pt_range_z):
+    return generate_intervals(
         timeseries=t,
         from_datetime=pt_range_z.lower,
         to_datetime=pt_range_z.upper,
     )
 
+
+def prepare_data(
+        time_slots,
+        observed_property,
+        observation_provider_model,
+        feature_of_interest,
+        process):
+
     obss = observation_provider_model.objects.filter(
         observed_property=observed_property,
         procedure=process,
         feature_of_interest=feature_of_interest,
-        phenomenon_time_range__in=result_slots
+        phenomenon_time_range__in=time_slots
     )
 
     obs_reduced = {obs.phenomenon_time_range.lower.timestamp(): obs for obs in obss}
@@ -171,7 +186,7 @@ def prepare_data(
     result_time_range_from = None
     result_time_range_to = None
 
-    for slot in result_slots:
+    for slot in time_slots:
         st = slot.lower.timestamp()
         val = None
 
@@ -189,8 +204,7 @@ def prepare_data(
         'phenomenon_time_range': DateTimeTZRange(
             result_time_range_from,
             result_time_range_to
-        ),
-        'timeseries': t
+        )
     }
 
 
@@ -245,6 +259,28 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
         pt_range, day_from, day_to = parse_date_range(phenomenon_date_from, phenomenon_date_to)
 
+        pt_range_z = DateTimeTZRange(
+            pt_range.lower.replace(tzinfo=UTC_P0100),
+            pt_range.upper.replace(tzinfo=UTC_P0100)
+        )
+
+        zero = parse_datetime(ts_config['zero'])
+        frequency = ts_config['frequency']
+        range_from = ts_config['range_from']
+        range_to = ts_config['range_to']
+
+        t = TimeSeries(
+            zero=zero,
+            frequency=frequency,
+            range_from=range_from,
+            range_to=range_to
+        )
+        t.full_clean()
+        t.clean()
+
+        time_slots = get_empty_slots(t, pt_range_z)
+        value_frequency = get_value_frequency(t, pt_range_z.lower)
+
         geom_bbox = None
         if 'bbox' in request.GET:
             bbox = request.GET['bbox']
@@ -266,7 +302,6 @@ class TimeSeriesViewSet(viewsets.ViewSet):
         time_series_list = []
         phenomenon_time_from = None
         phenomenon_time_to = None
-        value_frequency = topic_config['value_frequency']
 
         for model in model_props:
 
@@ -309,16 +344,8 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
                     prop_item = Property.objects.get(name_id=prop)
 
-                    pt_range_z =  DateTimeTZRange(
-                        pt_range.lower.replace(tzinfo=UTC_P0100),
-                        pt_range.upper.replace(tzinfo=UTC_P0100)
-                    )
-
-                    agg_providers_list = settings.APPLICATION_MC.AGGREGATED_OBSERVATIONS
-
                     data = prepare_data(
-                        ts_config=ts_config,
-                        pt_range_z=pt_range_z,
+                        time_slots=time_slots,
                         observed_property=prop_item,
                         observation_provider_model=provider_model,
                         feature_of_interest=item,
@@ -327,7 +354,6 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
                     ts = get_timeseries(
                         phenomenon_time_range=data['phenomenon_time_range'],
-                        time_series=data['timeseries'],
                         property_values=data['property_values']
                     )
 
@@ -382,8 +408,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                     item_prop_from = item.content[item_prop]['phenomenon_time_from']
 
                     if phenomenon_time_from and item_prop_from:
-                        diff = phenomenon_time_from - item_prop_from
-                        value_index_shift = round(abs(diff.total_seconds()) / value_frequency)
+                        value_index_shift = get_index_shift(time_slots, phenomenon_time_from, item_prop_from)
                         item.content[item_prop]['value_index_shift'] = value_index_shift
                     else:
                         item.content[item_prop]['value_index_shift'] = None

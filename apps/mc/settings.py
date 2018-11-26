@@ -90,7 +90,6 @@ TOPICS = {
         },
 
         # mandatory, number of seconds
-        'value_frequency': 3600,
         'time_series': {
 
             # datetime in ISO 8601, see https://en.wikipedia.org/wiki/ISO_8601
