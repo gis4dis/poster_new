@@ -8,16 +8,13 @@ from psycopg2.extras import DateTimeTZRange
 from rest_framework import viewsets
 from rest_framework.exceptions import APIException
 from rest_framework.response import Response
-from django.utils.dateparse import parse_datetime
 
 from apps.ad.anomaly_detection import get_timeseries
 from apps.common.models import Property, Process
 from apps.common.models import Topic
-from apps.mc.models import TimeSeriesFeature
-from apps.common.models import TimeSeries
 from apps.mc.api.serializers import PropertySerializer, TimeSeriesSerializer, TopicSerializer
+from apps.mc.models import TimeSeriesFeature
 from apps.utils.time import UTC_P0100
-from apps.common.util.util import generate_intervals
 
 
 def import_models(path):
@@ -131,69 +128,6 @@ class TopicViewSet(viewsets.ReadOnlyModelViewSet):
 # http://localhost:8000/api/v2/timeseries/?topic=drought&properties=air_temperature,ground_air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27&bbox=1826997.8501,6306589.8927,1846565.7293,6521189.3651
 # http://localhost:8000/api/v2/timeseries?topic=drought&properties=air_temperature,ground_air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27
 
-def prepare_data(
-        ts_config,
-        pt_range_z,
-        observed_property,
-        observation_provider_model,
-        feature_of_interest,
-        process):
-    zero = parse_datetime(ts_config['zero'])
-    frequency = ts_config['frequency']
-    range_from = ts_config['range_from']
-    range_to = ts_config['range_to']
-
-    t = TimeSeries(
-        zero=zero,
-        frequency=frequency,
-        range_from=range_from,
-        range_to=range_to
-    )
-    t.full_clean()
-    t.clean()
-
-    result_slots = generate_intervals(
-        timeseries=t,
-        from_datetime=pt_range_z.lower,
-        to_datetime=pt_range_z.upper,
-    )
-
-    obss = observation_provider_model.objects.filter(
-        observed_property=observed_property,
-        procedure=process,
-        feature_of_interest=feature_of_interest,
-        phenomenon_time_range__in=result_slots
-    )
-
-    obs_reduced = {obs.phenomenon_time_range.lower.timestamp(): obs for obs in obss}
-
-    property_values = []
-    result_time_range_from = None
-    result_time_range_to = None
-
-    for slot in result_slots:
-        st = slot.lower.timestamp()
-        val = None
-
-        if st in obs_reduced and obs_reduced[st] and obs_reduced[st].result is not None:
-            val = obs_reduced[st].result
-
-        if len(property_values) > 0 or val:
-            property_values.append(val)
-            result_time_range_to = obs_reduced[st].phenomenon_time_range.upper
-            if not result_time_range_from:
-                result_time_range_from = obs_reduced[st].phenomenon_time_range.lower
-
-    return {
-        'property_values': property_values,
-        'phenomenon_time_range': DateTimeTZRange(
-            result_time_range_from,
-            result_time_range_to
-        ),
-        'timeseries': t
-    }
-
-
 class TimeSeriesViewSet(viewsets.ViewSet):
 
     def list(self, request):
@@ -203,12 +137,10 @@ class TimeSeriesViewSet(viewsets.ViewSet):
             raise APIException('Parameter topic is required')
 
         topic_config = settings.APPLICATION_MC.TOPICS.get(topic)
-
         if not topic_config or not Topic.objects.filter(name_id=topic).exists():
             raise APIException('Topic not found.')
 
         properties = topic_config['properties']
-        ts_config = topic_config['time_series']
 
         if 'properties' in request.GET:
             properties_string = request.GET['properties']
@@ -308,27 +240,19 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                         raise APIException('Process from config not found.')
 
                     prop_item = Property.objects.get(name_id=prop)
-
+             
                     pt_range_z =  DateTimeTZRange(
                         pt_range.lower.replace(tzinfo=UTC_P0100),
                         pt_range.upper.replace(tzinfo=UTC_P0100)
                     )
 
-                    agg_providers_list = settings.APPLICATION_MC.AGGREGATED_OBSERVATIONS
-
-                    data = prepare_data(
-                        ts_config=ts_config,
-                        pt_range_z=pt_range_z,
+                    ts = get_timeseries(
                         observed_property=prop_item,
                         observation_provider_model=provider_model,
                         feature_of_interest=item,
-                        process=process
-                    )
-
-                    ts = get_timeseries(
-                        phenomenon_time_range=data['phenomenon_time_range'],
-                        time_series=data['timeseries'],
-                        property_values=data['property_values']
+                        phenomenon_time_range=pt_range_z,
+                        process=process,
+                        frequency=value_frequency
                     )
 
                     if ts['phenomenon_time_range'].lower is not None:
@@ -360,10 +284,10 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                     if len(ts['property_values']) > 0:
                         hasValues = True
 
-                feature_id = path[0] + \
-                             "." + \
-                             feature_of_interest_model.__name__ + \
-                             ":" + \
+                feature_id = path[0] +\
+                             "." +\
+                             feature_of_interest_model.__name__ +\
+                             ":" +\
                              str(item.id_by_provider)
 
                 if hasValues:

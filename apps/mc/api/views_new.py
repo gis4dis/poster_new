@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from django.utils.dateparse import parse_datetime
 
 from apps.ad.anomaly_detection import get_timeseries
+#from apps.ad.anomaly_detection_old import get_timeseries
 from apps.common.models import Property, Process
 from apps.common.models import Topic
 from apps.mc.models import TimeSeriesFeature
@@ -137,12 +138,12 @@ def prepare_data(
         observed_property,
         observation_provider_model,
         feature_of_interest,
+        phenomenon_time_range,
         process):
     zero = parse_datetime(ts_config['zero'])
     frequency = ts_config['frequency']
     range_from = ts_config['range_from']
     range_to = ts_config['range_to']
-
     t = TimeSeries(
         zero=zero,
         frequency=frequency,
@@ -157,20 +158,39 @@ def prepare_data(
         from_datetime=pt_range_z.lower,
         to_datetime=pt_range_z.upper,
     )
+    '''
+    print('-----------------------------')
+    print('TIMESERIES:', t.frequency)
+    print('TIMESERIES:', t.range_from)
+    print('TIMESERIES:', t.range_to)
+    print('TIMESERIES:', t.zero)
+
+    print('GENERATE: from: ', pt_range_z.lower)
+    print('GENERATE: from: ', pt_range_z.upper)
+
+    print('RESULT_SLOTS: ', result_slots)
+    print('----------------------------')
+    '''
 
     obss = observation_provider_model.objects.filter(
+        #phenomenon_time_range__contained_by=phenomenon_time_range,
+        #phenomenon_time_range__duration=frequency,
+        #phenomenon_time_range__matches=frequency,
         observed_property=observed_property,
         procedure=process,
         feature_of_interest=feature_of_interest,
         phenomenon_time_range__in=result_slots
     )
+    print('OBSS: ', obss)
 
+
+    #obs_reduced = {}
     obs_reduced = {obs.phenomenon_time_range.lower.timestamp(): obs for obs in obss}
 
+    print('obs_reduced:::', obs_reduced)
     property_values = []
     result_time_range_from = None
     result_time_range_to = None
-
     for slot in result_slots:
         st = slot.lower.timestamp()
         val = None
@@ -184,13 +204,29 @@ def prepare_data(
             if not result_time_range_from:
                 result_time_range_from = obs_reduced[st].phenomenon_time_range.lower
 
+        '''
+        if t not in obs_reduced or obs_reduced[t] is None:
+            obs_reduced[t] = observation_provider_model.objects.filter(
+                #phenomenon_time_range__contained_by=phenomenon_time_range,
+                #phenomenon_time_range__duration=frequency,
+                #phenomenon_time_range__matches=frequency,
+                observed_property=observed_property,
+                procedure=process,
+                feature_of_interest=feature_of_interest,
+                phenomenon_time_range=slot
+            )
+            obs_reduced[t] = None
+        '''
+
     return {
         'property_values': property_values,
         'phenomenon_time_range': DateTimeTZRange(
             result_time_range_from,
             result_time_range_to
         ),
-        'timeseries': t
+        'data': result_slots,
+        'timeseries': t,
+        'obss': obs_reduced
     }
 
 
@@ -204,11 +240,14 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
         topic_config = settings.APPLICATION_MC.TOPICS.get(topic)
 
+
         if not topic_config or not Topic.objects.filter(name_id=topic).exists():
             raise APIException('Topic not found.')
 
         properties = topic_config['properties']
         ts_config = topic_config['time_series']
+
+
 
         if 'properties' in request.GET:
             properties_string = request.GET['properties']
@@ -322,11 +361,18 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                         observed_property=prop_item,
                         observation_provider_model=provider_model,
                         feature_of_interest=item,
+                        phenomenon_time_range=pt_range_z,
                         process=process
                     )
+                    print('PREPARED DATA::::::::::', data['property_values'])
 
                     ts = get_timeseries(
+                        observed_property=prop_item,
+                        observation_provider_model=provider_model,
+                        feature_of_interest=item,
                         phenomenon_time_range=data['phenomenon_time_range'],
+                        process=process,
+                        frequency=value_frequency,
                         time_series=data['timeseries'],
                         property_values=data['property_values']
                     )
