@@ -9,7 +9,7 @@ from rest_framework import viewsets
 from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 
-from apps.ad.anomaly_detection import get_timeseries
+from apps.ad.anomaly_detection_old import get_timeseries
 from apps.common.models import Property, Process
 from apps.common.models import Topic
 from apps.mc.api.serializers import PropertySerializer, TimeSeriesSerializer, TopicSerializer
@@ -128,7 +128,7 @@ class TopicViewSet(viewsets.ReadOnlyModelViewSet):
 # http://localhost:8000/api/v2/timeseries/?topic=drought&properties=air_temperature,ground_air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27&bbox=1826997.8501,6306589.8927,1846565.7293,6521189.3651
 # http://localhost:8000/api/v2/timeseries?topic=drought&properties=air_temperature,ground_air_temperature&phenomenon_date_from=2018-01-20&phenomenon_date_to=2018-09-27
 
-class TimeSeriesViewSet(viewsets.ViewSet):
+class OldTimeSeriesViewSet(viewsets.ViewSet):
 
     def list(self, request):
         if 'topic' in request.GET:
