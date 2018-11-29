@@ -155,7 +155,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'poster.wsgi.application'
 
 
-
 # Password validation
 # https://docs.djangoproject.com/en/2.0/ref/settings/#auth-password-validators
 
@@ -220,4 +219,3 @@ LOGGING = {
 REST_FRAMEWORK = {
     'COERCE_DECIMAL_TO_STRING': False
 }
-
