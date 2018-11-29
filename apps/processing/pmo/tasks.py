@@ -1,13 +1,20 @@
 from __future__ import absolute_import, unicode_literals
+
+import os
+from datetime import timedelta, datetime
+
 from celery.task import task, group
 from celery.utils.log import get_task_logger
+from django.conf import settings
 from django.core.files.storage import default_storage
 from django.core.management import call_command
-from datetime import date, timedelta, datetime
+
 from apps.processing.pmo.models import WatercourseObservation, WeatherObservation
 from apps.processing.pmo.util import util
 from apps.utils.time import UTC_P0100
+
 logger = get_task_logger(__name__)
+
 
 @task(name="pmo.import")
 def import_default(*args):
@@ -25,15 +32,18 @@ def get_last_record(model):
     return last_item
 
 
-basedir_def = '/import/apps.processing.pmo/'
+# https://github.com/gis4dis/poster/issues/111
+# Substitute '/import/' for django.conf.settings.IMPORT_ROOT
+basedir_def = os.path.join(settings.IMPORT_ROOT + '/apps.processing.pmo/')
+if not basedir_def.endswith("/"):
+    basedir_def += "/"
 
 
 @task(name="pmo.import_hod_observation")
 def import_hod_observation(date_str):
-    date = datetime.strptime(date_str, "%Y%m%d").date()
-    logger.info('Importing HOD file: ' + str(date))
-    util.load_hod(date)
-
+    date_obj = datetime.strptime(date_str, "%Y%m%d").date()
+    logger.info('Importing HOD file: ' + str(date_obj))
+    util.load_hod(date_obj)
 
 @task(name="pmo.import_srazsae_observation")
 def import_srazsae_observation(date_str):

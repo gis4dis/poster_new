@@ -1,23 +1,30 @@
 # coding=utf-8
-import logging
-from django.db.utils import IntegrityError
-from apps.common.models import Process, Property
-from psycopg2.extras import DateTimeTZRange
-from dateutil.parser import parse
-from dateutil import relativedelta
-from datetime import timedelta, datetime
-from django.core.files.storage import default_storage
 import csv
 import io
+import logging
+import os
+from datetime import timedelta, datetime
 
-from apps.processing.pmo.models import WatercourseObservation, WatercourseStation
+from dateutil import relativedelta
+from dateutil.parser import parse
+from django.conf import settings
+from django.core.files.storage import default_storage
+from django.db.utils import IntegrityError
+from psycopg2.extras import DateTimeTZRange
+
+from apps.common.models import Process, Property
 from apps.common.util.util import get_or_create_processes, get_or_create_props
+from apps.processing.pmo.models import WatercourseObservation, WatercourseStation
 from apps.processing.pmo.models import WeatherStation, WeatherObservation
 from apps.utils.time import UTC_P0100
 
 logger = logging.getLogger(__name__)
 
-basedir_def = '/import/apps.processing.pmo/'
+# https://github.com/gis4dis/poster/issues/111
+# Substitute '/import/' for django.conf.settings.IMPORT_ROOT
+basedir_def = os.path.join(settings.IMPORT_ROOT, '/apps.processing.pmo/')
+if not basedir_def.endswith("/"):
+    basedir_def += "/"
 
 props_data_types = {
     '17': 'water_level',
@@ -122,7 +129,8 @@ def load_hod(day):
 
             try:
                 result = float(row[5])
-            except:
+            except Exception as e:
+                logger.warning(e, exc_info=True)
                 result_null_reason = 'invalid value in CSV'
                 pass
 
@@ -148,7 +156,7 @@ def load_hod(day):
                     try:
                         observed_property = Property.objects.get(name_id=data_type)
                     except Property.DoesNotExist:
-                        logger.error('Propety with name %s does not exist.', observed_property)
+                        logger.error('Property with name %s does not exist.', data_type)
                         observed_property = None
                         pass
 
@@ -186,9 +194,9 @@ def load_hod(day):
                                     measure_date,
                                     measure_time,
                                     measure_id
-                                )
-                            )
-                            #logger.warning('Error in creating observation from measure %s', measure_id)
+                                ),
+                                exc_info=True)
+                            # logger.warning('Error in creating observation from measure %s', measure_id)
                             pass
                 else:
                     logger.error('Unknown measure code %s', code)
