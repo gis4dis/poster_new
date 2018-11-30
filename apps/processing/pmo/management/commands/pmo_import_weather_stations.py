@@ -1,11 +1,15 @@
-import logging
-from django.core.management.base import BaseCommand
-from django.core.files.storage import default_storage
 import csv
-from apps.processing.pmo.models import WeatherStation
-from django.contrib.gis.geos import GEOSGeometry, Point
 import io
+import logging
+import os
 import re
+
+from django.conf import settings
+from django.contrib.gis.geos import GEOSGeometry, Point
+from django.core.files.storage import default_storage
+from django.core.management.base import BaseCommand
+
+from apps.processing.pmo.models import WeatherStation
 
 logger = logging.getLogger(__name__)
 
@@ -28,17 +32,17 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--path', nargs='?', type=str,
-                            default='/import/apps.processing.pmo/stanice_meteo.csv')
-
+                            default='apps.processing.pmo/stanice_meteo.csv')
 
     def handle(self, *args, **options):
-        path = options['path']
+        path = os.path.join(settings.IMPORT_ROOT, options['path'], '')
 
         if default_storage.exists(path):
             csv_file = default_storage.open(name=path, mode='r')
             foo = csv_file.data.decode('utf-8')
             reader = csv.reader(io.StringIO(foo))
 
+            # noinspection PyUnusedLocal
             headers = next(reader)
             rows = list(reader)
 
@@ -74,4 +78,3 @@ class Command(BaseCommand):
                     )
         else:
             logger.warning("Error specified path: %s not found", path)
-

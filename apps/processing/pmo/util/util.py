@@ -1,17 +1,20 @@
 # coding=utf-8
-import logging
-from django.db.utils import IntegrityError
-from apps.common.models import Process, Property
-from psycopg2.extras import DateTimeTZRange
-from dateutil.parser import parse
-from dateutil import relativedelta
-from datetime import timedelta, datetime
-from django.core.files.storage import default_storage
 import csv
 import io
+import logging
+import os
+from datetime import timedelta, datetime
 
-from apps.processing.pmo.models import WatercourseObservation, WatercourseStation
+from dateutil import relativedelta
+from dateutil.parser import parse
+from django.conf import settings
+from django.core.files.storage import default_storage
+from django.db.utils import IntegrityError
+from psycopg2.extras import DateTimeTZRange
+
+from apps.common.models import Process, Property
 from apps.common.util.util import get_or_create_processes, get_or_create_props
+from apps.processing.pmo.models import WatercourseObservation, WatercourseStation
 from apps.processing.pmo.models import WeatherStation, WeatherObservation
 from apps.utils.time import UTC_P0100
 
@@ -82,8 +85,7 @@ def load_srazsae(day, basedir=basedir_def):
                             station_id,
                             time,
                             row[4]
-                        )
-                    )
+                        ), exc_info=True)
                     pass
 
             except WeatherStation.DoesNotExist:

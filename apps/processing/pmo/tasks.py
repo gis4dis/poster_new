@@ -14,7 +14,7 @@ def import_default(*args):
     try:
         call_command('pmo_import', *args)
     except Exception as e:
-        logger.error(e)
+        logger.critical(e)
 
 
 def get_last_record(model):
@@ -86,13 +86,10 @@ def import_observations():
         g = group(import_hod_observation.s(date) for date in watercourse_dates_to_import)
         g.apply_async()
     except Exception as e:
-        logger.error(e)
+        logger.critical(e)
 
     try:
         g = group(import_srazsae_observation.s(date) for date in srazsae_dates_to_import)
         g.apply_async()
     except Exception as e:
-        logger.error(e)
-
-
-
+        logger.critical(e)
