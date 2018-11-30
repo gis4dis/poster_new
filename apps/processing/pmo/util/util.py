@@ -20,7 +20,9 @@ from apps.utils.time import UTC_P0100
 
 logger = logging.getLogger(__name__)
 
-basedir_def = '/import/apps.processing.pmo/'
+# https://github.com/gis4dis/poster/issues/111
+# Substitute '/import/' for django.conf.settings.IMPORT_ROOT
+basedir_def = os.path.join(settings.IMPORT_ROOT, 'apps.processing.pmo/', '')
 
 props_data_types = {
     '17': 'water_level',
@@ -124,7 +126,8 @@ def load_hod(day):
 
             try:
                 result = float(row[5])
-            except:
+            except Exception as e:
+                logger.warning(e, exc_info=True)
                 result_null_reason = 'invalid value in CSV'
                 pass
 
@@ -150,7 +153,7 @@ def load_hod(day):
                     try:
                         observed_property = Property.objects.get(name_id=data_type)
                     except Property.DoesNotExist:
-                        logger.error('Propety with name %s does not exist.', observed_property)
+                        logger.error('Property with name %s does not exist.', data_type)
                         observed_property = None
                         pass
 
@@ -188,9 +191,9 @@ def load_hod(day):
                                     measure_date,
                                     measure_time,
                                     measure_id
-                                )
-                            )
-                            #logger.warning('Error in creating observation from measure %s', measure_id)
+                                ),
+                                exc_info=True)
+                            # logger.warning('Error in creating observation from measure %s', measure_id)
                             pass
                 else:
                     logger.error('Unknown measure code %s', code)
