@@ -45,6 +45,6 @@ django-allauth = "*"
 django-sekizai = "*"
 django-widget-tweaks = "*"
 social-auth-app-django = "*"
-luminol = {editable = true, git = "https://github.com/gis4dis/luminol.git"}
+luminol = {editable = true, git = "https://github.com/gis4dis/luminol.git", ref = "dev"}
 
 [dev-packages]
