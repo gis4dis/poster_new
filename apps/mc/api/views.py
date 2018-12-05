@@ -190,7 +190,19 @@ def prepare_data(
     result_time_range_from = None
     result_time_range_to = None
 
-    for slot in time_slots:
+    last_not_null_index = 0
+    for i in range(len(time_slots) -1, -1, -1):
+        slot = time_slots[i]
+        st = slot.lower.timestamp()
+        if st in obs_reduced and obs_reduced[st] and obs_reduced[st].result is not None:
+            last_not_null_index = i + 1
+            break
+
+    # for slot in time_slots:
+    if last_not_null_index > len(time_slots):
+        last_not_null_index = len(time_slots)
+    for i in range(0, last_not_null_index):
+        slot = time_slots[i]
         st = slot.lower.timestamp()
         obs = None
 
