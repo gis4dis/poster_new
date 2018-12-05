@@ -3,22 +3,28 @@ from psycopg2.extras import DateTimeTZRange
 from luminol.anomaly_detector import AnomalyDetector
 
 
+def observations_to_property_values(observations):
+    return [obs.result for obs in observations]
+
+
 def get_timeseries(
         phenomenon_time_range,
-        property_values
+        observations
 ):
 
-    if not isinstance(property_values, list):
+    if not isinstance(observations, list):
         raise Exception('property_values should be array')
 
-    if len(property_values) == 0:
+    if len(observations) == 0:
         return {
             'phenomenon_time_range': DateTimeTZRange(),
             'property_values': [],
             'property_anomaly_rates': [],
         }
 
-    if len(property_values) == 1:
+    property_values = observations_to_property_values(observations)
+
+    if len(observations) == 1:
         return {
             'phenomenon_time_range': phenomenon_time_range,
             'property_values': property_values,
@@ -27,13 +33,13 @@ def get_timeseries(
 
     obs_reduced = {}
 
-    for i in range(len(property_values)):
-        obs_reduced[i] = property_values[i]
+    for i in range(len(observations)):
+        obs_reduced[observations[i].phenomenon_time_range.lower.timestamp()] = observations[i].result
 
     (anomalyScore, anomalyPeriod) = anomaly_detect(obs_reduced)
 
     for i in range(len(property_values)):
-        if obs_reduced[i] is None:
+        if property_values[i] is None:
             anomalyScore.insert(i, None)
 
     return {

@@ -154,6 +154,10 @@ def get_value_frequency(t, from_datetime):
         from_datetime=from_datetime,
         to_datetime=to,
     )
+
+    if len(result_slots) < 2:
+        return None
+
     diff = (result_slots[1].lower - result_slots[0].lower).total_seconds()
     return diff
 
@@ -182,25 +186,35 @@ def prepare_data(
 
     obs_reduced = {obs.phenomenon_time_range.lower.timestamp(): obs for obs in obss}
 
-    property_values = []
+    observations = []
     result_time_range_from = None
     result_time_range_to = None
 
     for slot in time_slots:
         st = slot.lower.timestamp()
+        obs = None
         val = None
 
         if st in obs_reduced and obs_reduced[st] and obs_reduced[st].result is not None:
             val = obs_reduced[st].result
+            obs = obs_reduced[st]
 
-        if len(property_values) > 0 or val:
-            property_values.append(val)
-            result_time_range_to = obs_reduced[st].phenomenon_time_range.upper
+        if len(observations) > 0 or val:
+            if val is None:
+                obs = observation_provider_model(
+                    phenomenon_time_range=slot,
+                    observed_property=observed_property,
+                    feature_of_interest=feature_of_interest,
+                    procedure=process,
+                    result=None
+                )
+            observations.append(obs)
+            result_time_range_to = obs.phenomenon_time_range.upper
             if not result_time_range_from:
-                result_time_range_from = obs_reduced[st].phenomenon_time_range.lower
+                result_time_range_from = obs.phenomenon_time_range.lower
 
     return {
-        'property_values': property_values,
+        'observations': observations,
         'phenomenon_time_range': DateTimeTZRange(
             result_time_range_from,
             result_time_range_to
@@ -279,7 +293,10 @@ class TimeSeriesViewSet(viewsets.ViewSet):
         t.clean()
 
         time_slots = get_empty_slots(t, pt_range_z)
-        value_frequency = get_value_frequency(t, pt_range_z.lower)
+        start = pt_range_z.lower
+        if start < t.zero:
+            start = t.zero
+        value_frequency = get_value_frequency(t, zero)
 
         geom_bbox = None
         if 'bbox' in request.GET:
@@ -354,7 +371,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
                     ts = get_timeseries(
                         phenomenon_time_range=data['phenomenon_time_range'],
-                        property_values=data['property_values']
+                        observations=data['observations']
                     )
 
                     if ts['phenomenon_time_range'].lower is not None:
