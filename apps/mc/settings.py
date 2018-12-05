@@ -50,9 +50,6 @@ TOPICS = {
                 }
             }
         },
-
-        # mandatory, number of seconds
-        'value_frequency': 3600,
         'time_series': {
             # datetime in ISO 8601, see https://en.wikipedia.org/wiki/ISO_8601
             'zero': '2017-09-19T00:00:00+01:00',
@@ -96,9 +93,6 @@ TOPICS = {
                 }
             }
         },
-
-        # mandatory, number of seconds
-        'value_frequency': 3600,
         'time_series': {
             # datetime in ISO 8601, see https://en.wikipedia.org/wiki/ISO_8601
             'zero': '2017-09-19T00:00:00+01:00',
