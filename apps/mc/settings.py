@@ -51,8 +51,14 @@ TOPICS = {
             }
         },
 
-        # mandatory, number of seconds
-        'value_frequency': 3600
+        'time_series': {
+            # datetime in ISO 8601, see https://en.wikipedia.org/wiki/ISO_8601
+            'zero': '2017-09-19T00:00:00+01:00',
+            # time interval in ISO 8601 "format with designators", see https://en.wikipedia.org/wiki/ISO_8601#Durations
+            'frequency': 'PT1H',
+            'range_from': 'PT0S',
+            'range_to': 'PT1H',
+        }
     },
     'floods': {
 
@@ -80,18 +86,16 @@ TOPICS = {
                 },
             },
 
-            #'ground_air_temperature': {
-            #    'observation_providers': {
-            #        'apps.processing.ala.models.Observation': {
-            #            'process': 'apps.common.aggregate.arithmetic_mean',
-            #        },
-            #    }
-            #}
+            'ground_air_temperature': {
+                'observation_providers': {
+                    'apps.processing.ala.models.Observation': {
+                        'process': 'apps.common.aggregate.arithmetic_mean',
+                    },
+                }
+            }
         },
 
-        # mandatory, number of seconds
-        'value_frequency': 3600,
-
+        # mandatory, number of secondss
         'time_series': {
 
             # datetime in ISO 8601, see https://en.wikipedia.org/wiki/ISO_8601

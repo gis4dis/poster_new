@@ -193,14 +193,12 @@ def prepare_data(
     for slot in time_slots:
         st = slot.lower.timestamp()
         obs = None
-        val = None
 
         if st in obs_reduced and obs_reduced[st] and obs_reduced[st].result is not None:
-            val = obs_reduced[st].result
             obs = obs_reduced[st]
 
-        if len(observations) > 0 or val:
-            if val is None:
+        if len(observations) > 0 or obs:
+            if obs is None:
                 obs = observation_provider_model(
                     phenomenon_time_range=slot,
                     observed_property=observed_property,
