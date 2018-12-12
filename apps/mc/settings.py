@@ -78,10 +78,10 @@ TOPICS = {
 
                         # mandatory, name_id of common.Process
                         'process': 'apps.common.aggregate.arithmetic_mean'
-                    }#,
-                    #'apps.processing.ozp.models.Observation': {
-                    #    'process': 'measure'
-                    #}
+                    },
+                    'apps.processing.ozp.models.Observation': {
+                        'process': 'measure'
+                    }
                 },
             },
 
