@@ -307,6 +307,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
         if start < t.zero:
             start = t.zero
         value_frequency = get_value_frequency(t, zero)
+        value_duration = None
 
         geom_bbox = None
         if 'bbox' in request.GET:
@@ -379,9 +380,16 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                         process=process
                     )
 
+                    observations = data['observations']
+
+                    if len(observations) > 0 and value_duration is None:
+                        value_duration = observations[0].phenomenon_time_range.upper \
+                                         - observations[0].phenomenon_time_range.lower
+                        value_duration = value_duration.total_seconds()
+
                     ts = get_timeseries(
                         phenomenon_time_range=data['phenomenon_time_range'],
-                        observations=data['observations']
+                        observations=observations
                     )
 
                     if ts['phenomenon_time_range'].lower is not None:
@@ -457,6 +465,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
             'phenomenon_time_from': phenomenon_time_from,
             'phenomenon_time_to': phenomenon_time_to,
             'value_frequency': value_frequency,
+            'value_duration': value_duration,
             'feature_collection': time_series_list,
             'properties': param_properties
         }

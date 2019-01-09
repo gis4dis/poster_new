@@ -51,5 +51,6 @@ class TimeSeriesSerializer(serializers.Serializer):
     phenomenon_time_from = serializers.DateTimeField()
     phenomenon_time_to = serializers.DateTimeField()
     value_frequency = serializers.IntegerField()
+    value_duration = serializers.IntegerField()
     properties = serializers.ListField()
     feature_collection = TimeSeriesFeatureSerializer(many=True)
