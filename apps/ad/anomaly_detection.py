@@ -12,8 +12,8 @@ def get_timeseries(
         num_time_slots,
         get_observations
 ):
-    print('GT: ', phenomenon_time_range)
-    observations = get_observations(3, 5)
+    #observations = get_observations(3, 5)
+    observations = get_observations(0, 0)
 
     if not isinstance(observations, list):
         raise Exception('property_values should be array')
