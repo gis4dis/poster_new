@@ -19,6 +19,9 @@ from apps.mc.api.serializers import PropertySerializer, TimeSeriesSerializer, To
 from apps.utils.time import UTC_P0100
 from apps.common.util.util import generate_intervals
 
+from datetime import timedelta
+
+from functools import partial
 
 def import_models(path):
     provider_module = None
@@ -170,6 +173,62 @@ def get_empty_slots(t, pt_range_z):
     )
 
 
+def get_observations(
+        time_slots,
+        observed_property,
+        observation_provider_model,
+        feature_of_interest,
+        process,
+        t,
+        lag_window_size,
+        future_window_size):
+
+        before_intervals = []
+        after_intervals = []
+        time_slot_diff = time_slots[1].lower - time_slots[0].lower
+
+        if lag_window_size and lag_window_size > 0:
+            bef_time_diff = time_slot_diff * lag_window_size + \
+                          (time_slots[0].upper - time_slots[0].lower)
+            bef_time_diff = bef_time_diff.total_seconds()
+
+            from_datetime = time_slots[0].lower - timedelta(seconds=bef_time_diff)
+
+            before_intervals = generate_intervals(
+                timeseries=t,
+                from_datetime=from_datetime,
+                to_datetime=time_slots[0].lower,
+            )
+
+            before_intervals = before_intervals[-lag_window_size:]
+
+        if future_window_size and future_window_size > 0:
+            after_time_diff = time_slot_diff * future_window_size + \
+                            (time_slots[0].upper - time_slots[0].lower)
+            after_time_diff = after_time_diff.total_seconds()
+
+            to_datetime = time_slots[-1].lower + timedelta(seconds=after_time_diff)
+
+            after_intervals = generate_intervals(
+                timeseries=t,
+                from_datetime=time_slots[-1].lower,
+                to_datetime=to_datetime,
+            )
+
+            after_intervals = after_intervals[1:]
+            after_intervals = after_intervals[-future_window_size:]
+
+        extended_time_slots =  before_intervals + time_slots + after_intervals
+
+        return prepare_data(
+            extended_time_slots,  # time_slots,
+            observed_property,
+            observation_provider_model,
+            feature_of_interest,
+            process
+        )
+
+
 def prepare_data(
         time_slots,
         observed_property,
@@ -185,23 +244,9 @@ def prepare_data(
     )
 
     obs_reduced = {obs.phenomenon_time_range.lower.timestamp(): obs for obs in obss}
-
     observations = []
-    result_time_range_from = None
-    result_time_range_to = None
 
-    last_not_null_index = 0
-    for i in range(len(time_slots) -1, -1, -1):
-        slot = time_slots[i]
-        st = slot.lower.timestamp()
-        if st in obs_reduced and obs_reduced[st] and obs_reduced[st].result is not None:
-            last_not_null_index = i + 1
-            break
-
-    # for slot in time_slots:
-    if last_not_null_index > len(time_slots):
-        last_not_null_index = len(time_slots)
-    for i in range(0, last_not_null_index):
+    for i in range(0, len(time_slots)):
         slot = time_slots[i]
         st = slot.lower.timestamp()
         obs = None
@@ -209,27 +254,46 @@ def prepare_data(
         if st in obs_reduced and obs_reduced[st] and obs_reduced[st].result is not None:
             obs = obs_reduced[st]
 
-        if len(observations) > 0 or obs:
-            if obs is None:
-                obs = observation_provider_model(
-                    phenomenon_time_range=slot,
-                    observed_property=observed_property,
-                    feature_of_interest=feature_of_interest,
-                    procedure=process,
-                    result=None
-                )
-            observations.append(obs)
-            result_time_range_to = obs.phenomenon_time_range.upper
-            if not result_time_range_from:
-                result_time_range_from = obs.phenomenon_time_range.lower
+        if obs is None:
+            obs = observation_provider_model(
+                phenomenon_time_range=slot,
+                observed_property=observed_property,
+                feature_of_interest=feature_of_interest,
+                procedure=process,
+                result=None
+            )
+        observations.append(obs)
+    return observations
 
-    return {
-        'observations': observations,
-        'phenomenon_time_range': DateTimeTZRange(
-            result_time_range_from,
-            result_time_range_to
+
+def get_not_null_range(
+    pt_range,
+    observed_property,
+    observation_provider_model,
+    feature_of_interest,
+    process):
+
+    obs_first = observation_provider_model.objects.filter(
+        observed_property=observed_property,
+        procedure=process,
+        feature_of_interest=feature_of_interest,
+        phenomenon_time_range__overlap=pt_range
+    ).order_by('phenomenon_time_range')[:1]
+
+    obs_latest = observation_provider_model.objects.filter(
+        observed_property=observed_property,
+        procedure=process,
+        feature_of_interest=feature_of_interest,
+        phenomenon_time_range__overlap=pt_range
+    ).order_by('-phenomenon_time_range')[:1]
+
+    if obs_first:
+        return  DateTimeTZRange(
+            obs_first[0].phenomenon_time_range.lower,
+            obs_latest[0].phenomenon_time_range.upper
         )
-    }
+
+    return None
 
 
 class TimeSeriesViewSet(viewsets.ViewSet):
@@ -302,7 +366,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
         t.full_clean()
         t.clean()
 
-        time_slots = get_empty_slots(t, pt_range_z)
+        time_slots = [] #get_empty_slots(t, pt_range_z)
         start = pt_range_z.lower
         if start < t.zero:
             start = t.zero
@@ -352,9 +416,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
             for item in all_features:
                 content = {}
-
                 hasValues = False
-
                 f_phenomenon_time_from = None
                 f_phenomenon_time_to = None
 
@@ -372,6 +434,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
                     prop_item = Property.objects.get(name_id=prop)
 
+                    '''
                     data = prepare_data(
                         time_slots=time_slots,
                         observed_property=prop_item,
@@ -381,51 +444,92 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                     )
 
                     observations = data['observations']
-
+                    print(observations)
+                    
+                    
+                    #http://localhost:8000/api/v2/timeseries/?topic=drought&properties=air_temperature&phenomenon_date_from=2018-10-29&phenomenon_date_to=2018-10-30
+                    
                     if len(observations) > 0 and value_duration is None:
                         value_duration = observations[0].phenomenon_time_range.upper \
                                          - observations[0].phenomenon_time_range.lower
                         value_duration = value_duration.total_seconds()
 
-                    ts = get_timeseries(
-                        phenomenon_time_range=data['phenomenon_time_range'],
-                        observations=observations
+                    print('aaaaaaaaaaaaa: ', len(observations))
+                    '''
+
+                    data_range = get_not_null_range(
+                        pt_range=pt_range_z,
+                        observed_property=prop_item,
+                        observation_provider_model=provider_model,
+                        feature_of_interest=item,
+                        process=process
                     )
 
-                    if ts['phenomenon_time_range'].lower is not None:
-                        if not phenomenon_time_from or phenomenon_time_from > ts['phenomenon_time_range'].lower:
-                            phenomenon_time_from = ts['phenomenon_time_range'].lower
+                    time_slots = get_empty_slots(t, pt_range_z)
 
-                    if ts['phenomenon_time_range'].upper is not None:
-                        if not phenomenon_time_to or phenomenon_time_to > ts['phenomenon_time_range'].upper:
-                            phenomenon_time_to = ts['phenomenon_time_range'].upper
 
-                    if ts['phenomenon_time_range'].lower is not None:
-                        if not f_phenomenon_time_from or f_phenomenon_time_from > ts['phenomenon_time_range'].lower:
-                            f_phenomenon_time_from = ts['phenomenon_time_range'].lower
+                    #TODO - poslat jako parametr definici casove rady
+                    #TODO - vymyslet jak vygenerovat casovou radu, kde je znam konec a pozadovany pocet mereni
+                    #TODO - vymyslet jak vygenerovat casovou radu, kde je znam zacatek a pocet
+                    # time_slots = get_empty_slots(t, pt_range_z)
+                    # spocitat velikost mezi 2 casovymi okny
+                        #(ROZDIL mezi 2 zacatky * (pozadovany pocet + 1))
+                    #print(time_slots)
 
-                    if ts['phenomenon_time_range'].upper is not None:
-                        if not f_phenomenon_time_to or f_phenomenon_time_to > ts['phenomenon_time_range'].upper:
-                            f_phenomenon_time_to = ts['phenomenon_time_range'].upper
 
-                    feature_prop_dict = {
-                        'values': ts['property_values'],
-                        'anomaly_rates': ts['property_anomaly_rates'],
-                        'phenomenon_time_from': ts['phenomenon_time_range'].lower,
-                        'phenomenon_time_to': ts['phenomenon_time_range'].upper,
-                        'value_index_shift': None
-                    }
+                    if data_range:
+                        time_slots = get_empty_slots(t, data_range)
+                        print('lll: ', len(time_slots))
 
-                    content[prop] = feature_prop_dict
+                        get_observations_func = partial(
+                            get_observations,
+                            time_slots,
+                            prop_item,
+                            provider_model,
+                            item,
+                            process,
+                            t)
 
-                    if len(ts['property_values']) > 0:
-                        hasValues = True
+                        ts = get_timeseries(
+                            phenomenon_time_range=data_range,
+                            num_time_slots=len(time_slots),
+                            get_observations=get_observations_func
+                        )
+
+                        if ts['phenomenon_time_range'].lower is not None:
+                            if not phenomenon_time_from or phenomenon_time_from > ts['phenomenon_time_range'].lower:
+                                phenomenon_time_from = ts['phenomenon_time_range'].lower
+
+                        if ts['phenomenon_time_range'].upper is not None:
+                            if not phenomenon_time_to or phenomenon_time_to > ts['phenomenon_time_range'].upper:
+                                phenomenon_time_to = ts['phenomenon_time_range'].upper
+
+                        if ts['phenomenon_time_range'].lower is not None:
+                            if not f_phenomenon_time_from or f_phenomenon_time_from > ts['phenomenon_time_range'].lower:
+                                f_phenomenon_time_from = ts['phenomenon_time_range'].lower
+
+                        if ts['phenomenon_time_range'].upper is not None:
+                            if not f_phenomenon_time_to or f_phenomenon_time_to > ts['phenomenon_time_range'].upper:
+                                f_phenomenon_time_to = ts['phenomenon_time_range'].upper
+
+                        feature_prop_dict = {
+                            'values': ts['property_values'],
+                            'anomaly_rates': ts['property_anomaly_rates'],
+                            'phenomenon_time_from': ts['phenomenon_time_range'].lower,
+                            'phenomenon_time_to': ts['phenomenon_time_range'].upper,
+                            'value_index_shift': None
+                        }
+
+                        content[prop] = feature_prop_dict
+
+                        if len(ts['property_values']) > 0:
+                            hasValues = True
 
                 feature_id = path[0] + \
-                             "." + \
-                             feature_of_interest_model.__name__ + \
-                             ":" + \
-                             str(item.id_by_provider)
+                    "." + \
+                    feature_of_interest_model.__name__ + \
+                    ":" + \
+                    str(item.id_by_provider)
 
                 if hasValues:
                     f = TimeSeriesFeature(
