@@ -9,8 +9,11 @@ def observations_to_property_values(observations):
 
 def get_timeseries(
         phenomenon_time_range,
-        observations
+        num_time_slots,
+        get_observations
 ):
+    print('GT: ', phenomenon_time_range)
+    observations = get_observations(3, 5)
 
     if not isinstance(observations, list):
         raise Exception('property_values should be array')
