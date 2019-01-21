@@ -296,6 +296,29 @@ def get_not_null_range(
     return None
 
 
+def get_first_observation_duration(
+    pt_range,
+    observed_property,
+    observation_provider_model,
+    feature_of_interest,
+    process
+):
+    observations = observation_provider_model.objects.filter(
+        observed_property=observed_property,
+        procedure=process,
+        feature_of_interest=feature_of_interest,
+        phenomenon_time_range__overlap=pt_range
+    ).order_by('phenomenon_time_range')[:1]
+
+    if len(observations) > 0:
+        value_duration = observations[0].phenomenon_time_range.upper \
+                         - observations[0].phenomenon_time_range.lower
+        value_duration = value_duration.total_seconds()
+        return value_duration
+
+    return None
+
+#http://localhost:8000/api/v2/timeseries/?topic=drought&properties=air_temperature&phenomenon_date_from=2018-10-29&phenomenon_date_to=2018-10-30
 class TimeSeriesViewSet(viewsets.ViewSet):
 
     def list(self, request):
@@ -366,10 +389,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
         t.full_clean()
         t.clean()
 
-        time_slots = [] #get_empty_slots(t, pt_range_z)
-        start = pt_range_z.lower
-        if start < t.zero:
-            start = t.zero
+        time_slots = []
         value_frequency = get_value_frequency(t, zero)
         value_duration = None
 
@@ -434,29 +454,6 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
                     prop_item = Property.objects.get(name_id=prop)
 
-                    '''
-                    data = prepare_data(
-                        time_slots=time_slots,
-                        observed_property=prop_item,
-                        observation_provider_model=provider_model,
-                        feature_of_interest=item,
-                        process=process
-                    )
-
-                    observations = data['observations']
-                    print(observations)
-                    
-                    
-                    #http://localhost:8000/api/v2/timeseries/?topic=drought&properties=air_temperature&phenomenon_date_from=2018-10-29&phenomenon_date_to=2018-10-30
-                    
-                    if len(observations) > 0 and value_duration is None:
-                        value_duration = observations[0].phenomenon_time_range.upper \
-                                         - observations[0].phenomenon_time_range.lower
-                        value_duration = value_duration.total_seconds()
-
-                    print('aaaaaaaaaaaaa: ', len(observations))
-                    '''
-
                     data_range = get_not_null_range(
                         pt_range=pt_range_z,
                         observed_property=prop_item,
@@ -465,21 +462,17 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                         process=process
                     )
 
-                    time_slots = get_empty_slots(t, pt_range_z)
-
-
-                    #TODO - poslat jako parametr definici casove rady
-                    #TODO - vymyslet jak vygenerovat casovou radu, kde je znam konec a pozadovany pocet mereni
-                    #TODO - vymyslet jak vygenerovat casovou radu, kde je znam zacatek a pocet
-                    # time_slots = get_empty_slots(t, pt_range_z)
-                    # spocitat velikost mezi 2 casovymi okny
-                        #(ROZDIL mezi 2 zacatky * (pozadovany pocet + 1))
-                    #print(time_slots)
-
-
                     if data_range:
+                        if value_duration is None:
+                            value_duration = get_first_observation_duration(
+                                pt_range=pt_range_z,
+                                observed_property=prop_item,
+                                observation_provider_model=provider_model,
+                                feature_of_interest=item,
+                                process=process
+                            )
+
                         time_slots = get_empty_slots(t, data_range)
-                        print('lll: ', len(time_slots))
 
                         get_observations_func = partial(
                             get_observations,
