@@ -259,9 +259,10 @@ class RestApiTestCase(APITestCase):
             properties = f.get('properties', None)
             for p in props:
                 property = properties.get(p, None)
-                property_values = property.get('values', None)
-                property_anomaly_rates = property.get('anomaly_rates', None)
-                self.assertEquals(len(property_values), len(property_anomaly_rates))
+                if property:
+                    property_values = property.get('values', None)
+                    property_anomaly_rates = property.get('anomaly_rates', None)
+                    self.assertEquals(len(property_values), len(property_anomaly_rates))
 
     def test_timeseries_feature_output(self):
         response = self.client.get(URL_TIMESERIES, format='json')

@@ -392,7 +392,8 @@ class TimeSeriesViewSet(viewsets.ViewSet):
         t.full_clean()
         t.clean()
 
-        time_slots = []
+        #time_slots = []
+        time_slots = get_empty_slots(t, pt_range_z)
         value_frequency = get_value_frequency(t, zero)
         value_duration = None
 
@@ -475,11 +476,11 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                                 process=process
                             )
 
-                        time_slots = get_empty_slots(t, data_range)
+                        feature_time_slots = get_empty_slots(t, data_range)
 
                         get_observations_func = partial(
                             get_observations,
-                            time_slots,
+                            feature_time_slots,
                             prop_item,
                             provider_model,
                             item,
@@ -488,7 +489,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
                         ts = get_timeseries(
                             phenomenon_time_range=data_range,
-                            num_time_slots=len(time_slots),
+                            num_time_slots=len(feature_time_slots),
                             get_observations=get_observations_func
                         )
 
