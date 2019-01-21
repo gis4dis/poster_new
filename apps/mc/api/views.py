@@ -174,67 +174,69 @@ def get_empty_slots(t, pt_range_z):
 
 
 def get_observations(
-        time_slots,
+    time_slots,
+    observed_property,
+    observation_provider_model,
+    feature_of_interest,
+    process,
+    t,
+    lag_window_size,
+    future_window_size
+):
+
+    before_intervals = []
+    after_intervals = []
+    time_slot_diff = time_slots[1].lower - time_slots[0].lower
+
+    if lag_window_size and lag_window_size > 0:
+        bef_time_diff = time_slot_diff * lag_window_size + \
+                      (time_slots[0].upper - time_slots[0].lower)
+        bef_time_diff = bef_time_diff.total_seconds()
+
+        from_datetime = time_slots[0].lower - timedelta(seconds=bef_time_diff)
+
+        before_intervals = generate_intervals(
+            timeseries=t,
+            from_datetime=from_datetime,
+            to_datetime=time_slots[0].lower,
+        )
+
+        before_intervals = before_intervals[-lag_window_size:]
+
+    if future_window_size and future_window_size > 0:
+        after_time_diff = time_slot_diff * future_window_size + \
+                        (time_slots[0].upper - time_slots[0].lower)
+        after_time_diff = after_time_diff.total_seconds()
+
+        to_datetime = time_slots[-1].lower + timedelta(seconds=after_time_diff)
+
+        after_intervals = generate_intervals(
+            timeseries=t,
+            from_datetime=time_slots[-1].lower,
+            to_datetime=to_datetime,
+        )
+
+        after_intervals = after_intervals[1:]
+        after_intervals = after_intervals[-future_window_size:]
+
+    extended_time_slots =  before_intervals + time_slots + after_intervals
+
+    return prepare_data(
+        extended_time_slots,
         observed_property,
         observation_provider_model,
         feature_of_interest,
-        process,
-        t,
-        lag_window_size,
-        future_window_size):
-
-        before_intervals = []
-        after_intervals = []
-        time_slot_diff = time_slots[1].lower - time_slots[0].lower
-
-        if lag_window_size and lag_window_size > 0:
-            bef_time_diff = time_slot_diff * lag_window_size + \
-                          (time_slots[0].upper - time_slots[0].lower)
-            bef_time_diff = bef_time_diff.total_seconds()
-
-            from_datetime = time_slots[0].lower - timedelta(seconds=bef_time_diff)
-
-            before_intervals = generate_intervals(
-                timeseries=t,
-                from_datetime=from_datetime,
-                to_datetime=time_slots[0].lower,
-            )
-
-            before_intervals = before_intervals[-lag_window_size:]
-
-        if future_window_size and future_window_size > 0:
-            after_time_diff = time_slot_diff * future_window_size + \
-                            (time_slots[0].upper - time_slots[0].lower)
-            after_time_diff = after_time_diff.total_seconds()
-
-            to_datetime = time_slots[-1].lower + timedelta(seconds=after_time_diff)
-
-            after_intervals = generate_intervals(
-                timeseries=t,
-                from_datetime=time_slots[-1].lower,
-                to_datetime=to_datetime,
-            )
-
-            after_intervals = after_intervals[1:]
-            after_intervals = after_intervals[-future_window_size:]
-
-        extended_time_slots =  before_intervals + time_slots + after_intervals
-
-        return prepare_data(
-            extended_time_slots,  # time_slots,
-            observed_property,
-            observation_provider_model,
-            feature_of_interest,
-            process
-        )
+        process
+    )
 
 
 def prepare_data(
-        time_slots,
-        observed_property,
-        observation_provider_model,
-        feature_of_interest,
-        process):
+    time_slots,
+    observed_property,
+    observation_provider_model,
+    feature_of_interest,
+    process
+):
 
     obss = observation_provider_model.objects.filter(
         observed_property=observed_property,
@@ -271,7 +273,8 @@ def get_not_null_range(
     observed_property,
     observation_provider_model,
     feature_of_interest,
-    process):
+    process
+):
 
     obs_first = observation_provider_model.objects.filter(
         observed_property=observed_property,
