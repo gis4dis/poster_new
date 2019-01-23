@@ -321,6 +321,10 @@ def get_first_observation_duration(
 
     return None
 
+
+USE_DYNAMIC_TIMESLOTS = True
+ROUND_DECIMAL_SPACES = 3
+
 #http://localhost:8000/api/v2/timeseries/?topic=drought&properties=air_temperature&phenomenon_date_from=2018-10-29&phenomenon_date_to=2018-10-30
 class TimeSeriesViewSet(viewsets.ViewSet):
 
@@ -392,8 +396,11 @@ class TimeSeriesViewSet(viewsets.ViewSet):
         t.full_clean()
         t.clean()
 
-        #time_slots = []
-        time_slots = get_empty_slots(t, pt_range_z)
+        if USE_DYNAMIC_TIMESLOTS is True:
+            time_slots = None #[]
+        else:
+            time_slots = get_empty_slots(t, pt_range_z)
+
         value_frequency = get_value_frequency(t, zero)
         value_duration = None
 
@@ -440,9 +447,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
             for item in all_features:
                 content = {}
-                hasValues = False
-                f_phenomenon_time_from = None
-                f_phenomenon_time_to = None
+                has_values = False
 
                 for prop in model_props[model]:
                     prop_config = topic_config['properties'][prop]
@@ -493,25 +498,32 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                             get_observations=get_observations_func
                         )
 
+                        if time_slots is None:
+                            time_slots = feature_time_slots
+
                         if ts['phenomenon_time_range'].lower is not None:
                             if not phenomenon_time_from or phenomenon_time_from > ts['phenomenon_time_range'].lower:
                                 phenomenon_time_from = ts['phenomenon_time_range'].lower
+
+                                if USE_DYNAMIC_TIMESLOTS is True:
+                                    if time_slots != feature_time_slots:
+                                        for idx in range(len(feature_time_slots)):
+                                            slot = feature_time_slots[idx]
+                                            if slot.lower == time_slots[0].lower and slot.upper == \
+                                                    time_slots[0].upper:
+                                                time_slots = feature_time_slots[:idx] + time_slots
+                                                break
 
                         if ts['phenomenon_time_range'].upper is not None:
                             if not phenomenon_time_to or phenomenon_time_to > ts['phenomenon_time_range'].upper:
                                 phenomenon_time_to = ts['phenomenon_time_range'].upper
 
-                        if ts['phenomenon_time_range'].lower is not None:
-                            if not f_phenomenon_time_from or f_phenomenon_time_from > ts['phenomenon_time_range'].lower:
-                                f_phenomenon_time_from = ts['phenomenon_time_range'].lower
-
-                        if ts['phenomenon_time_range'].upper is not None:
-                            if not f_phenomenon_time_to or f_phenomenon_time_to > ts['phenomenon_time_range'].upper:
-                                f_phenomenon_time_to = ts['phenomenon_time_range'].upper
+                        rounded_ar = list(map((lambda val: round(val, ROUND_DECIMAL_SPACES) if val is not None else None),
+                                           ts['property_anomaly_rates']))
 
                         feature_prop_dict = {
                             'values': ts['property_values'],
-                            'anomaly_rates': ts['property_anomaly_rates'],
+                            'anomaly_rates': rounded_ar,
                             'phenomenon_time_from': ts['phenomenon_time_range'].lower,
                             'phenomenon_time_to': ts['phenomenon_time_range'].upper,
                             'value_index_shift': None
@@ -520,7 +532,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                         content[prop] = feature_prop_dict
 
                         if len(ts['property_values']) > 0:
-                            hasValues = True
+                            has_values = True
 
                 feature_id = path[0] + \
                     "." + \
@@ -528,7 +540,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                     ":" + \
                     str(item.id_by_provider)
 
-                if hasValues:
+                if has_values:
                     f = TimeSeriesFeature(
                         id=feature_id,
                         id_by_provider=item.id_by_provider,
