@@ -77,11 +77,11 @@ def get_timeseries(
     anomalyScore = detector.get_all_scores().values
 
     for i in range(len(property_values)):
-        if property_values[i] is None and anomalyScore[i] is not None:
+        if property_values[i] is None:
             anomalyScore.insert(i, None)
 
     return {
         'phenomenon_time_range': phenomenon_time_range,
-        'property_values': property_values[lower_ext:num_time_slots],
-        'property_anomaly_rates': anomalyScore[lower_ext:num_time_slots],
+        'property_values': property_values[lower_ext:lower_ext+num_time_slots],
+        'property_anomaly_rates': anomalyScore[lower_ext:lower_ext+num_time_slots],
     }
