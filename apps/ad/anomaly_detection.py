@@ -74,7 +74,7 @@ def get_timeseries(
     else:
         detector = AnomalyDetector(obs_reduced, baseline_reduced, algorithm_name=detector_method, algorithm_params=detector_params, score_only=True)
 
-    anomalyScore = detector.get_all_scores()
+    anomalyScore = detector.get_all_scores().values
 
     for i in range(len(property_values)):
         if property_values[i] is None and anomalyScore[i] is not None:
