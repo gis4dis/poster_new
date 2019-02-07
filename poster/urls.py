@@ -40,3 +40,6 @@ urlpatterns += [
 
     # path('topics/drought/', include('apps.mc.urls')),
 ]
+
+import debug_toolbar
+urlpatterns = [path('__debug__/', include(debug_toolbar.urls))] + urlpatterns

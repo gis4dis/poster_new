@@ -81,6 +81,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+
     'sekizai',
     'widget_tweaks',
 
@@ -111,6 +112,8 @@ INSTALLED_APPS = [
     'apps.processing.o2',
     'apps.processing.rsd',
     'apps.processing.ozp',
+
+    'debug_toolbar',
 ]
 
 
@@ -123,6 +126,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 ROOT_URLCONF = 'poster.urls'
@@ -219,3 +223,18 @@ LOGGING = {
 REST_FRAMEWORK = {
     'COERCE_DECIMAL_TO_STRING': False
 }
+
+
+def show_toolbar(request):
+    return True
+
+
+DEBUG_TOOLBAR_CONFIG = {
+    'SHOW_TOOLBAR_CALLBACK': show_toolbar,
+}
+
+#INTERNAL_IPS = ('0.0.0.0',)
+#INTERNAL_IPS = ['127.0.0.1',]
+#INTERNAL_IPS = ['0.0.0.0:8000',]
+#INTERNAL_IPS = ('127.0.0.1', 'localhost')
+INTERNAL_IPS = ['172.18.0.1',]

@@ -268,6 +268,117 @@ def prepare_data(
     return observations
 
 
+'''
+select feature_of_interest_id, procedure_id, observed_property_id, min(lower(phenomenon_time_range)), max(lower(phenomenon_time_range))
+from ala_observation
+group by feature_of_interest_id, procedure_id, observed_property_id
+ORDER BY feature_of_interest_id
+LIMIT 1000
+
+select feature_of_interest, observed_property, min(phenomenon_time_range), max(phenomenon_time_range)
+from provider
+where 
+  (feature_of_interest=f1 and process=p1 and observed_property=op1) or 
+  (feature_of_interest=f2 and process=p2 and observed_property=op2) or ...
+group by 
+  feature_of_interest, 
+  process, 
+  observed_property
+  
+  
+  
+prop_items = Property.objects.filter(name_id=model_props[model])
+            grouped = provider_model.objects.annotate(
+                field_lower=Func(F('phenomenon_time_range'), function='LOWER')
+            ).filter(
+                observed_property=prop_item,
+                feature_of_interest=feature_of_interest,
+                phenomenon_time_range__overlap=pt_range
+            ).aggregate(Max('field_lower'),
+                        Min('field_lower'))
+  
+
+grouped = provider_model.objects.annotate(
+                field_lower=Func(F('phenomenon_time_range'), function='LOWER')
+            ).filter(
+                q_objects
+            ).values(
+                'feature_of_interest',
+                'procedure',
+                'observed_property',
+                #'field_lower'
+            ).annotate(min_b=Min('field_lower'), max_b=Max('field_lower'))
+            #.aggregate(
+            #    Max('field_lower'),
+            #    Min('field_lower')
+            #)
+            
+            
+          grouped = provider_model.objects.filter(
+                q_objects
+            ).values(
+                'feature_of_interest',
+                'procedure',
+                'observed_property',
+            ).annotate(
+                min_b=Min(Func(F('phenomenon_time_range'), function='LOWER')),
+                max_b=Max(Func(F('phenomenon_time_range'), function='LOWER'))
+            ).order_by('feature_of_interest')
+'''
+
+from django.db.models import Max, Min
+from django.db.models import F, Func, Q
+
+
+def get_not_null_ranges(
+    features,
+    props,
+    topic_config,
+    observation_provider_name,
+    provider_model,
+    pt_range_z
+):
+    q_objects = Q()
+
+    for item in features:
+        for prop in props:
+            prop_config = topic_config['properties'][prop]
+
+            try:
+                process = Process.objects.get(
+                    name_id=prop_config['observation_providers'][observation_provider_name][
+                        "process"])
+            except Process.DoesNotExist:
+                process = None
+
+            if not process:
+                raise APIException('Process from config not found.')
+
+            prop_item = Property.objects.get(name_id=prop)
+
+            q_objects.add(Q(
+                observed_property=prop_item,
+                feature_of_interest=item,
+                procedure=process
+            ), Q.OR)
+
+    q_objects.add(Q(
+        phenomenon_time_range__overlap=pt_range_z
+    ), Q.AND)
+
+    grouped = provider_model.objects.filter(
+        q_objects
+    ).values(
+        'feature_of_interest',
+        'procedure',
+        'observed_property',
+    ).annotate(
+        min_b=Min(Func(F('phenomenon_time_range'), function='LOWER')),
+        max_b=Max(Func(F('phenomenon_time_range'), function='UPPER'))
+    ).order_by('feature_of_interest')
+
+    return grouped
+
 def get_not_null_range(
     pt_range,
     observed_property,
@@ -275,7 +386,6 @@ def get_not_null_range(
     feature_of_interest,
     process
 ):
-
     obs_first = observation_provider_model.objects.filter(
         observed_property=observed_property,
         procedure=process,
@@ -445,6 +555,17 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
             observation_provider_model_name = f"{provider_model.__module__}.{provider_model.__name__}"
 
+            nn_feature_ranges = get_not_null_ranges(
+                features=all_features,
+                props=model_props[model],
+                topic_config=topic_config,
+                observation_provider_name=observation_provider_model_name,
+                provider_model=provider_model,
+                pt_range_z=pt_range_z
+            )
+
+            print('NNN: ', nn_feature_ranges)
+
             for item in all_features:
                 content = {}
                 has_values = False
@@ -463,6 +584,10 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
                     prop_item = Property.objects.get(name_id=prop)
 
+                    data_range = None
+
+
+                    '''
                     data_range = get_not_null_range(
                         pt_range=pt_range_z,
                         observed_property=prop_item,
@@ -470,6 +595,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                         feature_of_interest=item,
                         process=process
                     )
+                    '''
 
                     if data_range:
                         if value_duration is None:
@@ -549,6 +675,9 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                         content=content
                     )
                     time_series_list.append(f)
+
+
+            #print(grouped)
 
         for item in time_series_list:
             if phenomenon_time_from:
