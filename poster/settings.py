@@ -233,8 +233,12 @@ DEBUG_TOOLBAR_CONFIG = {
     'SHOW_TOOLBAR_CALLBACK': show_toolbar,
 }
 
-#INTERNAL_IPS = ('0.0.0.0',)
-#INTERNAL_IPS = ['127.0.0.1',]
-#INTERNAL_IPS = ['0.0.0.0:8000',]
-#INTERNAL_IPS = ('127.0.0.1', 'localhost')
 INTERNAL_IPS = ['172.18.0.1',]
+
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'cache_table',
+    }
+}

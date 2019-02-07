@@ -316,7 +316,7 @@ def get_not_null_ranges(
         phenomenon_time_range__overlap=pt_range_z
     ), Q.AND)
 
-    grouped = provider_model.objects.filter(
+    pm = provider_model.objects.filter(
         q_objects
     ).values(
         'feature_of_interest',
@@ -327,7 +327,7 @@ def get_not_null_ranges(
         max_b=Max(Func(F('phenomenon_time_range'), function='UPPER'))
     ).order_by('feature_of_interest')
 
-    return grouped
+    return pm
 
 
 def get_feature_nn_from_list(
@@ -402,9 +402,13 @@ def get_first_observation_duration(
 USE_DYNAMIC_TIMESLOTS = True
 ROUND_DECIMAL_SPACES = 3
 
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+
 #http://localhost:8000/api/v2/timeseries/?topic=drought&properties=air_temperature&phenomenon_date_from=2018-10-29&phenomenon_date_to=2018-10-30
 class TimeSeriesViewSet(viewsets.ViewSet):
 
+    @method_decorator(cache_page(60*60*12))
     def list(self, request):
         if 'topic' in request.GET:
             topic = request.GET['topic']
@@ -569,17 +573,12 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                     )
                     '''
 
-                    #print('DRA: ', data_range)
-
                     data_range = get_feature_nn_from_list(
                         nn_feature_ranges,
                         item,
                         prop_item.id,
                         process.id
                     )
-
-
-                    #print('DRB: ', data_range)
 
                     if data_range:
                         if value_duration is None:
