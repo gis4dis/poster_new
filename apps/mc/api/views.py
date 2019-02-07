@@ -240,7 +240,6 @@ def prepare_data(
     feature_of_interest,
     process
 ):
-
     obss = observation_provider_model.objects.filter(
         observed_property=observed_property,
         procedure=process,
@@ -272,8 +271,6 @@ def prepare_data(
 
 
 def get_not_null_ranges(
-    last_process,
-    last_process_name_id,
     features,
     props,
     topic_config,
@@ -283,26 +280,31 @@ def get_not_null_ranges(
 ):
     q_objects = Q()
 
+    prop_items = {}
+    process_items = {}
+
     for item in features:
         for prop in props:
             prop_config = topic_config['properties'][prop]
-
             process_name_id = prop_config['observation_providers'][observation_provider_name]["process"]
 
-            if process_name_id != last_process_name_id:
+            try:
+                process = process_items[process_name_id]
+            except KeyError:
                 try:
                     process = Process.objects.get(name_id=process_name_id)
-                    last_process_name_id = process_name_id
-                    last_process = process
+                    process_items[process_name_id] = process
                 except Process.DoesNotExist:
                     process = None
-            else:
-                process = last_process
 
             if not process:
                 raise APIException('Process from config not found.')
 
-            prop_item = Property.objects.get(name_id=prop)
+            try:
+                prop_item = prop_items[prop]
+            except KeyError:
+                prop_item = Property.objects.get(name_id=prop)
+                prop_items[prop] = prop_item
 
             q_objects.add(Q(
                 observed_property=prop_item,
@@ -325,22 +327,24 @@ def get_not_null_ranges(
         max_b=Max(Func(F('phenomenon_time_range'), function='UPPER'))
     ).order_by('feature_of_interest')
 
-    return grouped, last_process, last_process_name_id
+    return grouped
 
 
 def get_feature_nn_from_list(
     nn_list,
-    feature
+    feature,
+    prop_id,
+    process_id
 ):
-
     for item in nn_list:
-        if item['feature_of_interest'] == feature.id:
+        if item['feature_of_interest'] == feature.id and item['procedure'] == process_id and item['observed_property'] == prop_id:
             return DateTimeTZRange(
                 item['min_b'],
                 item['max_b']
             )
 
     return None
+
 
 def get_not_null_range(
     pt_range,
@@ -397,9 +401,6 @@ def get_first_observation_duration(
 
 USE_DYNAMIC_TIMESLOTS = True
 ROUND_DECIMAL_SPACES = 3
-
-LAST_PROCCESS = None
-LAST_PROCCESS_NAME_ID = None
 
 #http://localhost:8000/api/v2/timeseries/?topic=drought&properties=air_temperature&phenomenon_date_from=2018-10-29&phenomenon_date_to=2018-10-30
 class TimeSeriesViewSet(viewsets.ViewSet):
@@ -501,9 +502,8 @@ class TimeSeriesViewSet(viewsets.ViewSet):
         time_series_list = []
         phenomenon_time_from = None
         phenomenon_time_to = None
-
-        last_process_name_id = None
-        last_process = None
+        process_items = {}
+        prop_items = {}
 
         for model in model_props:
 
@@ -524,9 +524,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
             observation_provider_model_name = f"{provider_model.__module__}.{provider_model.__name__}"
 
-            nn_feature_ranges, last_process, last_process_name_id = get_not_null_ranges(
-                last_process=last_process,
-                last_process_name_id=last_process_name_id,
+            nn_feature_ranges = get_not_null_ranges(
                 features=all_features,
                 props=model_props[model],
                 topic_config=topic_config,
@@ -543,22 +541,45 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                     prop_config = topic_config['properties'][prop]
 
                     process_name_id = prop_config['observation_providers'][observation_provider_model_name]["process"]
-                    if process_name_id != last_process_name_id:
+                    try:
+                        process = process_items[process_name_id]
+                    except KeyError:
                         try:
                             process = Process.objects.get(name_id=process_name_id)
-                            last_process_name_id = process_name_id
-                            last_process = process
+                            process_items[process_name_id] = process
                         except Process.DoesNotExist:
                             process = None
-                    else:
-                        process = last_process
 
                     if not process:
                         raise APIException('Process from config not found.')
 
-                    prop_item = Property.objects.get(name_id=prop)
+                    try:
+                        prop_item = prop_items[prop]
+                    except KeyError:
+                        prop_item = Property.objects.get(name_id=prop)
+                        prop_items[prop] = prop_item
 
-                    data_range = get_feature_nn_from_list(nn_feature_ranges, item)
+                    '''
+                    data_range = get_not_null_range(
+                        pt_range=pt_range_z,
+                        observed_property=prop_item,
+                        observation_provider_model=provider_model,
+                        feature_of_interest=item,
+                        process=process
+                    )
+                    '''
+
+                    #print('DRA: ', data_range)
+
+                    data_range = get_feature_nn_from_list(
+                        nn_feature_ranges,
+                        item,
+                        prop_item.id,
+                        process.id
+                    )
+
+
+                    #print('DRB: ', data_range)
 
                     if data_range:
                         if value_duration is None:
