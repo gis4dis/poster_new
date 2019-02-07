@@ -18,6 +18,9 @@ from apps.common.models import TimeSeries
 from apps.mc.api.serializers import PropertySerializer, TimeSeriesSerializer, TopicSerializer
 from apps.utils.time import UTC_P0100
 from apps.common.util.util import generate_intervals
+from django.db.models import Max, Min
+from django.db.models import F, Func, Q
+
 
 from datetime import timedelta
 
@@ -268,69 +271,9 @@ def prepare_data(
     return observations
 
 
-'''
-select feature_of_interest_id, procedure_id, observed_property_id, min(lower(phenomenon_time_range)), max(lower(phenomenon_time_range))
-from ala_observation
-group by feature_of_interest_id, procedure_id, observed_property_id
-ORDER BY feature_of_interest_id
-LIMIT 1000
-
-select feature_of_interest, observed_property, min(phenomenon_time_range), max(phenomenon_time_range)
-from provider
-where 
-  (feature_of_interest=f1 and process=p1 and observed_property=op1) or 
-  (feature_of_interest=f2 and process=p2 and observed_property=op2) or ...
-group by 
-  feature_of_interest, 
-  process, 
-  observed_property
-  
-  
-  
-prop_items = Property.objects.filter(name_id=model_props[model])
-            grouped = provider_model.objects.annotate(
-                field_lower=Func(F('phenomenon_time_range'), function='LOWER')
-            ).filter(
-                observed_property=prop_item,
-                feature_of_interest=feature_of_interest,
-                phenomenon_time_range__overlap=pt_range
-            ).aggregate(Max('field_lower'),
-                        Min('field_lower'))
-  
-
-grouped = provider_model.objects.annotate(
-                field_lower=Func(F('phenomenon_time_range'), function='LOWER')
-            ).filter(
-                q_objects
-            ).values(
-                'feature_of_interest',
-                'procedure',
-                'observed_property',
-                #'field_lower'
-            ).annotate(min_b=Min('field_lower'), max_b=Max('field_lower'))
-            #.aggregate(
-            #    Max('field_lower'),
-            #    Min('field_lower')
-            #)
-            
-            
-          grouped = provider_model.objects.filter(
-                q_objects
-            ).values(
-                'feature_of_interest',
-                'procedure',
-                'observed_property',
-            ).annotate(
-                min_b=Min(Func(F('phenomenon_time_range'), function='LOWER')),
-                max_b=Max(Func(F('phenomenon_time_range'), function='LOWER'))
-            ).order_by('feature_of_interest')
-'''
-
-from django.db.models import Max, Min
-from django.db.models import F, Func, Q
-
-
 def get_not_null_ranges(
+    last_process,
+    last_process_name_id,
     features,
     props,
     topic_config,
@@ -344,12 +287,17 @@ def get_not_null_ranges(
         for prop in props:
             prop_config = topic_config['properties'][prop]
 
-            try:
-                process = Process.objects.get(
-                    name_id=prop_config['observation_providers'][observation_provider_name][
-                        "process"])
-            except Process.DoesNotExist:
-                process = None
+            process_name_id = prop_config['observation_providers'][observation_provider_name]["process"]
+
+            if process_name_id != last_process_name_id:
+                try:
+                    process = Process.objects.get(name_id=process_name_id)
+                    last_process_name_id = process_name_id
+                    last_process = process
+                except Process.DoesNotExist:
+                    process = None
+            else:
+                process = last_process
 
             if not process:
                 raise APIException('Process from config not found.')
@@ -377,7 +325,22 @@ def get_not_null_ranges(
         max_b=Max(Func(F('phenomenon_time_range'), function='UPPER'))
     ).order_by('feature_of_interest')
 
-    return grouped
+    return grouped, last_process, last_process_name_id
+
+
+def get_feature_nn_from_list(
+    nn_list,
+    feature
+):
+
+    for item in nn_list:
+        if item['feature_of_interest'] == feature.id:
+            return DateTimeTZRange(
+                item['min_b'],
+                item['max_b']
+            )
+
+    return None
 
 def get_not_null_range(
     pt_range,
@@ -434,6 +397,9 @@ def get_first_observation_duration(
 
 USE_DYNAMIC_TIMESLOTS = True
 ROUND_DECIMAL_SPACES = 3
+
+LAST_PROCCESS = None
+LAST_PROCCESS_NAME_ID = None
 
 #http://localhost:8000/api/v2/timeseries/?topic=drought&properties=air_temperature&phenomenon_date_from=2018-10-29&phenomenon_date_to=2018-10-30
 class TimeSeriesViewSet(viewsets.ViewSet):
@@ -536,6 +502,9 @@ class TimeSeriesViewSet(viewsets.ViewSet):
         phenomenon_time_from = None
         phenomenon_time_to = None
 
+        last_process_name_id = None
+        last_process = None
+
         for model in model_props:
 
             provider_module, provider_model, error_message = import_models(model)
@@ -555,7 +524,9 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
             observation_provider_model_name = f"{provider_model.__module__}.{provider_model.__name__}"
 
-            nn_feature_ranges = get_not_null_ranges(
+            nn_feature_ranges, last_process, last_process_name_id = get_not_null_ranges(
+                last_process=last_process,
+                last_process_name_id=last_process_name_id,
                 features=all_features,
                 props=model_props[model],
                 topic_config=topic_config,
@@ -564,8 +535,6 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                 pt_range_z=pt_range_z
             )
 
-            print('NNN: ', nn_feature_ranges)
-
             for item in all_features:
                 content = {}
                 has_values = False
@@ -573,29 +542,23 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                 for prop in model_props[model]:
                     prop_config = topic_config['properties'][prop]
 
-                    try:
-                        process = Process.objects.get(
-                            name_id=prop_config['observation_providers'][observation_provider_model_name]["process"])
-                    except Process.DoesNotExist:
-                        process = None
+                    process_name_id = prop_config['observation_providers'][observation_provider_model_name]["process"]
+                    if process_name_id != last_process_name_id:
+                        try:
+                            process = Process.objects.get(name_id=process_name_id)
+                            last_process_name_id = process_name_id
+                            last_process = process
+                        except Process.DoesNotExist:
+                            process = None
+                    else:
+                        process = last_process
 
                     if not process:
                         raise APIException('Process from config not found.')
 
                     prop_item = Property.objects.get(name_id=prop)
 
-                    data_range = None
-
-
-                    '''
-                    data_range = get_not_null_range(
-                        pt_range=pt_range_z,
-                        observed_property=prop_item,
-                        observation_provider_model=provider_model,
-                        feature_of_interest=item,
-                        process=process
-                    )
-                    '''
+                    data_range = get_feature_nn_from_list(nn_feature_ranges, item)
 
                     if data_range:
                         if value_duration is None:
