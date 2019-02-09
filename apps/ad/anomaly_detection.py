@@ -18,11 +18,13 @@ def get_timeseries(
             "future_window_size": 96,
             "chunk_size": 2
         },
+        extend_range=True,
         baseline_time_range=None,
-        extend_range=True
+        use_baseline=True
 ):
 
     # if baseline_time_range is not None:
+        # use_baseline = True
     #     baseline_time_series = observation_provider_model.objects.filter(
     #         phenomenon_time_range__contained_by=baseline_time_range,
     #         phenomenon_time_range__duration=frequency,
@@ -39,6 +41,9 @@ def get_timeseries(
     if extend_range:
         lower_ext = detector_params["lag_window_size"]
         upper_ext = detector_params["future_window_size"]
+
+        if use_baseline and not baseline_time_range:
+            upper_ext = 0
 
         if baseline_time_range:
             lower_ext = int(upper_ext / 2)
@@ -64,6 +69,10 @@ def get_timeseries(
             'property_values': property_values,
             'property_anomaly_rates': [0],
         }
+
+    if use_baseline and baseline_time_range is None:
+        baseline_time_series = observations
+        baseline_reduced = {obs.phenomenon_time_range.lower.timestamp(): obs.result for obs in baseline_time_series}
 
     obs_reduced = {obs.phenomenon_time_range.lower.timestamp(): obs.result for obs in observations}
 
