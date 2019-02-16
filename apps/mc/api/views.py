@@ -21,10 +21,14 @@ from apps.common.util.util import generate_intervals
 from django.db.models import Max, Min
 from django.db.models import F, Func, Q
 
+from datetime import timedelta
+
+from functools import partial
 
 from datetime import timedelta
 
 from functools import partial
+
 
 def import_models(path):
     provider_module = None
@@ -353,6 +357,7 @@ def get_not_null_range(
     feature_of_interest,
     process
 ):
+
     obs_first = observation_provider_model.objects.filter(
         observed_property=observed_property,
         procedure=process,
@@ -539,7 +544,10 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
             for item in all_features:
                 content = {}
+
                 has_values = False
+                f_phenomenon_time_from = None
+                f_phenomenon_time_to = None
 
                 for prop in model_props[model]:
                     prop_config = topic_config['properties'][prop]
@@ -562,16 +570,6 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                     except KeyError:
                         prop_item = Property.objects.get(name_id=prop)
                         prop_items[prop] = prop_item
-
-                    '''
-                    data_range = get_not_null_range(
-                        pt_range=pt_range_z,
-                        observed_property=prop_item,
-                        observation_provider_model=provider_model,
-                        feature_of_interest=item,
-                        process=process
-                    )
-                    '''
 
                     data_range = get_feature_nn_from_list(
                         nn_feature_ranges,

@@ -10,10 +10,48 @@ def observations_to_property_values(observations):
 def get_timeseries(
         phenomenon_time_range,
         num_time_slots,
-        get_observations
+        get_observations,
+        detector_method='bitmap_mod',
+        detector_params={
+            "precision": 6,
+            "lag_window_size": 96,
+            "future_window_size": 96,
+            "chunk_size": 2
+        },
+        extend_range=True,
+        baseline_time_range=None,
+        use_baseline=True
 ):
     #observations = get_observations(3, 5)
-    observations = get_observations(0, 0)
+    #observations = get_observations(0, 0)
+
+    # if baseline_time_range is not None:
+        # use_baseline = True
+    #     baseline_time_series = observation_provider_model.objects.filter(
+    #         phenomenon_time_range__contained_by=baseline_time_range,
+    #         phenomenon_time_range__duration=frequency,
+    #         phenomenon_time_range__matches=frequency,
+    #         observed_property=observed_property,
+    #         procedure=process,
+    #         feature_of_interest=feature_of_interest
+    #     )
+    #     baseline_reduced = {obs.phenomenon_time_range.lower.timestamp(): obs.result for obs in baseline_time_series}
+
+    lower_ext = 0
+    upper_ext = 0
+
+    if extend_range:
+        lower_ext = detector_params["lag_window_size"]
+        upper_ext = detector_params["future_window_size"]
+
+        if use_baseline and not baseline_time_range:
+            upper_ext = 0
+
+        if baseline_time_range:
+            lower_ext = int(upper_ext / 2)
+            upper_ext -= lower_ext + 1
+
+    observations = get_observations(lower_ext, upper_ext)
 
     if not isinstance(observations, list):
         raise Exception('property_values should be array')
@@ -34,12 +72,20 @@ def get_timeseries(
             'property_anomaly_rates': [0],
         }
 
-    obs_reduced = {}
+    if use_baseline and baseline_time_range is None:
+        baseline_time_series = observations
+        baseline_reduced = {obs.phenomenon_time_range.lower.timestamp(): obs.result for obs in baseline_time_series}
 
-    for i in range(len(observations)):
-        obs_reduced[observations[i].phenomenon_time_range.lower.timestamp()] = observations[i].result
+    obs_reduced = {obs.phenomenon_time_range.lower.timestamp(): obs.result for obs in observations}
 
-    (anomalyScore, anomalyPeriod) = anomaly_detect(obs_reduced)
+    try:
+        baseline_reduced
+    except NameError:
+        detector = AnomalyDetector(obs_reduced, algorithm_name=detector_method, algorithm_params=detector_params, score_only=True)
+    else:
+        detector = AnomalyDetector(obs_reduced, baseline_reduced, algorithm_name=detector_method, algorithm_params=detector_params, score_only=True)
+
+    anomalyScore = detector.get_all_scores().values
 
     for i in range(len(property_values)):
         if property_values[i] is None:
@@ -47,25 +93,6 @@ def get_timeseries(
 
     return {
         'phenomenon_time_range': phenomenon_time_range,
-        'property_values': property_values,
-        'property_anomaly_rates': anomalyScore,
+        'property_values': property_values[lower_ext:lower_ext+num_time_slots],
+        'property_anomaly_rates': anomalyScore[lower_ext:lower_ext+num_time_slots],
     }
-
-
-def anomaly_detect(observations, detector_method='bitmap_detector'):
-    time_period = None
-
-    my_detector = AnomalyDetector(observations, algorithm_name=detector_method)
-    anomalies = my_detector.get_anomalies()
-
-    if anomalies:
-        time_period = anomalies[0].get_time_window()
-
-    #TODO: the anomaly point
-
-    score = my_detector.get_all_scores()
-
-    return (list(score.itervalues()), time_period)
-
-
-

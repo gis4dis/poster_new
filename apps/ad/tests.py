@@ -7,18 +7,31 @@ from datetime import timedelta, datetime
 from apps.ad.anomaly_detection import get_timeseries
 from apps.utils.time import UTC_P0100
 from django.conf import settings
-from apps.mc.api.views import prepare_data, get_empty_slots
 from apps.common.models import TimeSeries
 from django.utils.dateparse import parse_datetime
+from apps.mc.api.views import get_observations
+from apps.mc.api.views import get_empty_slots
+from functools import partial
 
 time_range_boundary = '[)'
-time_from = datetime(2018, 6, 15, 00, 00, 00)
+time_from = datetime(2018, 6, 15, 10, 00, 00)
 time_from = time_from.replace(tzinfo=UTC_P0100)
+
 date_time_range = DateTimeTZRange(
     time_from,
-    time_from + timedelta(hours=24),
+    time_from + timedelta(hours=3),
     time_range_boundary
 )
+
+time_from_alternative = datetime(2018, 6, 15, 11, 00, 00)
+time_from_alternative = time_from_alternative.replace(tzinfo=UTC_P0100)
+
+date_time_range_alternative = DateTimeTZRange(
+    time_from_alternative,
+    time_from_alternative + timedelta(hours=2),
+    time_range_boundary
+)
+
 
 time_from_no_data = datetime(2018, 9, 15, 00, 00, 00)
 time_from_no_data = time_from_no_data.replace(tzinfo=UTC_P0100)
@@ -49,7 +62,8 @@ def get_time_series_test(
         station_name,
         time_range,
         observed_property="air_temperature",
-        observation_provider_model=Observation):
+        observation_provider_model=Observation,
+        num_time_slots=None):
 
     topic_config = settings.APPLICATION_MC.TOPICS['drought']
     observation_provider_model_name = f"{observation_provider_model.__module__}.{observation_provider_model.__name__}"
@@ -79,17 +93,23 @@ def get_time_series_test(
 
     time_slots = get_empty_slots(t, time_range)
 
-    data = prepare_data(
-        time_slots=time_slots,
-        observed_property=prop,
-        observation_provider_model=observation_provider_model,
-        feature_of_interest=station,
-        process=process
+    if num_time_slots is None:
+        num_time_slots = len(time_slots)
+
+    get_observations_func = partial(
+        get_observations,
+        time_slots,
+        prop,
+        observation_provider_model,
+        station,
+        process,
+        t
     )
 
     return get_timeseries(
-        phenomenon_time_range=data['phenomenon_time_range'],
-        observations=data['observations']
+        phenomenon_time_range=time_range,
+        num_time_slots=num_time_slots,
+        get_observations=get_observations_func
     )
 
 
@@ -98,8 +118,6 @@ def get_time_series_test(
 # run tests in app- ./dcmanage.sh test apps.mc
 # run single TestCase - ./dcmanage.sh test apps.mc.tests.TimeSeriesTestCase
 # run single test - ./dcmanage.sh test apps.mc.tests.TimeSeriesTestCase.test_properties_response_status
-
-
 class TimeSeriesTestCase(TestCase):
     def setUp(self):
         am_process = Process.objects.create(
@@ -134,6 +152,20 @@ class TimeSeriesTestCase(TestCase):
         )
 
         time_from = datetime(2018, 6, 15, 11, 00, 00)
+        time_from = time_from.replace(tzinfo=UTC_P0100)
+        Observation.objects.create(
+            observed_property=at_prop,
+            feature_of_interest=station_2,
+            procedure=am_process,
+            result=1.5,
+            phenomenon_time_range=DateTimeTZRange(
+                time_from,
+                time_from + timedelta(hours=1),
+                time_range_boundary
+            )
+        )
+
+        time_from = datetime(2018, 6, 15, 12, 00, 00)
         time_from = time_from.replace(tzinfo=UTC_P0100)
         Observation.objects.create(
             observed_property=at_prop,
@@ -225,11 +257,15 @@ class TimeSeriesTestCase(TestCase):
         self.assertEqual(ts['property_values'], [1.000, 1000.000, 1.500])
 
     def test_empty_property_values(self):
-        ts = get_time_series_test('Brno', date_time_range_no_data)
-        self.assertIsNone(ts['phenomenon_time_range'].lower)
-        self.assertIsNone(ts['phenomenon_time_range'].upper)
+        ts = get_time_series_test('Brno', date_time_range_no_data, num_time_slots=0)
         self.assertEqual(len(ts['property_values']), 0)
         self.assertEqual(len(ts['property_anomaly_rates']), 0)
+
+    def test_null_property_values(self):
+        ts = get_time_series_test('Brno', date_time_range_no_data, num_time_slots=2)
+        self.assertEqual(len(ts['property_values']), 2)
+        self.assertEqual(len(ts['property_anomaly_rates']), 2)
+        self.assertEqual(ts['property_values'], [None, None])
 
     def test_count(self):
         ts = get_time_series_test('Brno', date_time_range)
@@ -251,7 +287,7 @@ class TimeSeriesTestCase(TestCase):
         out_lower = ts['phenomenon_time_range'].lower
         out_upper = ts['phenomenon_time_range'].upper
         self.assertTrue(out_lower >= date_time_range.lower)
-        self.assertTrue(out_upper < date_time_range.upper)
+        self.assertTrue(out_upper <= date_time_range.upper)
 
     def test_in_bounds(self):
         ts = get_time_series_test('Brno', date_time_range)
@@ -260,7 +296,6 @@ class TimeSeriesTestCase(TestCase):
         self.assertTrue(lower_inc)
         self.assertFalse(upper_inc)
 
-
     def test_alternative_feature(self):
-        ts = get_time_series_test('Brno2', date_time_range)
-        self.assertEqual(ts['property_values'], [1.500])
+        ts = get_time_series_test('Brno2', date_time_range_alternative)
+        self.assertEqual(ts['property_values'], [1.500, 1.500])
