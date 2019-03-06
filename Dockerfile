@@ -3,6 +3,7 @@ ENV PYTHONUNBUFFERED 1
 ENV PIP_SRC /opt/site-packages
 
 RUN mkdir /code
+RUN mkdir /code/jupyter-notebooks
 WORKDIR /code
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

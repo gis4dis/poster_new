@@ -114,6 +114,7 @@ INSTALLED_APPS = [
     'apps.processing.ozp',
 
     'debug_toolbar',
+    'django_extensions',
 ]
 
 
@@ -247,3 +248,10 @@ else:
             'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
         }
 }
+
+NOTEBOOK_ARGUMENTS = [
+    '--ip', '0.0.0.0',
+    '--port', '8888',
+    '--notebook-dir', './jupyter-notebooks/',
+    '--allow-root',
+]

@@ -20,6 +20,7 @@ def get_timeseries(
         },
         extend_range=True,
         baseline_time_range=None,
+        shift=True,
         use_baseline=True
 ):
     #observations = get_observations(3, 5)
@@ -44,10 +45,10 @@ def get_timeseries(
         lower_ext = detector_params["lag_window_size"]
         upper_ext = detector_params["future_window_size"]
 
-        if use_baseline and not baseline_time_range:
+        if use_baseline and shift:
             upper_ext = 0
 
-        if baseline_time_range:
+        if use_baseline and not shift:
             lower_ext = int(upper_ext / 2)
             upper_ext -= lower_ext + 1
 

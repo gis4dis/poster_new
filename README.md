@@ -29,6 +29,14 @@ cd poster
 cp example.env .env
 ```
 
+- clone any version of your choice of Luminol:
+
+```bash
+cd src/
+git clone git@github.com:gis4dis/luminol.git
+cd -
+```
+
 - If you have PostgreSQL (or something else) running at local port 5432, stop it.
 
 - run
