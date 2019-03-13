@@ -1,10 +1,14 @@
 from importlib import import_module
 
+import requests
+from contextlib import closing
+
 from dateutil import relativedelta
 from dateutil.parser import parse
 from django.conf import settings
 from django.contrib.gis.geos import Polygon
 from psycopg2.extras import DateTimeTZRange
+from rest_framework.views import APIView
 from rest_framework import viewsets
 from rest_framework.exceptions import APIException
 from rest_framework.response import Response
@@ -130,6 +134,45 @@ class PropertyViewSet(viewsets.ViewSet):
             return Response(serializer.data)
         else:
             raise APIException("Parameter topic is required")
+
+
+class VgiViewSet(viewsets.ReadOnlyModelViewSet):
+    def list(self, request, format=None):
+        if 'topic' in request.GET:
+            topic_param = request.GET['topic']
+            topic = settings.APPLICATION_MC.TOPICS.get(topic_param)
+
+            if not topic or not Topic.objects.filter(name_id=topic_param).exists():
+                raise APIException('Topic not found.')
+        else:
+            raise APIException("Parameter topic is required")
+
+        if 'phenomenon_date_from' in request.GET:
+            phenomenon_date_from = request.GET['phenomenon_date_from']
+        else:
+            raise APIException("Parameter phenomenon_date_from is required")
+
+        if 'phenomenon_date_to' in request.GET:
+            phenomenon_date_to = request.GET['phenomenon_date_to']
+        else:
+            raise APIException("Parameter phenomenon_date_to is required")
+
+        pt_range, day_from, day_to = parse_date_range(phenomenon_date_from, phenomenon_date_to)
+
+        payload = {
+            'from': day_from.strftime('%Y-%m-%d'),
+            'to': day_to.strftime('%Y-%m-%d'),
+            'topic': topic_param
+        }
+
+        with closing(requests.get('https://zelda.sci.muni.cz/rest/api/observations', params=payload, verify=False)) as r:
+            if r.status_code != 200:
+                return Response({"type": "FeatureCollection", "features": []})
+            res = r.json()
+            return Response(res)
+
+        return Response({"type": "FeatureCollection", "features": []})
+
 
 
 class TopicViewSet(viewsets.ReadOnlyModelViewSet):
