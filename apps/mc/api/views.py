@@ -162,7 +162,7 @@ class VgiViewSet(viewsets.ReadOnlyModelViewSet):
         payload = {
             'from': day_from.strftime('%Y-%m-%d'),
             'to': day_to.strftime('%Y-%m-%d'),
-            'topic': topic_param
+            'category': topic_param
         }
 
         with closing(requests.get('https://zelda.sci.muni.cz/rest/api/observations', params=payload, verify=False)) as r:
