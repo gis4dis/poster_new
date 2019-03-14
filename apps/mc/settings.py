@@ -151,8 +151,15 @@ AGGREGATED_OBSERVATIONS = [
 
             'apps.processing.pmo.models.WeatherObservation': {
                 'process': 'measure',
-                'observed_properties': ['air_temperature'],
+                'observed_properties': ['precipitation', 'air_temperature'],
             },
         },
+
+        'properties': {
+            'precipitation': [
+                'apps.common.aggregate.arithmetic_mean',
+                'apps.common.aggregate.sum_total'
+            ]
+        }
     },
 ]
