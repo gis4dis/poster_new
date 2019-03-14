@@ -123,5 +123,12 @@ AGGREGATED_OBSERVATIONS = [
                                         'ground_air_temperature'],
             },
         },
+
+        'properties': {
+            'precipitation': [
+                'apps.common.aggregate.arithmetic_mean',
+                'apps.common.aggregate.sum_total'
+            ]
+        }
     },
 ]
