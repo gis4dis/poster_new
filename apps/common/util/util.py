@@ -127,7 +127,7 @@ processes_def = [
     ('avg_day', {'name': u'daily average'}),
     ('apps.common.aggregate.arithmetic_mean', {'name': u'arithmetic mean'}),
     ('apps.common.aggregate.circle_mean', {'name': u'circle mean'}),
-    ('apps.common.aggregate.sum_total', {'name': u'sum total'}),
+    ('apps.common.aggregate.sum_total', {'name': u'sum'}),
 ]
 
 
