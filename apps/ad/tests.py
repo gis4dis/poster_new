@@ -7,7 +7,7 @@ from datetime import timedelta, datetime
 from apps.ad.anomaly_detection import get_timeseries
 from apps.utils.time import UTC_P0100
 from django.conf import settings
-from apps.common.models import TimeSeries
+from apps.common.models import TimeSlots
 from django.utils.dateparse import parse_datetime
 from apps.mc.api.views import get_observations
 from apps.mc.api.views import get_empty_slots
@@ -82,7 +82,7 @@ def get_time_series_test(
     range_from = ts_config['range_from']
     range_to = ts_config['range_to']
 
-    t = TimeSeries(
+    t = TimeSlots(
         zero=zero,
         frequency=frequency,
         range_from=range_from,

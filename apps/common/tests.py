@@ -1,7 +1,7 @@
 from django.test import TestCase
 from dateutil import relativedelta
 from dateutil.relativedelta import relativedelta
-from apps.common.models import TimeSeries
+from apps.common.models import TimeSlots
 from datetime import datetime
 from apps.utils.time import UTC_P0100
 from psycopg2.extras import DateTimeTZRange
@@ -12,7 +12,7 @@ default_zero = datetime(2000, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100)
 
 class TimeSeriesTestCase(TestCase):
     def test_param_exceptions(self):
-        t = TimeSeries(
+        t = TimeSlots(
             zero=default_zero,
             frequency=relativedelta(hours=1),
             range_from=relativedelta(hours=0),
@@ -30,7 +30,7 @@ class TimeSeriesTestCase(TestCase):
             t, from_datetime, to_datetime, to_datetime, from_datetime)
 
     def test_hour_slots_every_hour(self):
-        t = TimeSeries(
+        t = TimeSlots(
             zero=default_zero,
             frequency=relativedelta(hours=1),
             range_from=relativedelta(hours=0),
@@ -39,7 +39,7 @@ class TimeSeriesTestCase(TestCase):
         t.clean()
 
         result_slots = generate_intervals(
-            timeseries=t,
+            timeslots=t,
             from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
             to_datetime=datetime(2000, 1, 3, 2, 00, 00).replace(tzinfo=UTC_P0100),
         )
@@ -58,7 +58,7 @@ class TimeSeriesTestCase(TestCase):
         self.assertEqual(expected_slots, result_slots)
 
     def test_2_hour_slots_every_hour(self):
-        t = TimeSeries(
+        t = TimeSlots(
             zero=datetime(2000, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100),
             frequency=relativedelta(hours=1),
             range_from=relativedelta(hours=0),
@@ -67,7 +67,7 @@ class TimeSeriesTestCase(TestCase):
         t.clean()
 
         result_slots = generate_intervals(
-            timeseries=t,
+            timeslots=t,
             from_datetime=datetime(2000, 1, 3, 5, 00, 00).replace(tzinfo=UTC_P0100),
             to_datetime=datetime(2000, 1, 3, 6, 00, 00).replace(tzinfo=UTC_P0100),
         )
@@ -86,7 +86,7 @@ class TimeSeriesTestCase(TestCase):
         self.assertEqual(expected_slots, result_slots)
 
     def test_week_slots(self):
-        t = TimeSeries(
+        t = TimeSlots(
             zero=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
             frequency=relativedelta(days=7),
             range_from=relativedelta(hours=0),
@@ -94,7 +94,7 @@ class TimeSeriesTestCase(TestCase):
         )
         t.clean()
 
-        t2 = TimeSeries(
+        t2 = TimeSlots(
             zero=datetime(2000, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100),
             frequency=relativedelta(days=7),
             range_from=relativedelta(days=2),
@@ -102,7 +102,7 @@ class TimeSeriesTestCase(TestCase):
         )
         t2.clean()
 
-        t3 = TimeSeries(
+        t3 = TimeSlots(
             zero=datetime(2000, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100),
             frequency=relativedelta(days=7),
             range_from=relativedelta(days=-5),
@@ -111,19 +111,19 @@ class TimeSeriesTestCase(TestCase):
         t3.clean()
 
         i1 = generate_intervals(
-            timeseries=t,
+            timeslots=t,
             from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
             to_datetime=datetime(2000, 1, 31, 0, 00, 00).replace(tzinfo=UTC_P0100),
         )
 
         i2 = generate_intervals(
-            timeseries=t2,
+            timeslots=t2,
             from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
             to_datetime=datetime(2000, 1, 31, 0, 00, 00).replace(tzinfo=UTC_P0100),
         )
 
         i3 = generate_intervals(
-            timeseries=t3,
+            timeslots=t3,
             from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
             to_datetime=datetime(2000, 1, 31, 0, 00, 00).replace(tzinfo=UTC_P0100),
         )
@@ -153,7 +153,7 @@ class TimeSeriesTestCase(TestCase):
         self.assertEqual(i2, i3)
 
     def test_3_hour_slots_wednesday_from_8_to_11(self):
-        t = TimeSeries(
+        t = TimeSlots(
             zero=datetime(2000, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100),
             frequency=relativedelta(days=7),
             range_from=relativedelta(days=4, hours=8),
@@ -162,7 +162,7 @@ class TimeSeriesTestCase(TestCase):
         t.clean()
 
         result_slots = generate_intervals(
-            timeseries=t,
+            timeslots=t,
             from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
             to_datetime=datetime(2000, 1, 31, 0, 00, 00).replace(tzinfo=UTC_P0100),
         )
@@ -189,7 +189,7 @@ class TimeSeriesTestCase(TestCase):
         self.assertEqual(expected_slots, result_slots)
 
     def test_day_slot_last_day_of_week(self):
-        t = TimeSeries(
+        t = TimeSlots(
             zero=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
             frequency=relativedelta(weeks=1),
             range_from=relativedelta(days=-1),
@@ -198,7 +198,7 @@ class TimeSeriesTestCase(TestCase):
         t.clean()
 
         result_slots = generate_intervals(
-            timeseries=t,
+            timeslots=t,
             from_datetime=datetime(2000, 1, 15, 0, 00, 00).replace(tzinfo=UTC_P0100),
             to_datetime=datetime(2000, 2, 12, 0, 00, 00).replace(tzinfo=UTC_P0100),
         )
@@ -225,7 +225,7 @@ class TimeSeriesTestCase(TestCase):
         self.assertEqual(expected_slots, result_slots)
 
     def test_last_day_of_month(self):
-        t = TimeSeries(
+        t = TimeSlots(
             zero=datetime(2000, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100),
             frequency=relativedelta(months=1),
             range_from=relativedelta(days=-1),
@@ -234,7 +234,7 @@ class TimeSeriesTestCase(TestCase):
         t.clean()
 
         result_slots = generate_intervals(
-            timeseries=t,
+            timeslots=t,
             from_datetime=datetime(2000, 2, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
             to_datetime=datetime(2000, 5, 31, 0, 00, 00).replace(tzinfo=UTC_P0100),
         )
@@ -257,7 +257,7 @@ class TimeSeriesTestCase(TestCase):
         self.assertEqual(expected_slots, result_slots)
 
     def test_interval_from_first_day_of_year(self):
-        t = TimeSeries(
+        t = TimeSlots(
             zero=datetime(2000, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100),
             frequency=relativedelta(years=1),
             range_from=relativedelta(0),
@@ -266,7 +266,7 @@ class TimeSeriesTestCase(TestCase):
         t.clean()
 
         result_slots = generate_intervals(
-            timeseries=t,
+            timeslots=t,
             from_datetime=datetime(2000, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100),
             to_datetime=datetime(2002, 1, 1, 0, 00, 00).replace(tzinfo=UTC_P0100),
         )
@@ -285,7 +285,7 @@ class TimeSeriesTestCase(TestCase):
         self.assertEqual(expected_slots, result_slots)
 
     def test_from_limit(self):
-        t = TimeSeries(
+        t = TimeSlots(
             zero=default_zero,
             frequency=relativedelta(hours=1),
             range_from=relativedelta(hours=0),
@@ -294,7 +294,7 @@ class TimeSeriesTestCase(TestCase):
         t.clean()
 
         result_slots = generate_intervals(
-            timeseries=t,
+            timeslots=t,
             from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
             to_datetime=datetime(2000, 1, 3, 2, 00, 00).replace(tzinfo=UTC_P0100),
             range_from_limit=datetime(2000, 1, 3, 1, 00, 00).replace(tzinfo=UTC_P0100)
@@ -310,7 +310,7 @@ class TimeSeriesTestCase(TestCase):
         self.assertEqual(expected_slots, result_slots)
 
     def test_to_limit(self):
-        t = TimeSeries(
+        t = TimeSlots(
             zero=default_zero,
             frequency=relativedelta(hours=1),
             range_from=relativedelta(hours=0),
@@ -319,7 +319,7 @@ class TimeSeriesTestCase(TestCase):
         t.clean()
 
         result_slots = generate_intervals(
-            timeseries=t,
+            timeslots=t,
             from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
             to_datetime=datetime(2000, 1, 3, 4, 00, 00).replace(tzinfo=UTC_P0100),
             range_to_limit=datetime(2000, 1, 3, 3, 00, 00).replace(tzinfo=UTC_P0100)
@@ -343,7 +343,7 @@ class TimeSeriesTestCase(TestCase):
         self.assertEqual(expected_slots, result_slots)
 
     def test_limits(self):
-        t = TimeSeries(
+        t = TimeSlots(
             zero=default_zero,
             frequency=relativedelta(hours=1),
             range_from=relativedelta(hours=0),
@@ -352,7 +352,7 @@ class TimeSeriesTestCase(TestCase):
         t.clean()
 
         result_slots = generate_intervals(
-            timeseries=t,
+            timeslots=t,
             from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
             range_from_limit=datetime(2000, 1, 3, 1, 00, 00).replace(tzinfo=UTC_P0100),
             to_datetime=datetime(2000, 1, 3, 4, 00, 00).replace(tzinfo=UTC_P0100),
@@ -369,7 +369,7 @@ class TimeSeriesTestCase(TestCase):
         self.assertEqual(expected_slots, result_slots)
 
     def test_limits2(self):
-        t = TimeSeries(
+        t = TimeSlots(
             zero=default_zero,
             frequency=relativedelta(hours=1),
             range_from=relativedelta(hours=0),
@@ -378,7 +378,7 @@ class TimeSeriesTestCase(TestCase):
         t.clean()
 
         result_slots = generate_intervals(
-            timeseries=t,
+            timeslots=t,
             from_datetime=datetime(2000, 1, 3, 2, 00, 00).replace(
                 tzinfo=UTC_P0100),
             to_datetime=datetime(2000, 1, 3, 3, 00, 00).replace(
@@ -403,7 +403,7 @@ class TimeSeriesTestCase(TestCase):
         self.assertEqual(expected_slots, result_slots)
 
     def test_frequency_relative_delta_content(self):
-        t = TimeSeries(
+        t = TimeSlots(
             zero=default_zero,
             frequency=relativedelta(hours=1, months=1),
             range_from=relativedelta(hours=0),
@@ -418,13 +418,13 @@ class TimeSeriesTestCase(TestCase):
                           datetime(2000, 1, 5, 0, 00, 00).replace(tzinfo=UTC_P0100))
 
     def test_timeseries_default_values(self):
-        t = TimeSeries(
+        t = TimeSlots(
             zero=default_zero
         )
         t.clean()
 
         result_slots = generate_intervals(
-            timeseries=t,
+            timeslots=t,
             from_datetime=datetime(2000, 1, 3, 0, 00, 00).replace(tzinfo=UTC_P0100),
             to_datetime=datetime(2000, 1, 3, 2, 00, 00).replace(tzinfo=UTC_P0100),
         )

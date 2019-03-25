@@ -47,7 +47,12 @@ def default_relative_delta_hour():
     return relativedelta(hours=1)
 
 
-class TimeSeries(models.Model):
+class TimeSlots(models.Model):
+    name = models.CharField(
+        help_text="Human-readable name of the topic.",
+        max_length=50
+    )
+
     zero = models.DateTimeField(
         null=False,
         default=time_series_default_zero
@@ -67,6 +72,9 @@ class TimeSeries(models.Model):
         null=False,
         default=default_relative_delta_hour
     )
+
+    class Meta:
+        managed = False
 
     def clean(self):
         if self.frequency is None:

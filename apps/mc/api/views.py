@@ -18,12 +18,13 @@ from apps.ad.anomaly_detection import get_timeseries
 from apps.common.models import Property, Process
 from apps.common.models import Topic
 from apps.mc.models import TimeSeriesFeature
-from apps.common.models import TimeSeries
+from apps.common.models import TimeSlots
 from apps.mc.api.serializers import PropertySerializer, TimeSeriesSerializer, TopicSerializer
 from apps.utils.time import UTC_P0100
 from apps.common.util.util import generate_intervals
 from django.db.models import Max, Min
 from django.db.models import F, Func, Q
+from apps.common.util.util import get_time_slots_by_id
 
 from datetime import timedelta
 
@@ -203,7 +204,7 @@ def get_index_shift(time_slots, first_item_from, current_item_from):
 def get_value_frequency(t, from_datetime):
     to = from_datetime + t.frequency + t.frequency
     result_slots = generate_intervals(
-        timeseries=t,
+        timeslots=t,
         from_datetime=from_datetime,
         to_datetime=to,
     )
@@ -217,7 +218,7 @@ def get_value_frequency(t, from_datetime):
 
 def get_empty_slots(t, pt_range_z):
     return generate_intervals(
-        timeseries=t,
+        timeslots=t,
         from_datetime=pt_range_z.lower,
         to_datetime=pt_range_z.upper,
     )
@@ -246,7 +247,7 @@ def get_observations(
         from_datetime = time_slots[0].lower - timedelta(seconds=bef_time_diff)
 
         before_intervals = generate_intervals(
-            timeseries=t,
+            timeslots=t,
             from_datetime=from_datetime,
             to_datetime=time_slots[0].lower,
         )
@@ -261,7 +262,7 @@ def get_observations(
         to_datetime = time_slots[-1].lower + timedelta(seconds=after_time_diff)
 
         after_intervals = generate_intervals(
-            timeseries=t,
+            timeslots=t,
             from_datetime=time_slots[-1].lower,
             to_datetime=to_datetime,
         )
@@ -453,10 +454,11 @@ ROUND_DECIMAL_SPACES = 3
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 
+
 #http://localhost:8000/api/v2/timeseries/?topic=drought&properties=air_temperature&phenomenon_date_from=2018-10-29&phenomenon_date_to=2018-10-30
 class TimeSeriesViewSet(viewsets.ViewSet):
 
-    @method_decorator(cache_page(60*60*12))
+    #@method_decorator(cache_page(60*60*12))
     def list(self, request):
         if 'topic' in request.GET:
             topic = request.GET['topic']
@@ -469,7 +471,6 @@ class TimeSeriesViewSet(viewsets.ViewSet):
             raise APIException('Topic not found.')
 
         properties = topic_config['properties']
-        ts_config = topic_config['time_series']
 
         if 'properties' in request.GET:
             properties_string = request.GET['properties']
@@ -511,17 +512,40 @@ class TimeSeriesViewSet(viewsets.ViewSet):
             pt_range.upper.replace(tzinfo=UTC_P0100)
         )
 
+        try:
+            time_slots_config = topic_config['time_slots']
+        except KeyError:
+            raise APIException('Topic has no time_slots configuration.')
+
+        if not time_slots_config or len(time_slots_config) < 1:
+            raise APIException('Topic time_slots configuration is empty.')
+
+        ts_id = topic_config['time_slots'][0]
+        if 'time_slots' in request.GET:
+            ts_param = request.GET['time_slots']
+            if ts_param not in topic_config['time_slots']:
+                raise APIException('Requested time_slots is not available.')
+            else:
+                ts_id = ts_param
+
+        ts_config = get_time_slots_by_id(ts_id)
+        if not ts_config:
+            raise APIException('Default time_slots config not found.')
+
         zero = parse_datetime(ts_config['zero'])
         frequency = ts_config['frequency']
         range_from = ts_config['range_from']
         range_to = ts_config['range_to']
+        name = ts_config['name']
 
-        t = TimeSeries(
+        t = TimeSlots(
             zero=zero,
             frequency=frequency,
             range_from=range_from,
-            range_to=range_to
+            range_to=range_to,
+            name=name
         )
+
         t.full_clean()
         t.clean()
 

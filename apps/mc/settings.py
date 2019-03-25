@@ -56,14 +56,7 @@ TOPICS = {
                 }
             }
         },
-        'time_series': {
-            # datetime in ISO 8601, see https://en.wikipedia.org/wiki/ISO_8601
-            'zero': '2000-01-01T00:00:00+01:00',
-            # time interval in ISO 8601 "format with designators", see https://en.wikipedia.org/wiki/ISO_8601#Durations
-            'frequency': 'PT1H',
-            'range_from': 'PT0S',
-            'range_to': 'PT1H',
-        }
+        'time_slots': ['1_hour_slot']
     },
     'floods': {
 
@@ -85,9 +78,9 @@ TOPICS = {
                         # mandatory, name_id of common.Process
                         'process': 'apps.common.aggregate.arithmetic_mean'
                     },
-                    'apps.processing.ozp.models.Observation': {
-                        'process': 'measure'
-                    }
+                    #'apps.processing.ozp.models.Observation': {
+                        #'process': 'measure'
+                    #}
                 },
             },
 
@@ -99,17 +92,27 @@ TOPICS = {
                 }
             }
         },
-        'time_series': {
-            # datetime in ISO 8601, see https://en.wikipedia.org/wiki/ISO_8601
-            'zero': '2000-01-01T00:00:00+01:00',
-            # time interval in ISO 8601 "format with designators", see https://en.wikipedia.org/wiki/ISO_8601#Durations
-            'frequency': 'PT1H',
-            'range_from': 'PT0S',
-            'range_to': 'PT1H',
-        }
+        'time_slots': ['1_hour_slot']
     },
 
     # ...
+}
+
+TIME_SLOTS = {
+    "1_hour_slot": {
+        'zero': '2000-01-01T00:00:00+01:00',
+        'frequency': 'PT1H',
+        'range_from': 'PT0S',
+        'range_to': 'PT1H',
+        'name': '1_hour_slot'
+    },
+    "24_hour_slot": {
+        'zero': '2000-01-01T00:00:00+01:00',
+        'frequency': 'PT24H',
+        'range_from': 'PT0S',
+        'range_to': 'PT24H',
+        'name': '24_hour_slot'
+    }
 }
 
 AGGREGATED_OBSERVATIONS = [
@@ -118,16 +121,30 @@ AGGREGATED_OBSERVATIONS = [
     {
 
         # mandatory, definition of common.TimeSeries
+        'time_slots': ['24_hour_slot', '1_hour_slot'],
+
         'time_series': {
-
-            # datetime in ISO 8601, see https://en.wikipedia.org/wiki/ISO_8601
             'zero': '2000-01-01T00:00:00+01:00',
-
-            # time interval in ISO 8601 "format with designators", see https://en.wikipedia.org/wiki/ISO_8601#Durations
             'frequency': 'PT1H',
             'range_from': 'PT0S',
             'range_to': 'PT1H',
+            'name': '1_hour_slot'
         },
+
+
+
+
+        'apps.processing.pmo.models.WatercourseObservation': {
+                'process': 'measure',
+                'observed_properties': ['stream_flow'],
+            },
+
+            'apps.processing.pmo.models.WeatherObservation': {
+                'process': 'measure',
+                'observed_properties': ['precipitation', 'air_temperature'],
+            },
+
+
 
         # dictionary of observation providers
         # mandatory, at least one provider must be specified
@@ -144,15 +161,7 @@ AGGREGATED_OBSERVATIONS = [
                 'observed_properties': ['precipitation', 'air_temperature'],
             },
 
-            'apps.processing.pmo.models.WatercourseObservation': {
-                'process': 'measure',
-                'observed_properties': ['stream_flow'],
-            },
 
-            'apps.processing.pmo.models.WeatherObservation': {
-                'process': 'measure',
-                'observed_properties': ['precipitation', 'air_temperature'],
-            },
         },
 
         'properties': {

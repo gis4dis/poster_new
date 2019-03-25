@@ -11,4 +11,5 @@ class Command(BaseCommand):
         parser.add_argument('aggregate_updated_since', nargs='?', default=None)
 
     def handle(self, *args, **options):
-        compute_aggregated_values.apply_async(kwargs={'aggregate_updated_since_datetime':(options['aggregate_updated_since'])})
+        #compute_aggregated_values.apply_async(kwargs={'aggregate_updated_since_datetime':(options['aggregate_updated_since'])})
+        compute_aggregated_values()
