@@ -137,7 +137,7 @@ class MobilityObservation(AbstractObservation):
             'dst_occurrence_type',
             'uniques_type',
         ]
-
+        '''
         unique_together = (
             (
                 'phenomenon_time_range',
@@ -149,6 +149,7 @@ class MobilityObservation(AbstractObservation):
                 'uniques_type',
             ),
         )
+        '''
 
     def __str__(self):
         pt_l_local = localtime(self.phenomenon_time_range.lower)
@@ -251,7 +252,7 @@ class SocioDemoObservation(AbstractObservation):
             'gender',
             'occurrence_type',
         ]
-
+        '''
         unique_together = (
             (
                 'phenomenon_time_range',
@@ -263,6 +264,7 @@ class SocioDemoObservation(AbstractObservation):
                 'occurrence_type',
             ),
         )
+        '''
 
     def __str__(self):
         pt_l_local = localtime(self.phenomenon_time_range.lower)

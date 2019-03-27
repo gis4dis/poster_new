@@ -31,9 +31,11 @@ class WatercourseObservation(AbstractObservation):
         get_latest_by = 'phenomenon_time_range'
         ordering = ['-phenomenon_time_range', 'feature_of_interest', 'procedure',
                     'observed_property']
+        '''
         unique_together = (('phenomenon_time_range',
                             'observed_property', 'feature_of_interest',
                             'procedure'),)
+        '''
                             
 
 class WeatherStation(AbstractFeature):
@@ -58,3 +60,6 @@ class WeatherObservation(AbstractObservation):
         editable=False,
         on_delete=models.DO_NOTHING,
     )
+
+    class Meta:
+        unique_together = ()

@@ -191,8 +191,6 @@ def compute_agg_provider(
                     elif aggregate_updated_since:
                         max_updated_at = aggregate_updated_since
 
-                    print('max_updated_at: ', max_updated_at_observation[0].phenomenon_time_duration)
-
                     if max_updated_at:
                         from_observation = provider_model.objects.filter(
                             observed_property=prop_item,

@@ -73,9 +73,6 @@ class TimeSlots(models.Model):
         default=default_relative_delta_hour
     )
 
-    class Meta:
-        managed = False
-
     def clean(self):
         if self.frequency is None:
             raise forms.ValidationError('frequency cannot be null')
@@ -281,6 +278,15 @@ class AbstractObservation(models.Model):
         decimal_places=3,
         null=True,
         editable=False,
+    )
+
+    time_slots = models.ForeignKey(
+        TimeSlots,
+        help_text="Time_slots used to calc aggregations",
+        null=True,
+        default=None,
+        on_delete=models.DO_NOTHING,
+        related_name="%(app_label)s_%(class)s_related",
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
