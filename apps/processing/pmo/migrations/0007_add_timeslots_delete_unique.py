@@ -30,4 +30,8 @@ class Migration(migrations.Migration):
             name='weatherobservation',
             unique_together=set(),
         ),
+        migrations.AlterModelOptions(
+            name='weatherobservation',
+            options={},
+        ),
     ]
