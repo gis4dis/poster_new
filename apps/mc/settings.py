@@ -123,17 +123,6 @@ AGGREGATED_OBSERVATIONS = [
         # mandatory, definition of common.TimeSeries
         'time_slots': ['24_hour_slot', '1_hour_slot'],
 
-        'time_series': {
-            'zero': '2000-01-01T00:00:00+01:00',
-            'frequency': 'PT1H',
-            'range_from': 'PT0S',
-            'range_to': 'PT1H',
-            'name': '1_hour_slot'
-        },
-
-
-
-
         'apps.processing.pmo.models.WatercourseObservation': {
                 'process': 'measure',
                 'observed_properties': ['stream_flow'],

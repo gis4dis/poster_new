@@ -18,7 +18,11 @@ class Migration(migrations.Migration):
             name='TimeSlots',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(help_text='Human-readable name of the topic.', max_length=50)),
+                ('name', models.CharField(help_text='Human-readable name of the time_slots.', max_length=50)),
+                ('name_id', models.CharField(
+                    help_text="Unique and computer-friendly name of time_slots",
+                    max_length=100, unique=True)),
+
                 ('zero', models.DateTimeField(default=datetime.datetime(2000, 1, 1, 0, 0, tzinfo=utc))),
                 ('frequency', relativedeltafield.RelativeDeltaField(default=apps.common.models.default_relative_delta_hour)),
                 ('range_from', relativedeltafield.RelativeDeltaField(default=apps.common.models.default_relative_delta_zero)),

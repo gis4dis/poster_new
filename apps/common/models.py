@@ -48,8 +48,14 @@ def default_relative_delta_hour():
 
 
 class TimeSlots(models.Model):
+    name_id = models.CharField(
+        help_text="Unique and computer-friendly name of time_slots",
+        max_length=100,
+        unique=True,
+    )
+
     name = models.CharField(
-        help_text="Human-readable name of the topic.",
+        help_text="Human-readable name of the time_slots.",
         max_length=50
     )
 

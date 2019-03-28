@@ -42,9 +42,9 @@ def aggregate_observations(
         prop,
         pt_range,
         feature_of_interest,
-        process
+        process,
+        time_slots
 ):
-    print('aggregate_observations process:::', process)
     values = list(map(lambda o: o.result, observations))
     values = list(filter(lambda v: v is not None, values))
     if (len(values) == 0):
@@ -78,7 +78,8 @@ def aggregate_observations(
             observed_property=prop,
             feature_of_interest=feature_of_interest,
             procedure=process,
-            defaults=defaults
+            defaults=defaults,
+            time_slots=time_slots
         )
 
         obs.related_observations.set(observations)
@@ -89,29 +90,12 @@ def aggregate_observations(
 def compute_agg_provider(
         agg_provider,
         aggregate_updated_since,
-        ts_config
+        ts_id
 ):
-    zero = parse_datetime(ts_config['zero'])
-    frequency = ts_config['frequency']
-    range_from = ts_config['range_from']
-    range_to = ts_config['range_to']
-    name = ts_config['name']
-
-    t = TimeSlots(
-        zero=zero,
-        frequency=frequency,
-        range_from=range_from,
-        range_to=range_to,
-        name=name
-    )
-
-    t.full_clean()
-    t.clean()
-
-    print('------------------------------')
-    print('TimeSlots .range_from: ', t.range_from)
-    print('TimeSlots .frequency: ', t.frequency)
-    print('TimeSlots .range_to: ', t.range_to)
+    try:
+        t = TimeSlots.objects.get(name_id=ts_id)
+    except TimeSlots.DoesNotExist:
+        raise Exception('Time_slots with desired id not found.')
 
     op_config = agg_provider.get('observation_providers')
     properties_config = agg_provider.get('properties')
@@ -135,7 +119,6 @@ def compute_agg_provider(
         except Process.DoesNotExist:
             process = None
 
-        print('AAAA')
         observed_properties = op_config[provider]["observed_properties"]
         for observed_property in observed_properties:
             prop_item = Property.objects.get(name_id=observed_property)
@@ -183,7 +166,8 @@ def compute_agg_provider(
                     max_updated_at_observation = provider_model.objects.filter(
                         observed_property=prop_item,
                         procedure=process_calc,  # prop_item.default_mean,
-                        feature_of_interest=item
+                        feature_of_interest=item,
+                        time_slots=t
                     ).order_by('-updated_at')[:1]
 
                     if max_updated_at_observation and not aggregate_updated_since:
@@ -252,7 +236,8 @@ def compute_agg_provider(
                                 prop_item,
                                 slot,
                                 item,
-                                process_calc
+                                process_calc,
+                                t
                             )
 
 
@@ -281,13 +266,9 @@ def compute_aggregated_values(aggregate_updated_since_datetime=None):
             raise Exception('Provider time_slots configuration is empty.')
 
         for ts_id in time_slots_config:
-            ts_config = get_time_slots_by_id(ts_id)
-            if not ts_config:
-                raise Exception('Time_slots with desired id not found.')
-
             compute_agg_provider(
                 agg_provider,
                 aggregate_updated_since,
-                ts_config
+                ts_id
             )
 

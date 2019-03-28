@@ -1,9 +1,10 @@
 from apps.utils.obj import *
-from apps.common.models import Property, Process
+from apps.common.models import Property, Process, TimeSlots
 from psycopg2.extras import DateTimeTZRange
 from datetime import datetime
 from apps.utils.time import UTC_P0100
 from django.conf import settings
+from django.utils.dateparse import parse_datetime
 
 props_def = [
     ('precipitation', {
@@ -131,6 +132,34 @@ processes_def = [
     ('apps.common.aggregate.sum_total', {'name': u'sum'}),
 ]
 
+
+def get_or_create_time_slots():
+    for key in settings.APPLICATION_MC.TIME_SLOTS:
+        ts_config = settings.APPLICATION_MC.TIME_SLOTS[key]
+        zero = parse_datetime(ts_config['zero'])
+        frequency = ts_config['frequency']
+        range_from = ts_config['range_from']
+        range_to = ts_config['range_to']
+        name = ts_config['name']
+
+        TimeSlots.objects.update_or_create(
+            zero=zero,
+            frequency=frequency,
+            range_from=range_from,
+            range_to=range_to,
+            name=name,
+            name_id=key,
+            defaults={
+                'zero': zero,
+                'frequency': frequency,
+                'range_from': range_from,
+                'range_to': range_to,
+                'name': name,
+                'name_id': key,
+            },
+        )
+
+#get_or_create_time_slots()
 
 def get_or_create_props():
     for prop in props_def:
