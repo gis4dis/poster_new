@@ -19,7 +19,7 @@ from apps.common.models import Property, Process
 from apps.common.models import Topic
 from apps.mc.models import TimeSeriesFeature
 from apps.common.models import TimeSlots
-from apps.mc.api.serializers import PropertySerializer, TimeSeriesSerializer, TopicSerializer
+from apps.mc.api.serializers import PropertySerializer, TimeSeriesSerializer, TopicSerializer, TimeSlotsSerializer
 from apps.utils.time import UTC_P0100
 from apps.common.util.util import generate_intervals
 from django.db.models import Max, Min
@@ -174,6 +174,10 @@ class VgiViewSet(viewsets.ReadOnlyModelViewSet):
 
         return Response({"type": "FeatureCollection", "features": []})
 
+
+class TimeSlotsViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = TimeSlots.objects.all()
+    serializer_class = TimeSlotsSerializer
 
 
 class TopicViewSet(viewsets.ReadOnlyModelViewSet):
@@ -532,12 +536,19 @@ class TimeSeriesViewSet(viewsets.ViewSet):
         if not ts_config:
             raise APIException('Default time_slots config not found.')
 
+        try:
+            t = TimeSlots.objects.get(name_id=ts_id)
+            zero = t.zero
+        except TimeSlots.DoesNotExist:
+            raise Exception('Time_slots with desired id not found in database.')
+
+        '''
         zero = parse_datetime(ts_config['zero'])
         frequency = ts_config['frequency']
         range_from = ts_config['range_from']
         range_to = ts_config['range_to']
         name = ts_config['name']
-
+        
         t = TimeSlots(
             zero=zero,
             frequency=frequency,
@@ -548,6 +559,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
         t.full_clean()
         t.clean()
+        '''
 
         if USE_DYNAMIC_TIMESLOTS is True:
             time_slots = None #[]
