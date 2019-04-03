@@ -191,6 +191,8 @@ https://docs.docker.com/docker-for-windows/install/
 After cloning repository you need to create custom .env file. Reasonable defaults
  are in example.env so just start with copying this file.
 
+Change the JUPYTER_TOKEN environment variable to a reasonably strong passphrase to avoid security serious security threat.
+
 Then because of windows handling all stuff differently then normal OS, you need to
  specify path in the docker-compose-windows.yml. So edit line 15 `- //c/Users/<path to code>:/code` and
  change it to the path you have the source code. eg. `- //c/Users/Carl/code:/code`
