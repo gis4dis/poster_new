@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "86d42a8fb9a6730436cf1bff673a466fa33490a68a05ad0c80d07ff8dd0ac606"
+            "sha256": "a74c7934ee8d7e143220333e61bbbef2fcffcf4aaa8495cdf499e285ba443831"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -458,7 +458,8 @@
         },
         "luminol": {
             "editable": true,
-            "path": "./src/luminol"
+            "git": "https://github.com/gis4dis/luminol.git",
+            "ref": "233c3b10944716c87a055f35504bb0e5e53347d7"
         },
         "markupsafe": {
             "hashes": [
