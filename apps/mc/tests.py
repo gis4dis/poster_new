@@ -5,12 +5,13 @@ from psycopg2.extras import DateTimeTZRange
 from datetime import timedelta, datetime
 from django.conf import settings
 
-from apps.common.models import Property, Topic
+from apps.common.models import Property, Topic, TimeSlots
 from apps.ad.anomaly_detection import get_timeseries
 from rest_framework import status
 from rest_framework.test import APITestCase
 import dateutil.parser
 import pytz
+from apps.mc.tasks import import_time_slots_from_config
 
 utc = pytz.UTC
 
@@ -129,6 +130,9 @@ class RestApiTestCase(APITestCase):
             default_mean=am_process
         )
 
+        import_time_slots_from_config()
+        t = TimeSlots.objects.get(name_id='1_hour_slot')
+
 
         time_from = datetime(2018, 6, 15, 11, 00, 00)
         Observation.objects.create(
@@ -140,7 +144,8 @@ class RestApiTestCase(APITestCase):
                 time_from,
                 time_from + timedelta(hours=1),
                 time_range_boundary
-            )
+            ),
+            time_slots=t
         )
 
         time_from = datetime(2018, 6, 15, 12, 00, 00)
@@ -153,7 +158,8 @@ class RestApiTestCase(APITestCase):
                 time_from,
                 time_from + timedelta(hours=1),
                 time_range_boundary
-            )
+            ),
+            time_slots=t
         )
 
         time_from = datetime(2018, 6, 14, 13, 00, 00)
@@ -166,7 +172,8 @@ class RestApiTestCase(APITestCase):
                 time_from,
                 time_from + timedelta(hours=1),
                 time_range_boundary
-            )
+            ),
+            time_slots=t
         )
 
         time_from = datetime(2018, 6, 15, 10, 00, 00)
@@ -179,7 +186,8 @@ class RestApiTestCase(APITestCase):
                 time_from,
                 time_from + timedelta(hours=1),
                 time_range_boundary
-            )
+            ),
+            time_slots=t
         )
 
         time_from = datetime(2018, 6, 15, 11, 00, 00)
@@ -192,7 +200,8 @@ class RestApiTestCase(APITestCase):
                 time_from,
                 time_from + timedelta(hours=1),
                 time_range_boundary
-            )
+            ),
+            time_slots=t
         )
 
         time_from = datetime(2018, 6, 15, 12, 00, 00)
@@ -205,7 +214,8 @@ class RestApiTestCase(APITestCase):
                 time_from,
                 time_from + timedelta(hours=1),
                 time_range_boundary
-            )
+            ),
+            time_slots=t
         )
 
         time_from = datetime(2018, 6, 16, 13, 00, 00)
@@ -218,7 +228,8 @@ class RestApiTestCase(APITestCase):
                 time_from,
                 time_from + timedelta(hours=1),
                 time_range_boundary
-            )
+            ),
+            time_slots=t
         )
 
     def test_properties_response_status(self):

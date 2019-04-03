@@ -12,6 +12,7 @@ from django.utils.dateparse import parse_datetime
 from apps.mc.api.views import get_observations
 from apps.mc.api.views import get_empty_slots
 from functools import partial
+from apps.mc.tasks import import_time_slots_from_config
 
 time_range_boundary = '[)'
 time_from = datetime(2018, 6, 15, 10, 00, 00)
@@ -75,21 +76,18 @@ def get_time_series_test(
     station = SamplingFeature.objects.get(name=station_name)
     prop = Property.objects.get(name_id=observed_property)
 
-    ts_config = topic_config['time_series']
+    ts_config_id = topic_config['time_slots'][0]
+    ts_config = settings.APPLICATION_MC.TIME_SLOTS[ts_config_id]
 
     zero = parse_datetime(ts_config['zero'])
     frequency = ts_config['frequency']
     range_from = ts_config['range_from']
     range_to = ts_config['range_to']
+    t_name = ts_config['name']
 
-    t = TimeSlots(
-        zero=zero,
-        frequency=frequency,
-        range_from=range_from,
-        range_to=range_to
+    t = TimeSlots.objects.get(
+        name_id='1_hour_slot'
     )
-    t.full_clean()
-    t.clean()
 
     time_slots = get_empty_slots(t, time_range)
 
@@ -151,6 +149,12 @@ class TimeSeriesTestCase(TestCase):
             default_mean=am_process
         )
 
+        import_time_slots_from_config()
+
+        t = TimeSlots.objects.get(
+            name_id='1_hour_slot'
+        )
+
         time_from = datetime(2018, 6, 15, 11, 00, 00)
         time_from = time_from.replace(tzinfo=UTC_P0100)
         Observation.objects.create(
@@ -158,6 +162,7 @@ class TimeSeriesTestCase(TestCase):
             feature_of_interest=station_2,
             procedure=am_process,
             result=1.5,
+            time_slots=t,
             phenomenon_time_range=DateTimeTZRange(
                 time_from,
                 time_from + timedelta(hours=1),
@@ -172,6 +177,7 @@ class TimeSeriesTestCase(TestCase):
             feature_of_interest=station_2,
             procedure=am_process,
             result=1.5,
+            time_slots=t,
             phenomenon_time_range=DateTimeTZRange(
                 time_from,
                 time_from + timedelta(hours=1),
@@ -186,6 +192,7 @@ class TimeSeriesTestCase(TestCase):
             feature_of_interest=station,
             procedure=am_process,
             result=1.5,
+            time_slots=t,
             phenomenon_time_range=DateTimeTZRange(
                 time_from,
                 time_from + timedelta(hours=1),
@@ -198,6 +205,7 @@ class TimeSeriesTestCase(TestCase):
             feature_of_interest=station,
             procedure=am_process,
             result=1,
+            time_slots=t,
             phenomenon_time_range=first_output_observation_time_range
         )
 
@@ -208,6 +216,7 @@ class TimeSeriesTestCase(TestCase):
             feature_of_interest=station,
             procedure=am_process,
             result=1000,
+            time_slots=t,
             phenomenon_time_range=DateTimeTZRange(
                 time_from,
                 time_from + timedelta(hours=1),
@@ -220,6 +229,7 @@ class TimeSeriesTestCase(TestCase):
             feature_of_interest=station,
             procedure=am_process,
             result=1.5,
+            time_slots=t,
             phenomenon_time_range=last_output_observation_time_range
         )
 
@@ -229,6 +239,7 @@ class TimeSeriesTestCase(TestCase):
             feature_of_interest=station,
             procedure=am_process,
             result=1.5,
+            time_slots=t,
             phenomenon_time_range=DateTimeTZRange(
                 time_from,
                 time_from + timedelta(hours=1),

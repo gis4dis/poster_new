@@ -7,9 +7,9 @@ from django.db.models import F, Func
 from django.utils.dateparse import parse_datetime
 from django.test import TestCase
 
-from apps.common.models import Property
+from apps.common.models import Property, TimeSlots
 import pytz
-from apps.mc.tasks import compute_aggregated_values
+from apps.mc.tasks import compute_aggregated_values, import_time_slots_from_config
 
 utc = pytz.UTC
 
@@ -58,6 +58,8 @@ def createObservations(
 ):
     time_range_boundary = '[]'
     time_from = start
+    t = TimeSlots.objects.get(name_id='1_hour_slot')
+
     for val in values:
         Observation.objects.create(
             observed_property=prop,
@@ -68,7 +70,8 @@ def createObservations(
                 time_from,
                 time_from,
                 time_range_boundary
-            )
+            ),
+            time_slots=t
         )
         time_from = time_from + timedelta(minutes=10)
 
@@ -115,6 +118,9 @@ class AggregateObservationsTestCase(TestCase):
             default_mean=am_process
         )
 
+
+        import_time_slots_from_config()
+
         createObservations(
             measuring_process,
             station,
@@ -124,10 +130,13 @@ class AggregateObservationsTestCase(TestCase):
         )
 
     def test_initial_aggregation(self):
+        t = TimeSlots.objects.get(name_id='1_hour_slot')
+
         compute_aggregated_values(None)
 
         agg_obs = Observation.objects.filter(
-            procedure=Process.objects.get(name_id='apps.common.aggregate.arithmetic_mean')
+            procedure=Process.objects.get(name_id='apps.common.aggregate.arithmetic_mean'),
+            time_slots=t
         ).annotate(
             field_lower=Func(F('phenomenon_time_range'), function='LOWER')
         ).order_by('field_lower')
@@ -135,7 +144,8 @@ class AggregateObservationsTestCase(TestCase):
         result_list = [float(entry.result) for entry in agg_obs]
 
         agg_sum_obs = Observation.objects.filter(
-            procedure=Process.objects.get(name_id='apps.common.aggregate.sum_total')
+            procedure=Process.objects.get(name_id='apps.common.aggregate.sum_total'),
+            time_slots=t
         ).annotate(
             field_lower=Func(F('phenomenon_time_range'), function='LOWER')
         ).order_by('field_lower')
@@ -146,6 +156,8 @@ class AggregateObservationsTestCase(TestCase):
         self.assertEqual(result_sum_list, AGG_SUM_VALUES_28_2018)
 
     def test_additional_import(self):
+        t = TimeSlots.objects.get(name_id='1_hour_slot')
+
         createObservations(
             Process.objects.get(name_id='measure'),
             SamplingFeature.objects.get(id_by_provider='11359201'),
@@ -157,7 +169,8 @@ class AggregateObservationsTestCase(TestCase):
         compute_aggregated_values(None)
 
         agg_obs = Observation.objects.filter(
-            procedure=Process.objects.get(name_id='apps.common.aggregate.arithmetic_mean')
+            procedure=Process.objects.get(name_id='apps.common.aggregate.arithmetic_mean'),
+            time_slots=t
         ).annotate(
             field_lower=Func(F('phenomenon_time_range'), function='LOWER')
         ).order_by('field_lower')
@@ -166,7 +179,8 @@ class AggregateObservationsTestCase(TestCase):
 
 
         agg_obs = Observation.objects.filter(
-            procedure=Process.objects.get(name_id='apps.common.aggregate.sum_total')
+            procedure=Process.objects.get(name_id='apps.common.aggregate.sum_total'),
+            time_slots=t
         ).annotate(
             field_lower=Func(F('phenomenon_time_range'), function='LOWER')
         ).order_by('field_lower')
