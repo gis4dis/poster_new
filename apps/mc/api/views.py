@@ -542,24 +542,6 @@ class TimeSeriesViewSet(viewsets.ViewSet):
         except TimeSlots.DoesNotExist:
             raise Exception('Time_slots with desired id not found in database.')
 
-        '''
-        zero = parse_datetime(ts_config['zero'])
-        frequency = ts_config['frequency']
-        range_from = ts_config['range_from']
-        range_to = ts_config['range_to']
-        name = ts_config['name']
-        
-        t = TimeSlots(
-            zero=zero,
-            frequency=frequency,
-            range_from=range_from,
-            range_to=range_to,
-            name=name
-        )
-
-        t.full_clean()
-        t.clean()
-        '''
 
         if USE_DYNAMIC_TIMESLOTS is True:
             time_slots = None #[]

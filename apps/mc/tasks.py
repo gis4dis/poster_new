@@ -12,7 +12,7 @@ logger = get_task_logger(__name__)
 
 from apps.common.models import Property, Process
 from apps.common.models import TimeSlots
-from apps.common.util.util import generate_intervals
+from apps.common.util.util import generate_intervals, get_or_create_time_slots
 from apps.common.aggregate import aggregate
 from apps.utils.time import UTC_P0100
 from django.utils import timezone
@@ -272,3 +272,7 @@ def compute_aggregated_values(aggregate_updated_since_datetime=None):
                 ts_id
             )
 
+
+@task(name="mc.import_time_slots_from_config")
+def import_time_slots_from_config():
+    get_or_create_time_slots()
