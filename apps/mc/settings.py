@@ -78,9 +78,9 @@ TOPICS = {
                         # mandatory, name_id of common.Process
                         'process': 'apps.common.aggregate.arithmetic_mean'
                     },
-                    #'apps.processing.ozp.models.Observation': {
-                        #'process': 'measure'
-                    #}
+                    'apps.processing.ozp.models.Observation': {
+                        'process': 'measure'
+                    }
                 },
             },
 
@@ -123,18 +123,6 @@ AGGREGATED_OBSERVATIONS = [
         # mandatory, definition of common.TimeSeries
         'time_slots': ['24_hour_slot', '1_hour_slot'],
 
-        'apps.processing.pmo.models.WatercourseObservation': {
-                'process': 'measure',
-                'observed_properties': ['stream_flow'],
-            },
-
-            'apps.processing.pmo.models.WeatherObservation': {
-                'process': 'measure',
-                'observed_properties': ['precipitation', 'air_temperature'],
-            },
-
-
-
         # dictionary of observation providers
         # mandatory, at least one provider must be specified
         'observation_providers': {
@@ -150,6 +138,15 @@ AGGREGATED_OBSERVATIONS = [
                 'observed_properties': ['precipitation', 'air_temperature'],
             },
 
+            'apps.processing.pmo.models.WatercourseObservation': {
+                'process': 'measure',
+                'observed_properties': ['stream_flow'],
+            },
+
+            'apps.processing.pmo.models.WeatherObservation': {
+                'process': 'measure',
+                'observed_properties': ['precipitation', 'air_temperature'],
+            },
 
         },
 
