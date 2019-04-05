@@ -137,19 +137,7 @@ class MobilityObservation(AbstractObservation):
             'dst_occurrence_type',
             'uniques_type',
         ]
-        '''
-        unique_together = (
-            (
-                'phenomenon_time_range',
-                'observed_property',
-                'feature_of_interest',
-                'procedure',
-                'src_occurrence_type',
-                'dst_occurrence_type',
-                'uniques_type',
-            ),
-        )
-        '''
+        # unique_together see migration 0008 and 0009, index o2_mobilityobservation_uniq
 
     def __str__(self):
         pt_l_local = localtime(self.phenomenon_time_range.lower)
@@ -252,19 +240,7 @@ class SocioDemoObservation(AbstractObservation):
             'gender',
             'occurrence_type',
         ]
-        '''
-        unique_together = (
-            (
-                'phenomenon_time_range',
-                'observed_property',
-                'feature_of_interest',
-                'procedure',
-                'age',
-                'gender',
-                'occurrence_type',
-            ),
-        )
-        '''
+        # unique_together see migration 0008 and 0009, index o2_sociodemoobservation_uniq
 
     def __str__(self):
         pt_l_local = localtime(self.phenomenon_time_range.lower)

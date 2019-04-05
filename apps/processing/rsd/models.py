@@ -170,7 +170,8 @@ class EventObservation(AbstractObservation):
     )
 
     class Meta:
-        unique_together = ()
+        pass
+        # unique_together see migration 0011 and 0012, index rsd_eventobservation_uniq
 
 
 class NumberOfEventsObservation(AbstractObservation):
@@ -192,4 +193,5 @@ class NumberOfEventsObservation(AbstractObservation):
     )
 
     class Meta:
-        unique_together = ()
+        pass
+        # unique_together see migration 0011 and 0012, index rsd_numberofeventsobservation_uniq

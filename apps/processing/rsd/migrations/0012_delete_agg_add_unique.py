@@ -58,7 +58,7 @@ class Migration(migrations.Migration):
 			        procedure_id, 
                     id_by_provider,
                     category_id,
-			        COALESCE(time_slots_id, 99999999)
+			        COALESCE(time_slots_id, -1)
 			    );
         """),
 
@@ -114,7 +114,7 @@ class Migration(migrations.Migration):
 			        feature_of_interest_id, 
 			        procedure_id, 
                     category_custom_group_id,
-			        COALESCE(time_slots_id, 99999999)
+			        COALESCE(time_slots_id, -1)
 			    );
         """),
     ]

@@ -56,7 +56,7 @@ class Migration(migrations.Migration):
 			        observed_property_id, 
 			        feature_of_interest_id, 
 			        procedure_id, 
-			        COALESCE(time_slots_id, 99999999)
+			        COALESCE(time_slots_id, -1)
 			    );
         """),
 
@@ -101,4 +101,14 @@ class Migration(migrations.Migration):
 			    )
 			);
         """),
+        migrations.RunSQL("""
+               	CREATE UNIQUE INDEX pmo_weatherobservation_uniq ON pmo_weatherobservation
+    			    (
+    			        phenomenon_time_range, 
+    			        observed_property_id, 
+    			        feature_of_interest_id, 
+    			        procedure_id, 
+    			        COALESCE(time_slots_id, -1)
+    			    );
+            """),
     ]

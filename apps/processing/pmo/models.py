@@ -31,12 +31,8 @@ class WatercourseObservation(AbstractObservation):
         get_latest_by = 'phenomenon_time_range'
         ordering = ['-phenomenon_time_range', 'feature_of_interest', 'procedure',
                     'observed_property']
-        '''
-        unique_together = (('phenomenon_time_range',
-                            'observed_property', 'feature_of_interest',
-                            'procedure'),)
-        '''
-                            
+        # unique_together see migration 0007 and 0008, index pmo_watercourseobservation_uniq
+
 
 class WeatherStation(AbstractFeature):
     geometry = models.PointField(
@@ -62,4 +58,7 @@ class WeatherObservation(AbstractObservation):
     )
 
     class Meta:
-        unique_together = ()
+        get_latest_by = 'phenomenon_time_range'
+        ordering = ['-phenomenon_time_range', 'feature_of_interest', 'procedure',
+                    'observed_property']
+        # unique_together see migration 0007 and 0008, index pmo_weatherobservation_uniq

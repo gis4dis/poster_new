@@ -26,8 +26,4 @@ class Observation(AbstractObservation):
         get_latest_by = 'phenomenon_time_range'
         ordering = ['-phenomenon_time_range', 'feature_of_interest', 'procedure',
                     'observed_property']
-        '''
-        unique_together = (('phenomenon_time_range',
-                            'observed_property', 'feature_of_interest',
-                            'procedure'),)
-        '''
+        # unique_together see migration 0013 and 0014, index ala_observation_uniq

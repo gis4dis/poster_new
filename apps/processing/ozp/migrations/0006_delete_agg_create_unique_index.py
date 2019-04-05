@@ -56,7 +56,7 @@ class Migration(migrations.Migration):
 			        observed_property_id, 
 			        feature_of_interest_id, 
 			        procedure_id, 
-			        COALESCE(time_slots_id, 99999999)
+			        COALESCE(time_slots_id, -1)
 			    );
         """),
     ]

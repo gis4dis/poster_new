@@ -59,7 +59,7 @@ class Migration(migrations.Migration):
                     src_occurrence_type,
                     dst_occurrence_type,
                     uniques_type,
-			        COALESCE(time_slots_id, 99999999)
+			        COALESCE(time_slots_id, -1)
 			    );
         """),
 
@@ -113,7 +113,7 @@ class Migration(migrations.Migration):
                     age,
                     gender,
                     occurrence_type,
-			        COALESCE(time_slots_id, 99999999)
+			        COALESCE(time_slots_id, -1)
 			    );
         """),
     ]

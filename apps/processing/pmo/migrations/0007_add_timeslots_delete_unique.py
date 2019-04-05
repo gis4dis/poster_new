@@ -32,6 +32,9 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterModelOptions(
             name='weatherobservation',
-            options={},
+            options={
+                'ordering': ['-phenomenon_time_range', 'feature_of_interest', 'procedure', 'observed_property'],
+                'get_latest_by': 'phenomenon_time_range',
+            },
         ),
     ]
