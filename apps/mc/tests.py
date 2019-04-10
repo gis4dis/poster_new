@@ -18,12 +18,17 @@ utc = pytz.UTC
 NAME_ID = 'name_id=air_temperature'
 DATE_FROM = '&phenomenon_date_from=2018-06-15'
 DATE_TO = '&phenomenon_date_to=2018-06-15'
+TIME_SLOT_10H = '&time_slots=10_hour_slot'
+TIME_SLOT_24H = '&time_slots=24_hour_slot'
 
 TOPIC_NAME = 'drought'
 TOPIC_NAME_NOT_EXISTS = 'xxxx'
 
 URL_TIMESERIES = '/api/v2/timeseries/?topic=' + TOPIC_NAME + DATE_FROM + DATE_TO
 URL_TIMESERIES_TOPIC_NOT_EXISTS = '/api/v2/timeseries/?topic=' + TOPIC_NAME_NOT_EXISTS + DATE_FROM + DATE_TO
+URL_TIMESERIES_TIME_SLOTS_NOT_EXISTS = '/api/v2/timeseries/?topic=' + TOPIC_NAME + DATE_FROM + DATE_TO + TIME_SLOT_10H
+URL_TIMESERIES_TIME_SLOTS_24H = '/api/v2/timeseries/?topic=' + TOPIC_NAME + DATE_FROM + '&phenomenon_date_to=2018-06-17' + TIME_SLOT_24H
+
 
 DATE_FROM_ERROR = '&phenomenon_date_from=00000-06-15'
 DATE_TO_ERROR = '&phenomenon_date_to=XXX'
@@ -100,7 +105,7 @@ def get_time_series_test():
 class RestApiTestCase(APITestCase):
     def setUp(self):
 
-        topic = Topic.objects.create(
+        Topic.objects.create(
             name_id='drought',
             name='drought'
         )
@@ -356,4 +361,12 @@ class RestApiTestCase(APITestCase):
 
     def test_timeseries_topic_not_exists(self):
         response = self.client.get(URL_TIMESERIES_TOPIC_NOT_EXISTS, format='json')
+        self.assertEquals(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def test_timeseries_time_slots_24h(self):
+        response = self.client.get(URL_TIMESERIES_TIME_SLOTS_24H, format='json')
+        self.assertEquals(response.status_code, status.HTTP_200_OK)
+
+    def test_timeseries_time_slots_not_exists(self):
+        response = self.client.get(URL_TIMESERIES_TIME_SLOTS_NOT_EXISTS, format='json')
         self.assertEquals(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)

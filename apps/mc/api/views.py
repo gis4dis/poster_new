@@ -21,7 +21,7 @@ from apps.mc.models import TimeSeriesFeature
 from apps.common.models import TimeSlots
 from apps.mc.api.serializers import PropertySerializer, TimeSeriesSerializer, TopicSerializer, TimeSlotsSerializer
 from apps.utils.time import UTC_P0100
-from apps.common.util.util import generate_intervals
+from apps.common.util.util import generate_intervals, generate_n_intervals
 from django.db.models import Max, Min
 from django.db.models import F, Func, Q
 from apps.common.util.util import get_time_slots_by_id
@@ -192,6 +192,7 @@ class TopicViewSet(viewsets.ReadOnlyModelViewSet):
 def get_index_shift(time_slots, first_item_from, current_item_from):
     first_idx = None
     current_idx = None
+
     for idx in range(len(time_slots)):
         slot = time_slots[idx]
         if slot.lower == first_item_from:
@@ -241,7 +242,11 @@ def get_observations(
 
     before_intervals = []
     after_intervals = []
-    time_slot_diff = time_slots[1].lower - time_slots[0].lower
+
+    #TODO - ziskavat jinak time_slot_diff
+    from_date =  time_slots[0].lower
+    ts = generate_n_intervals(t, from_date, 3)
+    time_slot_diff = ts[1].lower - ts[0].lower
 
     if lag_window_size and lag_window_size > 0:
         bef_time_diff = time_slot_diff * lag_window_size + \
@@ -328,7 +333,8 @@ def get_not_null_ranges(
     topic_config,
     observation_provider_name,
     provider_model,
-    pt_range_z
+    pt_range_z,
+    time_slots
 ):
     q_objects = Q()
 
@@ -361,7 +367,8 @@ def get_not_null_ranges(
             q_objects.add(Q(
                 observed_property=prop_item,
                 feature_of_interest=item,
-                procedure=process
+                procedure=process,
+                time_slots=time_slots
             ), Q.OR)
 
     q_objects.add(Q(
@@ -600,7 +607,8 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                 topic_config=topic_config,
                 observation_provider_name=observation_provider_model_name,
                 provider_model=provider_model,
-                pt_range_z=pt_range_z
+                pt_range_z=pt_range_z,
+                time_slots=t
             )
 
             for item in all_features:
@@ -718,8 +726,6 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                     )
                     time_series_list.append(f)
 
-
-            #print(grouped)
 
         for item in time_series_list:
             if phenomenon_time_from:

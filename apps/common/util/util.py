@@ -193,6 +193,15 @@ INTERVALS = {
 }
 
 
+def generate_n_intervals(
+        timeslots,  #: TimeSeries
+        from_datetime,  #: datetime with timezone
+        count
+):
+
+    return generate_intervals_internal(timeslots=timeslots, from_datetime=from_datetime, count=count)
+
+
 def generate_intervals(
     timeslots,             #: TimeSeries
     from_datetime,          #: datetime with timezone
@@ -200,11 +209,27 @@ def generate_intervals(
     range_from_limit=datetime.min.replace(tzinfo=UTC_P0100),
     range_to_limit=datetime.max.replace(tzinfo=UTC_P0100)
 ):
+    if not isinstance(to_datetime, datetime):
+        raise Exception('to_datetime must be type of datetime')
+
+    return generate_intervals_internal(timeslots, from_datetime, to_datetime,range_from_limit, range_to_limit)
+
+
+def generate_intervals_internal(
+    timeslots,             #: TimeSeries
+    from_datetime,          #: datetime with timezone
+    to_datetime=None,            #: datetime with timezone
+    range_from_limit=datetime.min.replace(tzinfo=UTC_P0100),
+    range_to_limit=datetime.max.replace(tzinfo=UTC_P0100),
+    count=None
+):
     if not isinstance(from_datetime, datetime):
         raise Exception('from_datetime must be type of datetime')
 
+    '''
     if not isinstance(to_datetime, datetime):
         raise Exception('to_datetime must be type of datetime')
+    '''
 
     if not isinstance(range_from_limit, datetime):
         raise Exception('range_from_limit must be type of datetime')
@@ -212,8 +237,9 @@ def generate_intervals(
     if not isinstance(range_to_limit, datetime):
         raise Exception('range_to_limit must be type of datetime')
 
-    if from_datetime >= to_datetime:
-        raise Exception('to_datetime must be after from_datetime')
+    if to_datetime:
+        if from_datetime >= to_datetime:
+            raise Exception('to_datetime must be after from_datetime')
 
     if range_from_limit >= range_to_limit:
         raise Exception('range_to_limit must be after range_from_limit')
@@ -229,9 +255,11 @@ def generate_intervals(
     minutes_frequency = timeslots.frequency.minutes
     seconds_frequency = timeslots.frequency.seconds
 
+
     if years_frequency or months_frequency:
         if timeslots.zero.day > 28:
-            raise Exception('zero day in month must be less than 28 when frequency contains years or months')
+            raise Exception(
+                'zero day in month must be less than 28 when frequency contains years or months')
 
         if days_frequency or hours_frequency or minutes_frequency or seconds_frequency:
             raise Exception(
@@ -240,12 +268,8 @@ def generate_intervals(
         total_months_frequency = years_frequency * 12 + months_frequency
         diff_until_from = ((from_datetime.year - first_start.lower.year) * 12) \
                           + from_datetime.month - first_start.lower.month
-        diff_until_to = ((to_datetime.year - first_start.lower.year) * 12) \
-                        + to_datetime.month - first_start.lower.month
 
         intervals_before_start = diff_until_from / total_months_frequency
-        intervals_until_end = diff_until_to / total_months_frequency
-        intervals_until_end_modulo = diff_until_to % total_months_frequency
     else:
         total_seconds_frequency = days_frequency * INTERVALS["days"]
         total_seconds_frequency += hours_frequency * INTERVALS["hours"]
@@ -253,11 +277,21 @@ def generate_intervals(
         total_seconds_frequency += seconds_frequency * INTERVALS["seconds"]
 
         diff_until_from = (from_datetime - first_start.lower).total_seconds()
-        diff_until_to = (to_datetime - first_start.lower).total_seconds()
 
         intervals_before_start = diff_until_from / total_seconds_frequency
-        intervals_until_end = diff_until_to / total_seconds_frequency
-        intervals_until_end_modulo = diff_until_to % total_seconds_frequency
+
+    if to_datetime:
+        if years_frequency or months_frequency:
+            diff_until_to = ((to_datetime.year - first_start.lower.year) * 12) \
+                            + to_datetime.month - first_start.lower.month
+
+            intervals_until_end = diff_until_to / total_months_frequency
+            intervals_until_end_modulo = diff_until_to % total_months_frequency
+        else:
+            diff_until_to = (to_datetime - first_start.lower).total_seconds()
+            intervals_until_end = diff_until_to / total_seconds_frequency
+            intervals_until_end_modulo = diff_until_to % total_seconds_frequency
+
 
     first_interval_counter = intervals_before_start if \
         (intervals_before_start == 0) \
@@ -265,10 +299,14 @@ def generate_intervals(
 
     first_interval_counter = int(first_interval_counter)
 
-    last_interval_counter = int(intervals_until_end)# + 1
-
-    if intervals_until_end_modulo > 0:
-        last_interval_counter += 1
+    if to_datetime:
+        last_interval_counter = int(intervals_until_end)# + 1
+        if intervals_until_end_modulo > 0:
+            last_interval_counter += 1
+    elif count is not None:
+        last_interval_counter = first_interval_counter + count
+    else:
+        raise Exception('Error in calculation last_counter')
 
     slots = []
 
@@ -286,8 +324,9 @@ def generate_intervals(
             if from_datetime >= slot.upper:
                 condition = False
 
-            if slot.lower >= to_datetime:
-                condition = False
+            if to_datetime:
+                if slot.lower >= to_datetime:
+                    condition = False
 
             if range_from_limit and slot.lower < range_from_limit:
                 condition = False
@@ -297,5 +336,6 @@ def generate_intervals(
 
             if condition:
                 slots.append(slot)
+
 
     return slots
