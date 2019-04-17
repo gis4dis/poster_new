@@ -691,7 +691,7 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                                                 break
 
                         if ts['phenomenon_time_range'].upper is not None:
-                            if not phenomenon_time_to or phenomenon_time_to > ts['phenomenon_time_range'].upper:
+                            if not phenomenon_time_to or phenomenon_time_to < ts['phenomenon_time_range'].upper:
                                 phenomenon_time_to = ts['phenomenon_time_range'].upper
 
                         rounded_ar = list(map((lambda val: round(val, ROUND_DECIMAL_SPACES) if val is not None else None),
