@@ -14,5 +14,6 @@ class Command(BaseCommand):
         parser.add_argument('aggregate_updated_since', nargs='?', default=None)
 
     def handle(self, *args, **options):
+        #compute_aggregated_values()
         chain(import_time_slots_from_config.si() |
               compute_aggregated_values.si(aggregate_updated_since_datetime=options['aggregate_updated_since']))()
