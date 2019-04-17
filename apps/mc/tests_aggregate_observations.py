@@ -132,7 +132,7 @@ class AggregateObservationsTestCase(TestCase):
     def test_initial_aggregation(self):
         t = TimeSlots.objects.get(name_id='1_hour_slot')
 
-        compute_aggregated_values(None)
+        compute_aggregated_values(None, sync=True)
 
         agg_obs = Observation.objects.filter(
             procedure=Process.objects.get(name_id='apps.common.aggregate.arithmetic_mean'),

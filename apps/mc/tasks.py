@@ -283,7 +283,7 @@ def compute_agg_provider(
                         })
 
 @task(name="mc.compute_aggregated_values")
-def compute_aggregated_values(aggregate_updated_since_datetime=None):
+def compute_aggregated_values(aggregate_updated_since_datetime=None, sync=False):
     aggregate_updated_since = None
     if aggregate_updated_since_datetime:
         aggregate_updated_since = aggregate_updated_since_datetime
@@ -310,7 +310,8 @@ def compute_aggregated_values(aggregate_updated_since_datetime=None):
             compute_agg_provider(
                 agg_provider,
                 aggregate_updated_since,
-                ts_id
+                ts_id,
+                sync
             )
 
 
