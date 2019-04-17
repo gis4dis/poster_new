@@ -166,7 +166,7 @@ class AggregateObservationsTestCase(TestCase):
             DATETIME_29_2018
         )
 
-        compute_aggregated_values(None)
+        compute_aggregated_values(None, sync=True)
 
         agg_obs = Observation.objects.filter(
             procedure=Process.objects.get(name_id='apps.common.aggregate.arithmetic_mean'),
