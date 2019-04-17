@@ -79,6 +79,15 @@ def get_timeseries(
 
     obs_reduced = {obs.phenomenon_time_range.lower.timestamp(): obs.result for obs in observations}
 
+    if (len(property_values) - property_values.count(None) <= 1):
+        property_anomaly_rates = [0 if value is not None else value for value in property_values[lower_ext:lower_ext+num_time_slots]]
+
+        return {
+            'phenomenon_time_range': phenomenon_time_range,
+            'property_values': property_values[lower_ext:lower_ext+num_time_slots],
+            'property_anomaly_rates': property_anomaly_rates,
+        }
+
     try:
         baseline_reduced
     except NameError:
@@ -86,14 +95,14 @@ def get_timeseries(
     else:
         detector = AnomalyDetector(obs_reduced, baseline_reduced, algorithm_name=detector_method, algorithm_params=detector_params, score_only=True)
 
-    anomalyScore = detector.get_all_scores().values
+    property_anomaly_rates = detector.get_all_scores().values
 
     for i in range(len(property_values)):
         if property_values[i] is None:
-            anomalyScore.insert(i, None)
+            property_anomaly_rates.insert(i, None)
 
     return {
         'phenomenon_time_range': phenomenon_time_range,
         'property_values': property_values[lower_ext:lower_ext+num_time_slots],
-        'property_anomaly_rates': anomalyScore[lower_ext:lower_ext+num_time_slots],
+        'property_anomaly_rates': property_anomaly_rates[lower_ext:lower_ext+num_time_slots],
     }
