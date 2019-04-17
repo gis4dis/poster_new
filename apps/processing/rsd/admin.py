@@ -5,10 +5,28 @@ from django.contrib import admin
 
 
 class EventObservationAdmin(admin.ModelAdmin):
-    list_display = ['Event_Category_name','Event_Category_group','first_admin_unit','admin_units','phenomenon_time_from','phenomenon_time_duration', 'time_slots']
-    fields = ['Event_Category_name','Event_Category_group','first_admin_unit','admin_units','phenomenon_time_from','phenomenon_time_duration', 'created_at', 'updated_at']
+    list_display = [
+        'Event_Category_name',
+        'time_slots',
+        'Event_Category_group',
+        'first_admin_unit',
+        'admin_units',
+        'phenomenon_time_from'
+    ]
+
+    fields = [
+        'Event_Category_name',
+        'time_slots',
+        'Event_Category_group',
+        'first_admin_unit',
+        'admin_units',
+        'phenomenon_time_from',
+        'phenomenon_time_duration',
+        'created_at',
+        'updated_at'
+    ]
     readonly_fields = list_display
-    list_filter = ['category__group',DateRangeRangeFilter, ('time_slots', admin.RelatedOnlyFieldListFilter)]
+    list_filter = ['category__group', ('time_slots', admin.RelatedOnlyFieldListFilter), DateRangeRangeFilter]
     
 
     def Event_Category_name(self, event):
@@ -41,8 +59,23 @@ class CategoryCustomGroupAdmin(admin.ModelAdmin):
 
 
 class NumberOfEventsObservationAdmin(admin.ModelAdmin):
-    list_display = ['feature_of_interest', 'category_custom_group_name','phenomenon_time_from','phenomenon_time_duration','result', 'time_slots']
-    fields = ['feature_of_interest','category_custom_group','phenomenon_time_from','phenomenon_time_duration','result', 'created_at', 'updated_at']
+    list_display = [
+        'feature_of_interest',
+        'time_slots',
+        'category_custom_group_name',
+        'phenomenon_time_from',
+        'result'
+    ]
+    fields = [
+        'feature_of_interest',
+        'time_slots',
+        'category_custom_group',
+        'phenomenon_time_from',
+        'result',
+        'phenomenon_time_duration',
+        'created_at',
+        'updated_at'
+    ]
     readonly_fields = list_display
 
     def category_custom_group_name(self, event):

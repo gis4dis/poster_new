@@ -36,28 +36,27 @@ class MobilityObservationAdmin(admin.ModelAdmin):
 
     list_display = (
         'phenomenon_time_from',
-        'phenomenon_time_duration_for_human',
+        'time_slots',
         'observed_property',
         'feature_of_interest',
         'procedure',
         'src_occurrence_type',
         'dst_occurrence_type',
         'uniques_type',
-        'result_for_human',
-        'time_slots'
+        'result_for_human'
     )
     list_filter = (
         DateRangeRangeFilter,
+        ('time_slots', admin.RelatedOnlyFieldListFilter),
         ('observed_property', admin.RelatedOnlyFieldListFilter),
         ('feature_of_interest', admin.RelatedOnlyFieldListFilter),
         ('procedure', admin.RelatedOnlyFieldListFilter),
         'src_occurrence_type',
         'dst_occurrence_type',
         'uniques_type',
-        ('result_null_reason', ResultNullReasonFilter),
-        ('time_slots', admin.RelatedOnlyFieldListFilter)
+        ('result_null_reason', ResultNullReasonFilter)
     )
-    fields = list_display + ('created_at', 'updated_at')
+    fields = list_display + ('phenomenon_time_duration_for_human', 'created_at', 'updated_at')
     readonly_fields = fields
 
 
@@ -78,28 +77,27 @@ class SocioDemoObservationAdmin(admin.ModelAdmin):
 
     list_display = (
         'phenomenon_time_from',
-        'phenomenon_time_duration_for_human',
+        'time_slots',
         'observed_property',
         'feature_of_interest',
         'procedure',
         'age_for_human',
         'gender',
         'occurrence_type',
-        'result_for_human',
-        'time_slots'
+        'result_for_human'
     )
     list_filter = (
         DateRangeRangeFilter,
+        ('time_slots', admin.RelatedOnlyFieldListFilter),
         ('observed_property', admin.RelatedOnlyFieldListFilter),
         ('feature_of_interest', admin.RelatedOnlyFieldListFilter),
         ('procedure', admin.RelatedOnlyFieldListFilter),
         AgeRangeFilter,
         'gender',
         'occurrence_type',
-        ('result_null_reason', ResultNullReasonFilter),
-        ('time_slots', admin.RelatedOnlyFieldListFilter)
+        ('result_null_reason', ResultNullReasonFilter)
     )
-    fields = list_display + ('created_at', 'updated_at')
+    fields = list_display + ('phenomenon_time_duration_for_human', 'created_at', 'updated_at')
     readonly_fields = fields
 
 

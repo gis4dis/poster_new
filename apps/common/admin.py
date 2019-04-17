@@ -1,4 +1,4 @@
-from .models import Property, Process, Topic
+from .models import Property, Process, Topic, TimeSlots
 from django.contrib import admin
 
 
@@ -24,6 +24,15 @@ class ProcessAdmin(admin.ModelAdmin):
         'name_id',
     )
 
+class TimeSlotAdmin(admin.ModelAdmin):
+    readonly_fields = (
+        'name_id',
+        'zero',
+        'frequency',
+        'range_from',
+        'range_to'
+    )
+
 
 class TopicAdmin(admin.ModelAdmin):
     pass
@@ -31,3 +40,4 @@ class TopicAdmin(admin.ModelAdmin):
 admin.site.register(Property, PropertyAdmin)
 admin.site.register(Process, ProcessAdmin)
 admin.site.register(Topic, TopicAdmin)
+admin.site.register(TimeSlots, TimeSlotAdmin)
