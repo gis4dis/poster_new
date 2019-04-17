@@ -29,6 +29,7 @@ class ObservationAdmin(admin.ModelAdmin):
         'feature_of_interest',
         'procedure',
         'result_for_human',
+        'time_slots'
     )
     list_filter = (
         DateRangeRangeFilter,
@@ -36,6 +37,7 @@ class ObservationAdmin(admin.ModelAdmin):
         ('feature_of_interest', admin.RelatedOnlyFieldListFilter),
         ('procedure', admin.RelatedOnlyFieldListFilter),
         ('result_null_reason', ResultNullReasonFilter),
+        ('time_slots', admin.RelatedOnlyFieldListFilter)
     )
     fields = list_display + ('created_at', 'updated_at')
     readonly_fields = fields

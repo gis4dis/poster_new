@@ -95,6 +95,8 @@ class TimeSlots(models.Model):
         if relative_delta_to_total_seconds(self.range_to) <= relative_delta_to_total_seconds(self.range_from):
             raise forms.ValidationError('range_to must be greater than range_from')
 
+    def __str__(self):
+        return self.name
 
 
 

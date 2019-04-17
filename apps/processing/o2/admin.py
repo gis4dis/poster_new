@@ -44,6 +44,7 @@ class MobilityObservationAdmin(admin.ModelAdmin):
         'dst_occurrence_type',
         'uniques_type',
         'result_for_human',
+        'time_slots'
     )
     list_filter = (
         DateRangeRangeFilter,
@@ -54,6 +55,7 @@ class MobilityObservationAdmin(admin.ModelAdmin):
         'dst_occurrence_type',
         'uniques_type',
         ('result_null_reason', ResultNullReasonFilter),
+        ('time_slots', admin.RelatedOnlyFieldListFilter)
     )
     fields = list_display + ('created_at', 'updated_at')
     readonly_fields = fields
@@ -84,6 +86,7 @@ class SocioDemoObservationAdmin(admin.ModelAdmin):
         'gender',
         'occurrence_type',
         'result_for_human',
+        'time_slots'
     )
     list_filter = (
         DateRangeRangeFilter,
@@ -94,6 +97,7 @@ class SocioDemoObservationAdmin(admin.ModelAdmin):
         'gender',
         'occurrence_type',
         ('result_null_reason', ResultNullReasonFilter),
+        ('time_slots', admin.RelatedOnlyFieldListFilter)
     )
     fields = list_display + ('created_at', 'updated_at')
     readonly_fields = fields
