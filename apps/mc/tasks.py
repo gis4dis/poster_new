@@ -239,6 +239,7 @@ def compute_agg_provider(
 ):
     op_config = agg_provider.get('observation_providers')
     properties_config = agg_provider.get('properties')
+    task_counter = 0
 
     for provider in op_config:
 
@@ -272,6 +273,7 @@ def compute_agg_provider(
                             ts_id=ts_id
                         )
                     else:
+                        task_counter = task_counter + 1;
                         process_feature.apply_async(kwargs={
                             'process_method': p,
                             'provider': provider,
@@ -282,9 +284,12 @@ def compute_agg_provider(
                             'ts_id': ts_id
                         })
 
+    return task_counter
+
 @task(name="mc.compute_aggregated_values")
 def compute_aggregated_values(aggregate_updated_since_datetime=None, sync=False):
     aggregate_updated_since = None
+    task_counter = 0
     if aggregate_updated_since_datetime:
         aggregate_updated_since = aggregate_updated_since_datetime
         aggregate_updated_since = parse_datetime(aggregate_updated_since)
@@ -307,12 +312,15 @@ def compute_aggregated_values(aggregate_updated_since_datetime=None, sync=False)
             raise Exception('Provider time_slots configuration is empty.')
 
         for ts_id in time_slots_config:
-            compute_agg_provider(
+            task_count = compute_agg_provider(
                 agg_provider,
                 aggregate_updated_since,
                 ts_id,
                 sync
             )
+            task_counter = task_counter + task_count
+
+    return task_counter
 
 
 @task(name="mc.import_time_slots_from_config")
