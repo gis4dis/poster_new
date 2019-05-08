@@ -18,7 +18,7 @@ services:
     depends_on:
       - poster-postgres
       - poster-redis
-      - poster-mongo
+#      - poster-mongo
       - poster-minio
 
 # CELERY WORKER AND BEAT CONTAINERS derived from above
@@ -86,14 +86,14 @@ services:
     volumes:
       - poster-redis-data:/data
 
-  poster-mongo:
-    container_name: poster-mongo
-    image: mongo:3.2
-    command: --storageEngine wiredTiger
-    ports:
-      - 127.0.0.1:27017:27017
-    volumes:
-      - poster-mongo-data:/data/db
+#  poster-mongo:
+#    container_name: poster-mongo
+#    image: mongo:3.2
+#    command: --storageEngine wiredTiger
+#    ports:
+#      - 127.0.0.1:27017:27017
+#    volumes:
+#      - poster-mongo-data:/data/db
 
 # VOLUMES DEFINITION
 volumes:
