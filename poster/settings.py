@@ -251,7 +251,7 @@ else:
 
 NOTEBOOK_ARGUMENTS = [
     '--ip', '0.0.0.0',
-    '--port', +env('PORT', default='8888'),
+    '--port', env('PORT', default='8888'),
     '--notebook-dir', './jupyter-notebooks/',
     '--allow-root',
     '--no-browser',
