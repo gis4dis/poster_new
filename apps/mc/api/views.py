@@ -469,7 +469,7 @@ from django.views.decorators.cache import cache_page
 #http://localhost:8000/api/v2/timeseries/?topic=drought&properties=air_temperature&phenomenon_date_from=2018-10-29&phenomenon_date_to=2018-10-30
 class TimeSeriesViewSet(viewsets.ViewSet):
 
-    #@method_decorator(cache_page(60*60*12))
+    @method_decorator(cache_page(60*60*12))
     def list(self, request):
         if 'topic' in request.GET:
             topic = request.GET['topic']
