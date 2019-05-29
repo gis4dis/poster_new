@@ -3,7 +3,8 @@ from psycopg2.extras import DateTimeTZRange
 import numpy as np
 from luminol.anomaly_detector import AnomalyDetector
 
-DEFAULT_SEVERITY_BREAKS = [80, 95]
+DEFAULT_ANOMALY_BREAKS = [80, 95]
+DEFAULT_VALUE_BREAKS = [3, 10, 90, 97]
 
 def observations_to_property_values(observations):
     return [obs.result for obs in observations]
@@ -24,14 +25,14 @@ def percentiles(
 
 def categorize_anomalies(
     anomalies,
-    breaks=DEFAULT_SEVERITY_BREAKS,
+    breaks,
 ):
-    anoms = np.array(anomalies)
+    vals = np.array([float(value) for value in values if value is not None])
 
-    if anoms.size == 0:
+    if vals.size == 0:
         return []
 
-    percentiles = np.percentile(anoms, breaks)
+    percentiles = np.percentile(vals, breaks)
 
     return {breaks[i]: float(percentiles[i]) for i in range(len(percentiles))}
 
@@ -47,7 +48,8 @@ def get_timeseries(
             "future_window_size": 96,
             "chunk_size": 2
         },
-        severity_breaks=DEFAULT_SEVERITY_BREAKS,
+        anomaly_breaks=DEFAULT_ANOMALY_BREAKS,
+        value_breaks=DEFAULT_VALUE_BREAKS,
         extend_range=True,
         baseline_time_range=None,
         shift=True,
@@ -93,7 +95,7 @@ def get_timeseries(
             'property_values': [],
             'property_value_percentiles': {},
             'property_anomaly_rates': [],
-            'property_anomaly_severities': {},
+            'property_anomaly_percentiles': {},
         }
 
     property_values = observations_to_property_values(observations)
@@ -104,7 +106,7 @@ def get_timeseries(
             'property_values': property_values,
             'property_value_percentiles': {50: property_values[0]},
             'property_anomaly_rates': [0],
-            'property_anomaly_severities': {0: 0},
+            'property_anomaly_percentiles': {0: 0},
         }
 
     property_value_percentiles = percentiles(property_values, value_breaks)
@@ -123,7 +125,7 @@ def get_timeseries(
             'property_values': property_values[lower_ext:lower_ext+num_time_slots],
             'property_value_percentiles': property_value_percentiles,
             'property_anomaly_rates': property_anomaly_rates,
-            'property_anomaly_severities': {0: 0},
+            'property_anomaly_percentiles': {0: 0},
         }
 
     try:
@@ -135,7 +137,7 @@ def get_timeseries(
 
     property_anomaly_rates = detector.get_all_scores().values
 
-    property_anomaly_severities = categorize_anomalies(property_anomaly_rates[lower_ext:lower_ext+num_time_slots], severity_breaks)
+    property_anomaly_percentiles = percentiles(property_anomaly_rates[lower_ext:lower_ext+num_time_slots], anomaly_breaks)
 
     for i in range(len(property_values)):
         if property_values[i] is None:
@@ -146,5 +148,5 @@ def get_timeseries(
         'property_values': property_values[lower_ext:lower_ext+num_time_slots],
         'property_value_percentiles': property_value_percentiles,
         'property_anomaly_rates': property_anomaly_rates[lower_ext:lower_ext+num_time_slots],
-        'property_anomaly_severities': property_anomaly_severities,
+        'property_anomaly_percentiles': property_anomaly_percentiles,
     }
