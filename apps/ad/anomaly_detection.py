@@ -23,20 +23,6 @@ def percentiles(
     return {breaks[i]: float(percentiles[i]) for i in range(len(percentiles))}
 
 
-def categorize_anomalies(
-    anomalies,
-    breaks,
-):
-    vals = np.array([float(value) for value in values if value is not None])
-
-    if vals.size == 0:
-        return []
-
-    percentiles = np.percentile(vals, breaks)
-
-    return {breaks[i]: float(percentiles[i]) for i in range(len(percentiles))}
-
-
 def get_timeseries(
         phenomenon_time_range,
         num_time_slots,
