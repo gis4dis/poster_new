@@ -702,11 +702,14 @@ class TimeSeriesViewSet(viewsets.ViewSet):
 
                         feature_prop_dict = {
                             'values': ts['property_values'],
+                            'property_value_percentiles': ts['property_value_percentiles'],
                             'anomaly_rates': rounded_ar,
+                            'property_anomaly_percentiles': ts['property_anomaly_percentiles'],
                             'phenomenon_time_from': ts['phenomenon_time_range'].lower,
                             'phenomenon_time_to': ts['phenomenon_time_range'].upper,
                             'value_index_shift': None
                         }
+
 
                         content[prop] = feature_prop_dict
 
