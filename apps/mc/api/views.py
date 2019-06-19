@@ -25,31 +25,10 @@ from apps.common.util.util import generate_intervals, generate_n_intervals
 from django.db.models import Max, Min
 from django.db.models import F, Func, Q
 from apps.common.util.util import get_time_slots_by_id
-
 from datetime import timedelta
-
 from functools import partial
 
-from datetime import timedelta
-
-from functools import partial
-
-
-def import_models(path):
-    provider_module = None
-    provider_model = None
-    error_message = None
-    try:
-        path = path.rsplit('.', 1)
-        provider_module = import_module(path[0])
-        provider_model = getattr(provider_module, path[1])
-        return provider_model, provider_module, error_message
-    except ModuleNotFoundError as e:
-        error_message = 'module not found'
-        return provider_model, provider_module, error_message
-    except AttributeError as e:
-        error_message = 'function not found'
-        return provider_model, provider_module, error_message
+from apps.mc.api.util import get_topics, get_property, import_models
 
 
 def parse_date_range(from_string, to_string):
@@ -128,9 +107,9 @@ class PropertyViewSet(viewsets.ViewSet):
             if not topic or not Topic.objects.filter(name_id=topic_param).exists():
                 raise APIException('Topic not found.')
 
-            prop_names = list(topic['properties'].keys())
+            t = Topic.objects.get(name_id='drought')
+            queryset = get_property(t)
 
-            queryset = Property.objects.filter(name_id__in=prop_names)
             serializer = PropertySerializer(queryset, many=True)
             return Response(serializer.data)
         else:
@@ -181,8 +160,9 @@ class TimeSlotsViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class TopicViewSet(viewsets.ReadOnlyModelViewSet):
-    topics = settings.APPLICATION_MC.TOPICS.keys()
-    queryset = Topic.objects.filter(name_id__in=list(topics))
+    #topics = settings.APPLICATION_MC.TOPICS.keys()
+    #queryset = Topic.objects.filter(name_id__in=list(topics))
+    queryset = get_topics()
     serializer_class = TopicSerializer
 
 
@@ -560,6 +540,12 @@ class TimeSeriesViewSet(viewsets.ViewSet):
         value_frequency = get_value_frequency(t, zero)
         value_duration = None
 
+        time_series_list = []
+        phenomenon_time_from = None
+        phenomenon_time_to = None
+        process_items = {}
+        prop_items = {}
+
         geom_bbox = None
         if 'bbox' in request.GET:
             bbox = request.GET['bbox']
@@ -577,12 +563,6 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                         model_props[provider].append(prop)
                     else:
                         model_props[provider] = [prop]
-
-        time_series_list = []
-        phenomenon_time_from = None
-        phenomenon_time_to = None
-        process_items = {}
-        prop_items = {}
 
         for model in model_props:
 
