@@ -107,7 +107,7 @@ class PropertyViewSet(viewsets.ViewSet):
             if not topic or not Topic.objects.filter(name_id=topic_param).exists():
                 raise APIException('Topic not found.')
 
-            t = Topic.objects.get(name_id='drought')
+            t = Topic.objects.get(name_id=topic_param)
             queryset = get_property(t)
 
             serializer = PropertySerializer(queryset, many=True)
@@ -160,8 +160,6 @@ class TimeSlotsViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class TopicViewSet(viewsets.ReadOnlyModelViewSet):
-    #topics = settings.APPLICATION_MC.TOPICS.keys()
-    #queryset = Topic.objects.filter(name_id__in=list(topics))
     queryset = get_topics()
     serializer_class = TopicSerializer
 
