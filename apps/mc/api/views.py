@@ -28,7 +28,7 @@ from apps.common.util.util import get_time_slots_by_id
 from datetime import timedelta
 from functools import partial
 
-from apps.mc.api.util import get_topics, get_property, import_models
+from apps.mc.api.util import get_topics, get_property, import_models, get_observations, get_empty_slots
 
 
 def parse_date_range(from_string, to_string):
@@ -200,111 +200,6 @@ def get_value_frequency(t, from_datetime):
     diff = (result_slots[1].lower - result_slots[0].lower).total_seconds()
     return diff
 
-
-def get_empty_slots(t, pt_range_z):
-    return generate_intervals(
-        timeslots=t,
-        from_datetime=pt_range_z.lower,
-        to_datetime=pt_range_z.upper,
-    )
-
-
-def get_observations(
-    time_slots,
-    observed_property,
-    observation_provider_model,
-    feature_of_interest,
-    process,
-    t,
-    lag_window_size,
-    future_window_size
-):
-
-    before_intervals = []
-    after_intervals = []
-
-    #TODO - ziskavat jinak time_slot_diff
-    from_date =  time_slots[0].lower
-    ts = generate_n_intervals(t, from_date, 3)
-    time_slot_diff = ts[1].lower - ts[0].lower
-
-    if lag_window_size and lag_window_size > 0:
-        bef_time_diff = time_slot_diff * lag_window_size + \
-                      (time_slots[0].upper - time_slots[0].lower)
-        bef_time_diff = bef_time_diff.total_seconds()
-
-        from_datetime = time_slots[0].lower - timedelta(seconds=bef_time_diff)
-
-        before_intervals = generate_intervals(
-            timeslots=t,
-            from_datetime=from_datetime,
-            to_datetime=time_slots[0].lower,
-        )
-
-        before_intervals = before_intervals[-lag_window_size:]
-
-    if future_window_size and future_window_size > 0:
-        after_time_diff = time_slot_diff * future_window_size + \
-                        (time_slots[0].upper - time_slots[0].lower)
-        after_time_diff = after_time_diff.total_seconds()
-
-        to_datetime = time_slots[-1].lower + timedelta(seconds=after_time_diff)
-
-        after_intervals = generate_intervals(
-            timeslots=t,
-            from_datetime=time_slots[-1].lower,
-            to_datetime=to_datetime,
-        )
-
-        after_intervals = after_intervals[1:]
-        after_intervals = after_intervals[-future_window_size:]
-
-    extended_time_slots =  before_intervals + time_slots + after_intervals
-
-    return prepare_data(
-        extended_time_slots,
-        observed_property,
-        observation_provider_model,
-        feature_of_interest,
-        process
-    )
-
-
-def prepare_data(
-    time_slots,
-    observed_property,
-    observation_provider_model,
-    feature_of_interest,
-    process
-):
-    obss = observation_provider_model.objects.filter(
-        observed_property=observed_property,
-        procedure=process,
-        feature_of_interest=feature_of_interest,
-        phenomenon_time_range__in=time_slots
-    )
-
-    obs_reduced = {obs.phenomenon_time_range.lower.timestamp(): obs for obs in obss}
-    observations = []
-
-    for i in range(0, len(time_slots)):
-        slot = time_slots[i]
-        st = slot.lower.timestamp()
-        obs = None
-
-        if st in obs_reduced and obs_reduced[st] and obs_reduced[st].result is not None:
-            obs = obs_reduced[st]
-
-        if obs is None:
-            obs = observation_provider_model(
-                phenomenon_time_range=slot,
-                observed_property=observed_property,
-                feature_of_interest=feature_of_interest,
-                procedure=process,
-                result=None
-            )
-        observations.append(obs)
-    return observations
 
 
 def get_not_null_ranges(
