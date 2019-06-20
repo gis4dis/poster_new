@@ -17,7 +17,7 @@ from apps.mc.api.util import get_topics, get_property, get_time_slots, get_featu
 class Command(BaseCommand):
     def handle(self, *args, **options):
         t = Topic.objects.get(name_id='drought')
-        p = Property.objects.filter(name_id='air_temperature')
+        p = Property.objects.get(name_id='air_temperature')
         f = SamplingFeature.objects.get(id_by_provider='11359201')
         ts = TimeSlots.objects.get(name_id="1_hour_slot")
 
@@ -37,17 +37,17 @@ class Command(BaseCommand):
         print(get_property(t))
 
         print('------get_time_slots------')
-        print(get_time_slots(None, None))
+        print(get_time_slots(t))
 
         print('------get_features_of_interest------')
         print(get_features_of_interest(t, p))
 
         print('------get_aggregating_process------')
-        print(get_aggregating_process(t, p[0], f))
+        print(get_aggregating_process(t, p, f))
 
         data_getter = get_observation_getter(
             topic=t,
-            property=p[0],
+            property=p,
             time_slots=ts,
             feature_of_interest=f,
             phenomenon_time_range=date_time_range
