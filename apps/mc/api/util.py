@@ -67,6 +67,9 @@ def get_observations(
     before_intervals = []
     after_intervals = []
 
+    if len(time_slots) == 0:
+        return []
+
     from_date =  time_slots[0].lower
     ts = generate_n_intervals(t, from_date, 3)
     time_slot_diff = ts[1].lower - ts[0].lower
@@ -113,7 +116,6 @@ def get_observations(
     )
 
 
-
 def import_models(path):
     provider_module = None
     provider_model = None
@@ -132,11 +134,18 @@ def import_models(path):
 
 
 def get_topics():
+    '''
+    :return: queryset (queryset of Topics)
+    '''
     topics = settings.APPLICATION_MC.TOPICS.keys()
     return Topic.objects.filter(name_id__in=list(topics))
 
 
 def get_property(topic):
+    '''
+    :param topic: Topic
+    :return: queryset (queryset of Property)
+    '''
     topic_param = topic.name_id
     topic = settings.APPLICATION_MC.TOPICS.get(topic_param)
     prop_names = list(topic['properties'].keys())
@@ -144,25 +153,45 @@ def get_property(topic):
     return queryset
 
 
-#TODO dodelat vstupni parametry
-def get_time_slots(topic, property):
-    queryset = TimeSlots.objects.all()
+def get_time_slots(topic):
+    '''
+    :param topic: Topic
+    :return: queryset (queryset of TimeSlots)
+    '''
+    topic = topic.name_id
+    topic_config = settings.APPLICATION_MC.TOPICS.get(topic)
+    timeslots_config = topic_config['time_slots']
+    queryset = TimeSlots.objects.filter(name_id__in=timeslots_config)
     return queryset
 
 
-def get_observation_model_name(feature_of_interest):
-    obs_model = feature_of_interest._meta.get_fields()[0].remote_field.model
+def get_observation_model_name(topic, property, feature_of_interest):
+    topic = topic.name_id
+    topic_config = settings.APPLICATION_MC.TOPICS.get(topic)
 
-    op_name = obs_model.__module__
-    if op_name is None or op_name == str.__class__.__module__:
-        op_name = obs_model.__class__.__name__
-    else:
-        op_name = op_name + '.' + obs_model.__name__
+    def get_model_name(obs_model):
+        op_name = obs_model.__module__
+        if op_name is None or op_name == str.__class__.__module__:
+            op_name = obs_model.__class__.__name__
+        else:
+            op_name = op_name + '.' + obs_model.__name__
+        return op_name
 
-    return op_name
+    for f in feature_of_interest._meta.get_fields():
+        if f.remote_field is not None:
+            path = get_model_name(f.remote_field.model)
+            op_config = topic_config['properties'].get(property.name_id)['observation_providers']
+            if path in op_config:
+                return path
+    return None
 
 
-def get_features_of_interest(topic, properties, geom_bbox=None):
+def get_features_of_interest(topic, property):
+    '''
+    :param topic: Topic
+    :param property: Property
+    :return: List<AbstractFeature>
+    '''
     topic = topic.name_id
     topic_config = settings.APPLICATION_MC.TOPICS.get(topic)
     out_features = []
@@ -175,15 +204,14 @@ def get_features_of_interest(topic, properties, geom_bbox=None):
     properties_config = topic_config['properties']
 
     if topic_config:
-        for prop in properties:
-            prop_config = properties_config.get(prop.name_id)
-            op = prop_config['observation_providers']
+        prop_config = properties_config.get(property.name_id)
+        op = prop_config['observation_providers']
 
-            for provider in op:
-                if provider in model_props:
-                    model_props[provider].append(prop.name_id)
-                else:
-                    model_props[provider] = [prop.name_id]
+        for provider in op:
+            if provider in model_props:
+                model_props[provider].append(property.name_id)
+            else:
+                model_props[provider] = [property.name_id]
 
     for model in model_props:
         provider_module, provider_model, error_message = import_models(model)
@@ -197,27 +225,37 @@ def get_features_of_interest(topic, properties, geom_bbox=None):
         feature_of_interest_model = provider_model._meta.get_field(
             'feature_of_interest').remote_field.model
 
-        if geom_bbox:
-            all_features = feature_of_interest_model.objects.filter(geometry__intersects=geom_bbox)
-            out_features.extend(all_features)
-        else:
-            all_features = feature_of_interest_model.objects.all()
-            out_features.extend(all_features)
+        all_features = feature_of_interest_model.objects.all()
+        out_features.extend(all_features)
 
-        return out_features
+    return out_features
 
 
 def get_aggregating_process(topic, property, feature_of_interest):
-    topic = topic.name_id
-    topic_config = settings.APPLICATION_MC.TOPICS.get(topic)
-    op_name = get_observation_model_name(feature_of_interest)
+    '''
+    :param topic: Topic
+    :param property: Property
+    :param feature_of_interest: AbstractFeature
+    :return: Process
+    '''
+    topic_id = topic.name_id
+    topic_config = settings.APPLICATION_MC.TOPICS.get(topic_id)
+    op_name = get_observation_model_name(topic, property, feature_of_interest)
     prop_config = topic_config['properties'].get(property.name_id)['observation_providers'].get(
         op_name)
     return Process.objects.get(name_id = prop_config['process'])
 
 
 def get_observation_getter(topic, property, time_slots, feature_of_interest, phenomenon_time_range):
-    path = get_observation_model_name(feature_of_interest).rsplit('.', 1)
+    '''
+    :param topic: Topic
+    :param property: Property
+    :param time_slots: TimeSlots
+    :param feature_of_interest: AbstractFeature
+    :param phenomenon_time_range: DateTimeTZRange
+    :return: Function (data getter function)
+    '''
+    path = get_observation_model_name(topic, property, feature_of_interest).rsplit('.', 1)
     provider_module = import_module(path[0])
     provider_model = getattr(provider_module, path[1])
 
@@ -252,19 +290,19 @@ def get_observation_getter(topic, property, time_slots, feature_of_interest, phe
             pm[0]['min_b'],
             pm[0]['max_b']
         )
-
         feature_time_slots = get_empty_slots(time_slots, data_range)
-
-        get_observations_func = partial(
-            get_observations,
-            feature_time_slots,
-            property,
-            provider_model,
-            feature_of_interest,
-            process,
-            time_slots)
-
-        return get_observations_func
     else:
-        return Exception('no data')
+        feature_time_slots = []
+
+    get_observations_func = partial(
+        get_observations,
+        feature_time_slots,
+        property,
+        provider_model,
+        feature_of_interest,
+        process,
+        time_slots)
+
+    return get_observations_func
+
 
