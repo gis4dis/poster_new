@@ -256,4 +256,3 @@ NOTEBOOK_ARGUMENTS = [
     '--allow-root',
     '--no-browser',
 ]
-JUPYTER_PASSWORD = env('JUPYTER_PASSWORD')
