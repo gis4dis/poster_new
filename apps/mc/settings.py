@@ -56,7 +56,7 @@ TOPICS = {
                 }
             }
         },
-        'time_slots': ['1_hour_slot', '24_hour_slot', '30_days_daily']
+        'time_slots': ['30_days_daily', '24_hour_slot', '1_hour_slot']
     },
     'floods': {
 
