@@ -1,4 +1,4 @@
-import logging
+ import logging
 from django.core.management.base import BaseCommand
 
 from apps.common.models import Property
@@ -45,7 +45,7 @@ class Command(BaseCommand):
         print('------get_aggregating_process------')
         print(get_aggregating_process(t, p, f))
 
-        data_getter = get_observation_getter(
+        data_getter, data_time_slots = get_observation_getter(
             topic=t,
             property=p,
             time_slots=ts,
