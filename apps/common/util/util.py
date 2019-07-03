@@ -308,7 +308,6 @@ def generate_intervals_internal(
     if (first_interval_counter < 0) and (last_interval_counter > 0):
         first_interval_counter = 0
 
-    extend_by_one = False
     if (first_interval_counter >= 0) and (last_interval_counter > first_interval_counter):
         for N in range(first_interval_counter, last_interval_counter):
             slot = DateTimeTZRange(
