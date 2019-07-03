@@ -30,7 +30,6 @@ URL_TIMESERIES_TIME_SLOTS_NOT_EXISTS = '/api/v2/timeseries/?topic=' + TOPIC_NAME
 URL_TIMESERIES_TIME_SLOTS_24H = '/api/v2/timeseries/?topic=' + TOPIC_NAME + DATE_FROM + '&phenomenon_date_to=2018-06-17' + TIME_SLOT_24H
 
 URL_TIMESERIES_30 = '/api/v2/timeseries/?topic=' + TOPIC_NAME + '&phenomenon_date_from=2018-06-16' + '&phenomenon_date_to=2018-06-16' + '&time_slots=30_days_daily'
-#URL_TIMESERIES_30 = '/api/v2/timeseries/?topic=drought&properties=air_temperature&phenomenon_date_from=2018-06-15&phenomenon_date_to=2018-06-16&time_slots=30_days_daily'
 
 DATE_FROM_ERROR = '&phenomenon_date_from=00000-06-15'
 DATE_TO_ERROR = '&phenomenon_date_to=XXX'
