@@ -9,6 +9,21 @@ DEFAULT_VALUE_BREAKS = [3, 10, 90, 97]
 def observations_to_property_values(observations):
     return [obs.result for obs in observations]
 
+def observations_to_date_range(observations):
+    from_range = None
+    to_range = None
+    for obs in observations:
+        if from_range is None or from_range > obs.phenomenon_time_range.lower:
+            from_range = obs.phenomenon_time_range.lower
+
+        if to_range is None or to_range < obs.phenomenon_time_range.upper:
+            to_range = obs.phenomenon_time_range.upper
+
+    if from_range and to_range:
+        return DateTimeTZRange(from_range, to_range)
+
+    return DateTimeTZRange()
+
 def percentiles(
     values,
     breaks,
@@ -88,7 +103,7 @@ def get_timeseries(
 
     if len(observations) == 1:
         return {
-            'phenomenon_time_range': phenomenon_time_range,
+            'phenomenon_time_range': observations_to_date_range(observations), #phenomenon_time_range,
             'property_values': property_values,
             'property_value_percentiles': {50: property_values[0]},
             'property_anomaly_rates': [0],
@@ -107,7 +122,7 @@ def get_timeseries(
         property_anomaly_rates = [0 if value is not None else value for value in property_values[lower_ext:lower_ext+num_time_slots]]
 
         return {
-            'phenomenon_time_range': phenomenon_time_range,
+            'phenomenon_time_range': observations_to_date_range(observations[lower_ext:lower_ext + num_time_slots]), #, phenomenon_time_range,
             'property_values': property_values[lower_ext:lower_ext+num_time_slots],
             'property_value_percentiles': property_value_percentiles,
             'property_anomaly_rates': property_anomaly_rates,
@@ -130,7 +145,7 @@ def get_timeseries(
             property_anomaly_rates.insert(i, None)
 
     return {
-        'phenomenon_time_range': phenomenon_time_range,
+        'phenomenon_time_range': observations_to_date_range(observations[lower_ext:lower_ext+num_time_slots]), #phenomenon_time_range,
         'property_values': property_values[lower_ext:lower_ext+num_time_slots],
         'property_value_percentiles': property_value_percentiles,
         'property_anomaly_rates': property_anomaly_rates[lower_ext:lower_ext+num_time_slots],

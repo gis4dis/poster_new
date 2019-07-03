@@ -202,12 +202,13 @@ def generate_intervals(
     from_datetime,          #: datetime with timezone
     to_datetime,            #: datetime with timezone
     range_from_limit=datetime.min.replace(tzinfo=UTC_P0100),
-    range_to_limit=datetime.max.replace(tzinfo=UTC_P0100)
+    range_to_limit=datetime.max.replace(tzinfo=UTC_P0100),
+    addOneSlot=False
 ):
     if not isinstance(to_datetime, datetime):
         raise Exception('to_datetime must be type of datetime')
 
-    return generate_intervals_internal(timeslots, from_datetime, to_datetime,range_from_limit, range_to_limit)
+    return generate_intervals_internal(timeslots, from_datetime, to_datetime,range_from_limit, range_to_limit, addOneSlot=addOneSlot)
 
 
 def generate_intervals_internal(
@@ -216,7 +217,8 @@ def generate_intervals_internal(
     to_datetime=None,            #: datetime with timezone
     range_from_limit=datetime.min.replace(tzinfo=UTC_P0100),
     range_to_limit=datetime.max.replace(tzinfo=UTC_P0100),
-    count=None
+    count=None,
+    addOneSlot=False
 ):
     if not isinstance(from_datetime, datetime):
         raise Exception('from_datetime must be type of datetime')
@@ -308,6 +310,10 @@ def generate_intervals_internal(
     if (first_interval_counter < 0) and (last_interval_counter > 0):
         first_interval_counter = 0
 
+    if (addOneSlot == True):
+        last_interval_counter = last_interval_counter + 1
+
+    extend_by_one = False
     if (first_interval_counter >= 0) and (last_interval_counter > first_interval_counter):
         for N in range(first_interval_counter, last_interval_counter):
             slot = DateTimeTZRange(
@@ -321,7 +327,10 @@ def generate_intervals_internal(
 
             if to_datetime:
                 if slot.lower >= to_datetime:
-                    condition = False
+                    if (extend_by_one == False and addOneSlot):
+                        extend_by_one = True
+                    else:
+                        condition = False
 
             if range_from_limit and slot.lower < range_from_limit:
                 condition = False

@@ -7,6 +7,7 @@ from psycopg2.extras import DateTimeTZRange
 
 from apps.common.models import Property, Topic, TimeSlots, Process
 from apps.common.util.util import generate_intervals, generate_n_intervals
+from datetime import timedelta, datetime
 
 
 def get_empty_slots(t, pt_range_z):
@@ -14,9 +15,10 @@ def get_empty_slots(t, pt_range_z):
         timeslots=t,
         from_datetime=pt_range_z.lower,
         to_datetime=pt_range_z.upper,
+        addOneSlot=True
     )
 
-
+#TODO nemelo by dojit k pridani time_slots parametru ?????
 def prepare_data(
     time_slots,
     observed_property,

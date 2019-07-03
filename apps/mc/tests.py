@@ -29,6 +29,8 @@ URL_TIMESERIES_TOPIC_NOT_EXISTS = '/api/v2/timeseries/?topic=' + TOPIC_NAME_NOT_
 URL_TIMESERIES_TIME_SLOTS_NOT_EXISTS = '/api/v2/timeseries/?topic=' + TOPIC_NAME + DATE_FROM + DATE_TO + TIME_SLOT_10H
 URL_TIMESERIES_TIME_SLOTS_24H = '/api/v2/timeseries/?topic=' + TOPIC_NAME + DATE_FROM + '&phenomenon_date_to=2018-06-17' + TIME_SLOT_24H
 
+URL_TIMESERIES_30 = '/api/v2/timeseries/?topic=' + TOPIC_NAME + DATE_FROM + '&phenomenon_date_to=2018-06-20' + '&time_slots=30_days_daily'
+URL_TIMESERIES_30 = '/api/v2/timeseries/?topic=drought&properties=air_temperature&phenomenon_date_from=2018-06-15&phenomenon_date_to=2018-06-16&time_slots=30_days_daily'
 
 DATE_FROM_ERROR = '&phenomenon_date_from=00000-06-15'
 DATE_TO_ERROR = '&phenomenon_date_to=XXX'
@@ -135,9 +137,139 @@ class RestApiTestCase(APITestCase):
             default_mean=am_process
         )
 
+
+
         import_time_slots_from_config()
         t = TimeSlots.objects.get(name_id='1_hour_slot')
+        t30 = TimeSlots.objects.get(name_id='30_days_daily')
+        #"["2019-05-01 23:00:00+00","2019-05-31 23:00:00+00")"
 
+        '''
+        "["2019-04-30 23:00:00+00","2019-05-30 23:00:00+00")"
+        "["2019-04-29 23:00:00+00","2019-05-29 23:00:00+00")"
+        "["2019-04-28 23:00:00+00","2019-05-28 23:00:00+00")"
+        "["2019-04-27 23:00:00+00","2019-05-27 23:00:00+00")"
+        "["2019-04-26 23:00:00+00","2019-05-26 23:00:00+00")"
+        '''
+
+        time_from = datetime(2018, 6, 10, 23, 00, 00)
+        Observation.objects.create(
+            observed_property=at_prop,
+            feature_of_interest=station_2,
+            procedure=am_process,
+            result=1.5,
+            phenomenon_time_range=DateTimeTZRange(
+                time_from,
+                time_from + timedelta(days=30),
+                time_range_boundary
+            ),
+            time_slots=t30
+        )
+
+        time_from = datetime(2018, 6, 11, 23, 00, 00)
+        Observation.objects.create(
+            observed_property=at_prop,
+            feature_of_interest=station_2,
+            procedure=am_process,
+            result=1.5,
+            phenomenon_time_range=DateTimeTZRange(
+                time_from,
+                time_from + timedelta(days=30),
+                time_range_boundary
+            ),
+            time_slots=t30
+        )
+
+        time_from = datetime(2018, 6, 12, 23, 00, 00)
+        Observation.objects.create(
+            observed_property=at_prop,
+            feature_of_interest=station_2,
+            procedure=am_process,
+            result=1.5,
+            phenomenon_time_range=DateTimeTZRange(
+                time_from,
+                time_from + timedelta(days=30),
+                time_range_boundary
+            ),
+            time_slots=t30
+        )
+
+        time_from = datetime(2018, 6, 13, 23, 00, 00)
+        Observation.objects.create(
+            observed_property=at_prop,
+            feature_of_interest=station_2,
+            procedure=am_process,
+            result=1.5,
+            phenomenon_time_range=DateTimeTZRange(
+                time_from,
+                time_from + timedelta(days=30),
+                time_range_boundary
+            ),
+            time_slots=t30
+        )
+
+        time_from = datetime(2018, 6, 14, 23, 00, 00)
+        Observation.objects.create(
+            observed_property=at_prop,
+            feature_of_interest=station_2,
+            procedure=am_process,
+            result=1.5,
+            phenomenon_time_range=DateTimeTZRange(
+                time_from,
+                time_from + timedelta(days=30),
+                time_range_boundary
+            ),
+            time_slots=t30
+        )
+
+        time_from = datetime(2018, 6, 15, 23, 00, 00)
+        Observation.objects.create(
+            observed_property=at_prop,
+            feature_of_interest=station_2,
+            procedure=am_process,
+            result=1.5,
+            phenomenon_time_range=DateTimeTZRange(
+                time_from,
+                time_from + timedelta(days=30),
+                time_range_boundary
+            ),
+            time_slots=t30
+        )
+
+
+        time_from = datetime(2018, 6, 16, 23, 00, 00)
+        Observation.objects.create(
+            observed_property=at_prop,
+            feature_of_interest=station_2,
+            procedure=am_process,
+            result=1.5,
+            phenomenon_time_range=DateTimeTZRange(
+                time_from,
+                time_from + timedelta(days=30),
+                time_range_boundary
+            ),
+            time_slots=t30
+        )
+
+        time_from = datetime(2018, 6, 17, 23, 00, 00)
+        Observation.objects.create(
+            observed_property=at_prop,
+            feature_of_interest=station_2,
+            procedure=am_process,
+            result=1.5,
+            phenomenon_time_range=DateTimeTZRange(
+                time_from,
+                time_from + timedelta(days=30),
+                time_range_boundary
+            ),
+            time_slots=t30
+        )
+
+
+        o = Observation.objects.filter(time_slots=t30)
+        for i in o:
+            print('RES: ', str(i.result) + " - " + str(i.phenomenon_time_range))
+            #print('RES: ', i.result)
 
         time_from = datetime(2018, 6, 15, 11, 00, 00)
         Observation.objects.create(
@@ -370,3 +502,25 @@ class RestApiTestCase(APITestCase):
     def test_timeseries_time_slots_not_exists(self):
         response = self.client.get(URL_TIMESERIES_TIME_SLOTS_NOT_EXISTS, format='json')
         self.assertEquals(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def TODO_____test_30_days(self):
+        response = self.client.get(URL_TIMESERIES_30)
+        data = response.data
+        print('DATA: ', data)
+        '''
+        fc = data['feature_collection']
+        features = fc['features']
+        props = data['properties']
+
+        for f in features:
+            properties = f.get('properties', None)
+            for p in props:
+                property = properties.get(p, None)
+                if property:
+                    property_values = property.get('values', None)
+                    property_anomaly_rates = property.get('anomaly_rates', None)
+                    print("JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJ")
+                    print(property_values)
+                break
+            break
+        '''
