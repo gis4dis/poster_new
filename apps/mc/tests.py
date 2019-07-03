@@ -29,8 +29,8 @@ URL_TIMESERIES_TOPIC_NOT_EXISTS = '/api/v2/timeseries/?topic=' + TOPIC_NAME_NOT_
 URL_TIMESERIES_TIME_SLOTS_NOT_EXISTS = '/api/v2/timeseries/?topic=' + TOPIC_NAME + DATE_FROM + DATE_TO + TIME_SLOT_10H
 URL_TIMESERIES_TIME_SLOTS_24H = '/api/v2/timeseries/?topic=' + TOPIC_NAME + DATE_FROM + '&phenomenon_date_to=2018-06-17' + TIME_SLOT_24H
 
-URL_TIMESERIES_30 = '/api/v2/timeseries/?topic=' + TOPIC_NAME + DATE_FROM + '&phenomenon_date_to=2018-06-20' + '&time_slots=30_days_daily'
-URL_TIMESERIES_30 = '/api/v2/timeseries/?topic=drought&properties=air_temperature&phenomenon_date_from=2018-06-15&phenomenon_date_to=2018-06-16&time_slots=30_days_daily'
+URL_TIMESERIES_30 = '/api/v2/timeseries/?topic=' + TOPIC_NAME + '&phenomenon_date_from=2018-06-16' + '&phenomenon_date_to=2018-06-16' + '&time_slots=30_days_daily'
+#URL_TIMESERIES_30 = '/api/v2/timeseries/?topic=drought&properties=air_temperature&phenomenon_date_from=2018-06-15&phenomenon_date_to=2018-06-16&time_slots=30_days_daily'
 
 DATE_FROM_ERROR = '&phenomenon_date_from=00000-06-15'
 DATE_TO_ERROR = '&phenomenon_date_to=XXX'
@@ -157,7 +157,7 @@ class RestApiTestCase(APITestCase):
             observed_property=at_prop,
             feature_of_interest=station_2,
             procedure=am_process,
-            result=1.5,
+            result=2,
             phenomenon_time_range=DateTimeTZRange(
                 time_from,
                 time_from + timedelta(days=30),
@@ -185,7 +185,7 @@ class RestApiTestCase(APITestCase):
             observed_property=at_prop,
             feature_of_interest=station_2,
             procedure=am_process,
-            result=1.5,
+            result=3.5,
             phenomenon_time_range=DateTimeTZRange(
                 time_from,
                 time_from + timedelta(days=30),
@@ -264,12 +264,6 @@ class RestApiTestCase(APITestCase):
             ),
             time_slots=t30
         )
-
-
-        o = Observation.objects.filter(time_slots=t30)
-        for i in o:
-            print('RES: ', str(i.result) + " - " + str(i.phenomenon_time_range))
-            #print('RES: ', i.result)
 
         time_from = datetime(2018, 6, 15, 11, 00, 00)
         Observation.objects.create(
@@ -503,11 +497,9 @@ class RestApiTestCase(APITestCase):
         response = self.client.get(URL_TIMESERIES_TIME_SLOTS_NOT_EXISTS, format='json')
         self.assertEquals(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def TODO_____test_30_days(self):
+    def test_30_days_timeslots(self):
         response = self.client.get(URL_TIMESERIES_30)
         data = response.data
-        print('DATA: ', data)
-        '''
         fc = data['feature_collection']
         features = fc['features']
         props = data['properties']
@@ -517,10 +509,7 @@ class RestApiTestCase(APITestCase):
             for p in props:
                 property = properties.get(p, None)
                 if property:
-                    property_values = property.get('values', None)
-                    property_anomaly_rates = property.get('anomaly_rates', None)
-                    print("JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJ")
-                    print(property_values)
+                    self.assertEquals(property.get('values', None), [2.000, 1.500, 3.500, 1.500, 1.500, 1.500])
                 break
             break
-        '''
+

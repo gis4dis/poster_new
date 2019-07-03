@@ -15,22 +15,24 @@ def get_empty_slots(t, pt_range_z):
         timeslots=t,
         from_datetime=pt_range_z.lower,
         to_datetime=pt_range_z.upper,
-        addOneSlot=True
+        range_to_limit=pt_range_z.upper,
+        range_from_limit=pt_range_z.lower
     )
 
-#TODO nemelo by dojit k pridani time_slots parametru ?????
 def prepare_data(
     time_slots,
     observed_property,
     observation_provider_model,
     feature_of_interest,
-    process
+    process,
+    t
 ):
     obss = observation_provider_model.objects.filter(
         observed_property=observed_property,
         procedure=process,
         feature_of_interest=feature_of_interest,
-        phenomenon_time_range__in=time_slots
+        phenomenon_time_range__in=time_slots,
+        time_slots=t
     )
 
     obs_reduced = {obs.phenomenon_time_range.lower.timestamp(): obs for obs in obss}
@@ -50,9 +52,11 @@ def prepare_data(
                 observed_property=observed_property,
                 feature_of_interest=feature_of_interest,
                 procedure=process,
-                result=None
+                result=None,
+                time_slots=t
             )
         observations.append(obs)
+
     return observations
 
 
@@ -114,7 +118,8 @@ def get_observations(
         observed_property,
         observation_provider_model,
         feature_of_interest,
-        process
+        process,
+        t
     )
 
 
