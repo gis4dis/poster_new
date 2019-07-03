@@ -253,11 +253,10 @@ def get_not_null_ranges(
     ).values(
         'feature_of_interest',
         'procedure',
-        'observed_property',
+        'observed_property'
     ).annotate(
         min_b=Min(Func(F('phenomenon_time_range'), function='LOWER')),
-        max_b=Max(Func(F('phenomenon_time_range'), function='LOWER'))
-        #max_b = Max(Func(F('phenomenon_time_range'), function='UPPER'))
+        max_b = Max(Func(F('phenomenon_time_range'), function='UPPER'))
     ).order_by('feature_of_interest')
 
     return pm
@@ -551,7 +550,6 @@ class TimeSeriesViewSet(viewsets.ViewSet):
                             get_observations=get_observations_func
                         )
 
-                        #TODO tady je problem s mesicnim intervalem
                         if time_slots is None:
                             time_slots = feature_time_slots
 
