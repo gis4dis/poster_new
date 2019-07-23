@@ -3,13 +3,8 @@ from django.contrib.gis.geos import GEOSGeometry
 from apps.common.models import Process
 from psycopg2.extras import DateTimeTZRange
 from datetime import timedelta, datetime
-from django.conf import settings
-
 from apps.common.models import Property, Topic, TimeSlots
-from apps.ad.anomaly_detection import get_timeseries
-from rest_framework import status
 from rest_framework.test import APITestCase
-import dateutil.parser
 import pytz
 from apps.mc.tasks import import_time_slots_from_config
 
