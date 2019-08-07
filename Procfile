@@ -6,3 +6,5 @@ celery: celery -A poster worker -l info
 celery_beat: celery -A poster beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
 
 jupyter-web: "jupyter nbextension enable --py widgetsnbextension; python manage.py shell_plus --notebook"
+
+release: python manage.py migrate
