@@ -106,7 +106,10 @@ AGGREGATED_OBSERVATIONS = [
     # dictionary representing set of aggregated observations
     {
 
-        'time_slots': ['24_hour_slot', '1_hour_slot', '30_days_daily'],
+        'time_slots': [
+            {'id': '1_hour_slot', 'process': 'measure'},
+            {'id': '24_hour_slot', 'referenceTimeSlots': '1_hour_slot'}
+        ],
 
         'observation_providers': {
 

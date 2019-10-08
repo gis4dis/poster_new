@@ -8,7 +8,7 @@ app_name = 'api-mc'
 router = DefaultRouter()
 router.register(r'properties', PropertyViewSet, base_name='properties')
 router.register(r'topics', TopicViewSet)
-router.register(r'time_slots', TimeSlotsViewSet)
+router.register(r'time_slots', TimeSlotsViewSet, base_name='time_slots')
 router.register(r'timeseries', TimeSeriesViewSet, base_name='timeseries')
 router.register(r'vgi_observations', VgiViewSet, base_name='vgi_observations')
 

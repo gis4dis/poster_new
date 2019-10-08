@@ -339,7 +339,7 @@ class UtilTestCase(APITestCase):
         f = SamplingFeature.objects.get(id_by_provider='11359201')
         ts = TimeSlots.objects.get(name_id='1_hour_slot')
 
-        data_getter, _ = get_observation_getter(
+        data_getter = get_observation_getter(
             topic=t,
             property=p,
             time_slots=ts,

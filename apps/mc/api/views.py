@@ -28,7 +28,7 @@ from apps.common.util.util import get_time_slots_by_id
 from datetime import timedelta
 from functools import partial
 
-from apps.mc.api.util import get_topics, get_property, import_models, get_observations, get_empty_slots
+from apps.mc.api.util import get_topics, get_property, import_models, get_observations, get_empty_slots, get_time_slots
 
 
 def parse_date_range(from_string, to_string):
@@ -154,9 +154,21 @@ class VgiViewSet(viewsets.ReadOnlyModelViewSet):
         return Response({"type": "FeatureCollection", "features": []})
 
 
-class TimeSlotsViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = TimeSlots.objects.all()
-    serializer_class = TimeSlotsSerializer
+class TimeSlotsViewSet(viewsets.ViewSet):
+    def list(self, request):
+        if 'topic' in request.GET:
+            topic_param = request.GET['topic']
+            topic = settings.APPLICATION_MC.TOPICS.get(topic_param)
+
+            if not topic or not Topic.objects.filter(name_id=topic_param).exists():
+                raise APIException('Topic not found.')
+
+            queryset = get_time_slots(Topic.objects.get(name_id=topic_param))
+
+            serializer = TimeSlotsSerializer(queryset, many=True)
+            return Response(serializer.data)
+        else:
+            raise APIException("Parameter topic is required")
 
 
 class TopicViewSet(viewsets.ReadOnlyModelViewSet):

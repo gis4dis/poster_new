@@ -17,7 +17,7 @@ from apps.common.aggregate import aggregate
 from apps.utils.time import UTC_P0100
 from django.utils import timezone
 from apps.common.util.util import get_time_slots_by_id
-
+from celery import chain, signature
 
 def import_models(path):
     provider_module = None
@@ -94,6 +94,7 @@ def process_feature(
     observed_property,
     id_by_provider,
     process_name_id,
+    ref_time_slots_id,
     aggregate_updated_since,
     ts_id
 ):
@@ -127,27 +128,53 @@ def process_feature(
     except TimeSlots.DoesNotExist:
         raise Exception('Time_slots with desired id not found.')
 
+    ref_ts = None
+    if ref_time_slots_id != None:
+        try:
+            ref_ts = TimeSlots.objects.get(name_id=ref_time_slots_id)
+        except TimeSlots.DoesNotExist:
+            raise Exception('REF TS ID - Time_slots with desired id not found.')
 
-
-    range_to_limit_observation = provider_model.objects.filter(
-        observed_property=prop_item,
-        procedure=process,
-        feature_of_interest=item
-    ).annotate(
-        field_upper=Func(F('phenomenon_time_range'), function='UPPER')
-    ).order_by('-field_upper')[:1]
+    if ref_ts == None:
+        range_to_limit_observation = provider_model.objects.filter(
+            observed_property=prop_item,
+            procedure=process,
+            feature_of_interest=item
+        ).annotate(
+            field_upper=Func(F('phenomenon_time_range'), function='UPPER')
+        ).order_by('-field_upper')[:1]
+    else:
+        range_to_limit_observation = provider_model.objects.filter(
+            observed_property=prop_item,
+            time_slots=ref_ts,
+            procedure=process_calc,
+            feature_of_interest=item
+        ).annotate(
+            field_upper=Func(F('phenomenon_time_range'), function='UPPER')
+        ).order_by('-field_upper')[:1]
 
     if not range_to_limit_observation:
         return
     range_to_limit = range_to_limit_observation[0].phenomenon_time_range.upper
 
-    range_from_limit_observation = provider_model.objects.filter(
-        observed_property=prop_item,
-        procedure=process,
-        feature_of_interest=item
-    ).annotate(
-        field_lower=Func(F('phenomenon_time_range'), function='LOWER')
-    ).order_by('field_lower')[:1]
+    if ref_ts == None:
+        range_from_limit_observation = provider_model.objects.filter(
+            observed_property=prop_item,
+            procedure=process,
+            feature_of_interest=item
+        ).annotate(
+            field_lower=Func(F('phenomenon_time_range'), function='LOWER')
+        ).order_by('field_lower')[:1]
+    else:
+        range_from_limit_observation = provider_model.objects.filter(
+            observed_property=prop_item,
+            time_slots=ref_ts,
+            procedure=process_calc,
+            feature_of_interest=item
+        ).annotate(
+            field_lower=Func(F('phenomenon_time_range'), function='LOWER')
+        ).order_by('field_lower')[:1]
+
     if not range_from_limit_observation:
         return
 
@@ -166,26 +193,48 @@ def process_feature(
         max_updated_at = aggregate_updated_since
 
     if max_updated_at:
-        from_observation = provider_model.objects.filter(
-            observed_property=prop_item,
-            procedure=process,
-            feature_of_interest=item,
-            updated_at__gte=max_updated_at
-        ).annotate(
-            field_lower=Func(F('phenomenon_time_range'), function='LOWER')
-        ).order_by('field_lower')[:1]
+        if ref_ts == None:
+            from_observation = provider_model.objects.filter(
+                observed_property=prop_item,
+                procedure=process,
+                feature_of_interest=item,
+                updated_at__gte=max_updated_at
+            ).annotate(
+                field_lower=Func(F('phenomenon_time_range'), function='LOWER')
+            ).order_by('field_lower')[:1]
+        else:
+            from_observation = provider_model.objects.filter(
+                observed_property=prop_item,
+                time_slots=ref_ts,
+                procedure=process_calc,
+                feature_of_interest=item,
+                updated_at__gte=max_updated_at
+            ).annotate(
+                field_lower=Func(F('phenomenon_time_range'), function='LOWER')
+            ).order_by('field_lower')[:1]
 
         if from_observation:
             from_value = from_observation[0].phenomenon_time_range.lower
 
-        to_observation = provider_model.objects.filter(
-            observed_property=prop_item,
-            procedure=process,
-            feature_of_interest=item,
-            updated_at__gte=max_updated_at
-        ).annotate(
-            field_upper=Func(F('phenomenon_time_range'), function='UPPER')
-        ).order_by('-field_upper')[:1]
+        if ref_ts == None:
+            to_observation = provider_model.objects.filter(
+                observed_property=prop_item,
+                procedure=process,
+                feature_of_interest=item,
+                updated_at__gte=max_updated_at
+            ).annotate(
+                field_upper=Func(F('phenomenon_time_range'), function='UPPER')
+            ).order_by('-field_upper')[:1]
+        else:
+            to_observation = provider_model.objects.filter(
+                observed_property=prop_item,
+                time_slots=ref_ts,
+                procedure=process_calc,
+                feature_of_interest=item,
+                updated_at__gte=max_updated_at
+            ).annotate(
+                field_upper=Func(F('phenomenon_time_range'), function='UPPER')
+            ).order_by('-field_upper')[:1]
 
         if to_observation:
             to_value = to_observation[0].phenomenon_time_range.upper
@@ -209,12 +258,21 @@ def process_feature(
         )
 
         for slot in result_slots:
-            observations = provider_model.objects.filter(
-                observed_property=prop_item,
-                procedure=process,
-                feature_of_interest=item,
-                phenomenon_time_range__contained_by=slot
-            )
+            if ref_ts == None:
+                observations = provider_model.objects.filter(
+                    observed_property=prop_item,
+                    procedure=process,
+                    feature_of_interest=item,
+                    phenomenon_time_range__contained_by=slot
+                )
+            else:
+                observations = provider_model.objects.filter(
+                    observed_property=prop_item,
+                    time_slots=ref_ts,
+                    procedure=process_calc,
+                    feature_of_interest=item,
+                    phenomenon_time_range__contained_by=slot
+                )
 
             ids_to_agg = []
             for obs in observations:
@@ -234,12 +292,14 @@ def process_feature(
 def compute_agg_provider(
         agg_provider,
         aggregate_updated_since,
-        ts_id,
+        time_slots_config,
         sync=False
 ):
     op_config = agg_provider.get('observation_providers')
     properties_config = agg_provider.get('properties')
     task_counter = 0
+
+
 
     for provider in op_config:
 
@@ -262,32 +322,50 @@ def compute_agg_provider(
 
             for p in process_methods:
                 for item in all_features:
-                    if sync == True:
-                        process_feature(
-                            process_method=p,
-                            provider=provider,
-                            observed_property=observed_property,
-                            id_by_provider=item.id_by_provider,
-                            process_name_id=op_config[provider]["process"],
-                            aggregate_updated_since=aggregate_updated_since,
-                            ts_id=ts_id
-                        )
-                    else:
-                        task_counter = task_counter + 1;
-                        process_feature.apply_async(kwargs={
-                            'process_method': p,
-                            'provider': provider,
-                            'observed_property': observed_property,
-                            'id_by_provider': item.id_by_provider,
-                            'process_name_id': op_config[provider]["process"],
-                            'aggregate_updated_since': aggregate_updated_since,
-                            'ts_id': ts_id
+
+                    subtask_kwargs = []
+                    for ts_config in time_slots_config:
+                        ref_ts = ts_config.get('referenceTimeSlots', None)
+                        if ts_config.get('process', None) != None and ref_ts != None:
+                            raise Exception(
+                                'TimeSlots configuration cannot contain process and referenceTimeSlots together.')
+
+                        try:
+                            ts_id = ts_config.get('id')
+                        except TimeSlots.DoesNotExist:
+                            raise Exception('Timeslots id no present in settings.')
+
+                        process_name_id = ts_config.get('process', op_config[provider]["process"])
+
+                        subtask_kwargs.append({
+                                'process_method': p,
+                                'provider': provider,
+                                'observed_property': observed_property,
+                                'id_by_provider': item.id_by_provider,
+                                'process_name_id': process_name_id,
+                                'ref_time_slots_id': ref_ts,
+                                'aggregate_updated_since': aggregate_updated_since,
+                                'ts_id': ts_id
                         })
+
+                    if sync == True:
+                        for kwargs in subtask_kwargs:
+                            process_feature(**kwargs)
+
+                    else:
+                        signatures = [
+                            process_feature.si(**kwargs)
+                            for kwargs in subtask_kwargs
+                        ]
+                        task_chain = chain(*signatures)
+                        task_chain.apply_async()
+
+                        task_counter += len(subtask_kwargs)
 
     return task_counter
 
-@task(name="mc.compute_aggregated_values")
-def compute_aggregated_values(aggregate_updated_since_datetime=None, sync=False):
+
+def compute_aggregated_values_internal(setting_obj, aggregate_updated_since_datetime=None, sync=False):
     aggregate_updated_since = None
     task_counter = 0
     if aggregate_updated_since_datetime:
@@ -300,7 +378,7 @@ def compute_aggregated_values(aggregate_updated_since_datetime=None, sync=False)
     if aggregate_updated_since and aggregate_updated_since.tzinfo is None:
         aggregate_updated_since = aggregate_updated_since.replace(tzinfo=UTC_P0100)
 
-    agg_providers_list = settings.APPLICATION_MC.AGGREGATED_OBSERVATIONS
+    agg_providers_list = setting_obj.AGGREGATED_OBSERVATIONS
 
     for agg_provider in agg_providers_list:
         try:
@@ -311,16 +389,35 @@ def compute_aggregated_values(aggregate_updated_since_datetime=None, sync=False)
         if not time_slots_config or len(time_slots_config) < 1:
             raise Exception('Provider time_slots configuration is empty.')
 
-        for ts_id in time_slots_config:
-            task_count = compute_agg_provider(
-                agg_provider,
-                aggregate_updated_since,
-                ts_id,
-                sync
-            )
-            task_counter = task_counter + task_count
+        timeslots_config_runs = {}
+        for ts_config in time_slots_config:
+            try:
+                ts_id = ts_config.get('id')
+            except TimeSlots.DoesNotExist:
+                raise Exception('Timeslots id no present in settings.')
+
+            if 'referenceTimeSlots' in ts_config:
+                ref_ts_id = ts_config.get('referenceTimeSlots')
+                if ref_ts_id not in timeslots_config_runs:
+                    raise Exception('ReferenceTimeSlots refers to uncalculated time_slots.')
+
+            timeslots_config_runs[ts_id] = True
+
+        task_count = compute_agg_provider(
+            agg_provider,
+            aggregate_updated_since,
+            time_slots_config,
+            sync
+        )
+
+        task_counter = task_counter + task_count
 
     return task_counter
+
+
+@task(name="mc.compute_aggregated_values")
+def compute_aggregated_values(aggregate_updated_since_datetime=None, sync=False):
+    return compute_aggregated_values_internal(settings.APPLICATION_MC, aggregate_updated_since_datetime, sync)
 
 
 @task(name="mc.import_time_slots_from_config")

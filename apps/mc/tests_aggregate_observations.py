@@ -9,7 +9,8 @@ from django.test import TestCase
 
 from apps.common.models import Property, TimeSlots
 import pytz
-from apps.mc.tasks import compute_aggregated_values, import_time_slots_from_config
+from apps.mc.tasks import compute_aggregated_values, import_time_slots_from_config, compute_aggregated_values_internal
+import apps.mc.settings_wrong_aggregations_order as settings_wrong
 
 utc = pytz.UTC
 
@@ -189,3 +190,6 @@ class AggregateObservationsTestCase(TestCase):
 
         self.assertEqual(result_list, AGG_VALUES_28_2018 + AGG_VALUES_29_2018)
         self.assertEqual(result_sum_list, AGG_SUM_VALUES_28_2018 + AGG_SUM_VALUES_29_2018)
+
+    def test_wrong_settings_order(self):
+        self.assertRaises(Exception, compute_aggregated_values_internal, settings_wrong, None, True)

@@ -21,42 +21,20 @@ TOPICS = {
 
                         # mandatory, name_id of common.Process
                         'process': 'apps.common.aggregate.arithmetic_mean'
-                    },
-
-                    'apps.processing.ozp.models.Observation': {
-                        'process': 'measure'
-                    },
-                    'apps.processing.pmo.models.WeatherObservation': {
-                        'process': 'apps.common.aggregate.arithmetic_mean'
-                    },
+                    }
                 },
             },
-            'precipitation': {
+            'ground_air_temperature': {
                 'observation_providers': {
                     'apps.processing.ala.models.Observation': {
-                        'process': 'apps.common.aggregate.arithmetic_mean',
-                    },
-                    'apps.processing.pmo.models.WeatherObservation': {
-                        'process': 'measure',
-                    }
-                }
-            },
-            'pm10': {
-                'observation_providers': {
-                    'apps.processing.ozp.models.Observation': {
-                        'process': 'measure',
-                    },
-                }
-            },
-            'stream_flow': {
-                'observation_providers': {
-                    'apps.processing.pmo.models.WatercourseObservation': {
                         'process': 'apps.common.aggregate.arithmetic_mean',
                     },
                 }
             }
         },
-        'time_slots': ['30_days_daily', '24_hour_slot', '1_hour_slot']
+
+        'time_slots': ['1_hour_slot', '24_hour_slot', '30_days_daily']
+
     },
     'floods': {
 
@@ -83,7 +61,6 @@ TOPICS = {
                     }
                 },
             },
-
             'ground_air_temperature': {
                 'observation_providers': {
                     'apps.processing.ala.models.Observation': {
@@ -92,8 +69,9 @@ TOPICS = {
                 }
             }
         },
+
         'time_slots': ['1_hour_slot', '24_hour_slot', '30_days_daily']
-    },
+    }
 
     # ...
 }
@@ -119,47 +97,29 @@ TIME_SLOTS = {
         'range_from': 'P0D',
         'range_to': 'P30D',
         'name': '30_days_daily',
-    },
+    }
 }
+
 
 AGGREGATED_OBSERVATIONS = [
 
     # dictionary representing set of aggregated observations
     {
 
-        # mandatory, definition of common.TimeSeries
-        #'time_slots': ['24_hour_slot', '1_hour_slot', '30_days_daily'],
-
         'time_slots': [
-            {'id': '1_hour_slot', 'process': 'measure'},
             {'id': '24_hour_slot', 'referenceTimeSlots': '1_hour_slot'},
+            {'id': '1_hour_slot', 'process': 'measure'}
         ],
 
-        # dictionary of observation providers
-        # mandatory, at least one provider must be specified
         'observation_providers': {
 
-            # path to Django model
-            # the model must be subclass of common.AbstractObservation
             'apps.processing.ala.models.Observation': {
 
-                # mandatory, name_id of common.Process
                 'process': 'measure',
 
-                # mandatory, list of name_ids of common.Property
-                'observed_properties': ['precipitation', 'air_temperature'],
+                'observed_properties': ['precipitation', 'air_temperature',
+                                        'ground_air_temperature'],
             },
-
-            'apps.processing.pmo.models.WatercourseObservation': {
-                'process': 'measure',
-                'observed_properties': ['stream_flow'],
-            },
-
-            'apps.processing.pmo.models.WeatherObservation': {
-                'process': 'measure',
-                'observed_properties': ['precipitation', 'air_temperature'],
-            },
-
         },
 
         'properties': {
