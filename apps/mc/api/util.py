@@ -316,6 +316,6 @@ def get_observation_getter(topic, property, time_slots, feature_of_interest, phe
         process,
         time_slots)
 
-    return get_observations_func
+    return get_observations_func, feature_time_slots
 
 
