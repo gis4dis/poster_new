@@ -128,11 +128,10 @@ AGGREGATED_OBSERVATIONS = [
     {
 
         # mandatory, definition of common.TimeSeries
-        #'time_slots': ['24_hour_slot', '1_hour_slot', '30_days_daily'],
-
         'time_slots': [
             {'id': '1_hour_slot', 'process': 'measure'},
             {'id': '24_hour_slot', 'referenceTimeSlots': '1_hour_slot'},
+            {'id': '30_days_daily', 'referenceTimeSlots': '24_hour_slot'},
         ],
 
         # dictionary of observation providers

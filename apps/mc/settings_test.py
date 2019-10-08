@@ -108,7 +108,8 @@ AGGREGATED_OBSERVATIONS = [
 
         'time_slots': [
             {'id': '1_hour_slot', 'process': 'measure'},
-            {'id': '24_hour_slot', 'referenceTimeSlots': '1_hour_slot'}
+            {'id': '24_hour_slot', 'referenceTimeSlots': '1_hour_slot'},
+            {'id': '30_days_daily', 'referenceTimeSlots': '24_hour_slot'},
         ],
 
         'observation_providers': {

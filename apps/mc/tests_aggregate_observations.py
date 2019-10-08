@@ -192,4 +192,4 @@ class AggregateObservationsTestCase(TestCase):
         self.assertEqual(result_sum_list, AGG_SUM_VALUES_28_2018 + AGG_SUM_VALUES_29_2018)
 
     def test_wrong_settings_order(self):
-        self.assertRaises(Exception, compute_aggregated_values_internal, settings_wrong, None, True)
+        self.assertRaises(Exception, compute_aggregated_values_internal, None, True, setting_obj=settings_wrong)

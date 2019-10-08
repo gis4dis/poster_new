@@ -365,7 +365,9 @@ def compute_agg_provider(
     return task_counter
 
 
-def compute_aggregated_values_internal(setting_obj, aggregate_updated_since_datetime=None, sync=False):
+def compute_aggregated_values_internal(aggregate_updated_since_datetime=None, sync=False, setting_obj=None):
+    if setting_obj is None:
+        setting_obj = settings.APPLICATION_MC
     aggregate_updated_since = None
     task_counter = 0
     if aggregate_updated_since_datetime:
@@ -417,7 +419,7 @@ def compute_aggregated_values_internal(setting_obj, aggregate_updated_since_date
 
 @task(name="mc.compute_aggregated_values")
 def compute_aggregated_values(aggregate_updated_since_datetime=None, sync=False):
-    return compute_aggregated_values_internal(settings.APPLICATION_MC, aggregate_updated_since_datetime, sync)
+    return compute_aggregated_values_internal(aggregate_updated_since_datetime, sync)
 
 
 @task(name="mc.import_time_slots_from_config")
