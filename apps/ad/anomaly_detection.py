@@ -2,6 +2,7 @@ from datetime import datetime
 from psycopg2.extras import DateTimeTZRange
 import numpy as np
 from luminol.anomaly_detector import AnomalyDetector
+from luminol.constants import DEFAULT_BITMAP_MOD_MINIMAL_POINTS_IN_WINDOWS, DEFAULT_BITMAP_MOD_LEADING_WINDOW_SIZE_PCT, DEFAULT_BITMAP_MOD_LAGGING_WINDOW_SIZE_PCT
 
 DEFAULT_ANOMALY_BREAKS = [80, 95]
 DEFAULT_VALUE_BREAKS = [3, 10, 90, 97]
@@ -18,7 +19,7 @@ def percentiles(
     vals = np.array([float(value) for value in values if value is not None])
 
     if vals.size == 0:
-        return []
+        return {}
 
     percentiles = np.percentile(vals, breaks)
 
@@ -88,7 +89,9 @@ def get_timeseries(
 
     property_values = observations_to_property_values(observations)
 
-    if len(observations) == 1:
+    VALID_VALUES_LENGTH = len(property_values) - property_values.count(None)
+
+    if VALID_VALUES_LENGTH == 1:
         return {
             'phenomenon_time_range': phenomenon_time_range,
             'property_values': property_values,
@@ -97,7 +100,21 @@ def get_timeseries(
             'property_anomaly_percentiles': {0: 0},
         }
 
-    property_value_percentiles = percentiles(property_values, value_breaks)
+    MINIMAL_POINTS_IN_WINDOWS = DEFAULT_BITMAP_MOD_MINIMAL_POINTS_IN_WINDOWS
+
+    if use_baseline:
+        MINIMAL_POINTS_IN_WINDOWS /= 2
+
+    # if VALID_VALUES_LENGTH <= MINIMAL_POINTS_IN_WINDOWS:
+    #     # warn the user?
+
+    WINDOW_LENGTH = detector_params["future_window_size"] if use_baseline else detector_params["future_window_size"] + detector_params["lag_window_size"]
+
+    if VALID_VALUES_LENGTH > MINIMAL_POINTS_IN_WINDOWS and VALID_VALUES_LENGTH <= WINDOW_LENGTH:
+        detector_params["future_window_size"] = int(max(DEFAULT_BITMAP_MOD_MINIMAL_POINTS_IN_WINDOWS / 2, VALID_VALUES_LENGTH * DEFAULT_BITMAP_MOD_LEADING_WINDOW_SIZE_PCT))
+        detector_params["lag_window_size"] = int(max(DEFAULT_BITMAP_MOD_MINIMAL_POINTS_IN_WINDOWS / 2, VALID_VALUES_LENGTH * DEFAULT_BITMAP_MOD_LAGGING_WINDOW_SIZE_PCT))
+
+    property_value_percentiles = percentiles(property_values[lower_ext:lower_ext+num_time_slots], value_breaks)
 
     if use_baseline and baseline_time_range is None:
         baseline_time_series = observations
@@ -105,7 +122,7 @@ def get_timeseries(
 
     obs_reduced = {obs.phenomenon_time_range.lower.timestamp(): obs.result for obs in observations}
 
-    if (len(property_values) - property_values.count(None) <= 1):
+    if (VALID_VALUES_LENGTH <= 1):
         property_anomaly_rates = [0 if value is not None else value for value in property_values[lower_ext:lower_ext+num_time_slots]]
 
         return {
