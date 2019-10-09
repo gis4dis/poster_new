@@ -28,6 +28,7 @@ services:
     command: python -m celery -A poster worker -l debug
     env_file: .env
     volumes:
+      - .:/code
       - poster-media-data:/media
     depends_on:
       - poster-web
