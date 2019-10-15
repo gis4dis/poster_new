@@ -47,7 +47,7 @@ django-widget-tweaks = "*"
 social-auth-app-django = "*"
 luminol = {editable = true, git = "https://github.com/gis4dis/luminol.git", ref = "ee3def88038c2a0d4e45d8a6ecfca1e48a6c1f88"}
 django-relativedelta = "*"
-pip = "==18.0"
+pip = "==19.3"
 django-debug-toolbar = "*"
 django-extensions = "*"
 ipywidgets = "*"
