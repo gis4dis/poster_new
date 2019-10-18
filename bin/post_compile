@@ -31,4 +31,7 @@ else
       mv $PROCFILE_NAME Procfile
 fi
 
-jupyter nbextension enable --py widgetsnbextension
+if [ "$PROCFILE_NAME" = "Procfile.jupyter" ]
+then
+    jupyter nbextension enable --py widgetsnbextension
+fi
