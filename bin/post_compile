@@ -30,3 +30,5 @@ else
       echo "\$PROCFILE_NAME is set to $PROCFILE_NAME switching Procfiles"
       mv $PROCFILE_NAME Procfile
 fi
+
+jupyter nbextension enable --py widgetsnbextension
