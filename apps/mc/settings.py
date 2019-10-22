@@ -53,7 +53,7 @@ TOPICS = {
                     'apps.processing.pmo.models.WatercourseObservation': {
                         'process': 'apps.common.aggregate.arithmetic_mean',
                     },
-                    'apps.processing.huaihe.models.SamplingFeature': {
+                    'apps.processing.huaihe.models.Observation': {
                         'process': 'apps.common.aggregate.arithmetic_mean',
                     },
                 }
