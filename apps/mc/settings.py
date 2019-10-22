@@ -167,6 +167,23 @@ AGGREGATED_OBSERVATIONS = [
                 'observed_properties': ['pm10', 'air_temperature'],
             },
 
+        },
+
+        'properties': {
+            'precipitation': [
+                'apps.common.aggregate.arithmetic_mean',
+                'apps.common.aggregate.sum_total'
+            ]
+        }
+    },
+
+    {
+        'time_slots': [
+            {'id': '24_hour_slot', 'process': 'measure'},
+            {'id': '30_days_daily', 'referenceTimeSlots': '24_hour_slot'},
+        ],
+
+        'observation_providers': {
             'apps.processing.huaihe.models.Observation': {
                 'process': 'measure',
                 'observed_properties': ['stream_flow', 'water_level'],
@@ -175,10 +192,6 @@ AGGREGATED_OBSERVATIONS = [
         },
 
         'properties': {
-            'precipitation': [
-                'apps.common.aggregate.arithmetic_mean',
-                'apps.common.aggregate.sum_total'
-            ]
         }
     },
 ]
