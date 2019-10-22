@@ -112,6 +112,7 @@ INSTALLED_APPS = [
     'apps.processing.o2',
     'apps.processing.rsd',
     'apps.processing.ozp',
+    'apps.processing.huaihe',
 
     'debug_toolbar',
     'django_extensions',

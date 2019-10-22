@@ -29,6 +29,9 @@ restart-celery:
 	docker-compose up --no-deps -d poster-celery_beat
 	docker-compose up --no-deps -d poster-flower
 
+bash:
+	docker-compose run --rm --no-deps poster-web bash
+
 stop-all-docker-containers:
 	docker stop $$(docker ps -q)
 

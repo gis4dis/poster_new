@@ -53,6 +53,9 @@ TOPICS = {
                     'apps.processing.pmo.models.WatercourseObservation': {
                         'process': 'apps.common.aggregate.arithmetic_mean',
                     },
+                    'apps.processing.huaihe.models.SamplingFeature': {
+                        'process': 'apps.common.aggregate.arithmetic_mean',
+                    },
                 }
             }
         },
@@ -162,6 +165,11 @@ AGGREGATED_OBSERVATIONS = [
             'apps.processing.ozp.models.Observation': {
                 'process': 'measure',
                 'observed_properties': ['pm10', 'air_temperature'],
+            },
+
+            'apps.processing.huaihe.models.Observation': {
+                'process': 'measure',
+                'observed_properties': ['stream_flow', 'water_level'],
             },
 
         },
