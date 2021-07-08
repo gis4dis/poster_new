@@ -12,6 +12,7 @@ monitoring_patterns = (
         url(r'pmo/', include('apps.processing.pmo.monitoring.urls')),
         url(r'o2/', include('apps.processing.o2.monitoring.urls')),
         url(r'ala/', include('apps.processing.ala.monitoring.urls')),
+        url(r'rsd/', include('apps.processing.rsd.monitoring.urls')),
     ]
     , 'monitoring')
 

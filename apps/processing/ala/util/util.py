@@ -96,19 +96,25 @@ station_interval = {
 # 9 prop * 4 per hour * 1 st =  36
 # 4 prop * 6 per hour * 1 st =  24
 # TOTAL 204 per hour * 24 = 4896 per day
-
-# TODO: count is 4896? not 5424. What am I missing?
-def count_observations(day):
+def count_observations(day, aggregated = False):
     time_from = day.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=UTC_P0100)
     time_to = day + timedelta(days=1)
     time_range_boundary = '[]' if time_from == time_to else '[)'
     pt_range = DateTimeTZRange(time_from, time_to, time_range_boundary)
-    process = Process.objects.get(name_id='measure')
+
+    measure_process_id = ['measure']
+    aggregated_process_id = ["avg_hour", "avg_day", "apps.common.aggregate.arithmetic_mean", "apps.common.aggregate.circle_mean", "apps.common.aggregate.sum_total"]
+
+    process_ids = measure_process_id
+    if aggregated:
+        process_ids = aggregated_process_id
+
+    process = Process.objects.filter(name_id__in=process_ids)
 
     return Observation.objects.filter(
         phenomenon_time_range__contained_by=pt_range,
         feature_of_interest__id_by_provider__in=[station[0] for station in stations_def],
-        procedure=process,
+        procedure__in=process,
     ).count()
 
 

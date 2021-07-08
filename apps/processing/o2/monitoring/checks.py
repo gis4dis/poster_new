@@ -1,6 +1,5 @@
 from datetime import timedelta, datetime, time
 from itertools import product
-
 from psycopg2._range import DateTimeTZRange, NumericRange
 
 from apps.common import models as common_models
@@ -11,6 +10,69 @@ from apps.processing.o2.util import util
 from apps.processing.o2.util.util import get_or_create_props, get_or_create_processes, get_or_create_common_props, \
     get_or_create_common_processes
 from apps.utils.time import UTC_P0100
+
+
+def check_previous_friday_import():
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=UTC_P0100)
+    check_date = (today
+                  - timedelta(days=today.weekday())
+                  + timedelta(days=4, weeks=-2))
+    response_dict = {}
+
+    daily_mobility_count = count_observations(check_date, MobilityObservation)
+    daily_socio_count = count_observations(check_date, SocioDemoObservation)
+
+    response_dict["MobilityObservation-measured-friday"] = daily_mobility_count
+    response_dict["SocioDemoObservation-measured-friday"] = daily_socio_count
+    response_dict["check_date"] = check_date
+
+    return response_dict
+
+
+def check_updated_at(hours):
+    now = datetime.now().replace(tzinfo=UTC_P0100)
+    response_dict = {}
+
+    daily_mobility_count = count_updated_at(now, MobilityObservation, hours)
+    daily_socio_count = count_updated_at(now, SocioDemoObservation, hours)
+
+    response_dict["MobilityObservation-updated-at"] = daily_mobility_count
+    response_dict["SocioDemoObservation-updated-at"] = daily_socio_count
+    response_dict["check_date"] = now
+    response_dict["checked_hours"] = hours
+
+    return response_dict
+
+
+def count_updated_at(daytime, model, hours):
+    time_from = daytime + timedelta(hours=hours)
+    time_to = daytime
+
+    return model.objects.filter(
+        updated_at__range=[time_from, time_to]
+    ).count()
+
+
+def count_observations(day, model, aggregated = False):
+    time_from = day.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=UTC_P0100)
+    time_to = day + timedelta(days=1)
+    time_range_boundary = '[]' if time_from == time_to else '[)'
+    pt_range = DateTimeTZRange(time_from, time_to, time_range_boundary)
+
+    measure_process_id = ['estimation']
+    aggregated_process_id = ["avg_hour", "avg_day", "apps.common.aggregate.arithmetic_mean", "apps.common.aggregate.circle_mean", "apps.common.aggregate.sum_total"]
+
+    process_ids = measure_process_id
+    if aggregated:
+        process_ids = aggregated_process_id
+
+    process = Process.objects.filter(name_id__in=process_ids)
+
+    return model.objects.filter(
+        phenomenon_time_range__contained_by=pt_range,
+        procedure__in=process,
+    ).count()
+
 
 
 def check_o2_mobility():
